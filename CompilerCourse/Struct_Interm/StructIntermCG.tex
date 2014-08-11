@@ -1,0 +1,22 @@
+\begin{frame}
+\frametitle{Structure of a Compiler}
+
+\begin{tabular}{ccc}
+Program text&&\\
+$\downarrow$ &&\\
+\framebox{Lexical analysis} && Binary machine code\\
+$\downarrow$ && $\uparrow$ \\
+Symbol sequence && \textcolor{gray}{\framebox{Assembly and linking}} \\
+$\downarrow$ && $\uparrow$ \\
+\framebox{Syntax analysis} && Ditto with named registers\\
+$\downarrow$ && $\uparrow$ \\
+Syntax tree && \framebox{Register allocation} \\
+$\downarrow$ && $\uparrow$ \\
+\framebox{Typecheck} && Symbolic machine code\\
+$\downarrow$ &&  $\uparrow$ \\
+Syntax tree  && \framebox{Machine code generation} \\
+$\downarrow$ && $\uparrow$ \\
+\red{\framebox{Intermediate code generation}} &$\longrightarrow$ & \red{Intermediate code}
+\end{tabular}
+
+\end{frame}

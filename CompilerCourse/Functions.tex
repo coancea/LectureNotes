@@ -1,0 +1,818 @@
+\documentclass{beamer}
+
+%% \documentclass[handout]{beamer}
+%% % use this with the [handout] option to create handouts for the audience
+%% \usepackage{pgfpages}
+%% \pgfpagesuselayout{2 on 1}[a4paper,border shrink=5mm]
+
+\mode<presentation>
+{
+  \usetheme{Diku}
+% set this to your preferences:
+  \setbeamercovered{invisible}
+%  \setbeamercovered{transparent}
+}
+
+\usepackage{graphicx}
+\usepackage{epic}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+\newcommand{\basetop}[1]{\vtop{\vskip-1ex\hbox{#1}}}
+\newcommand{\source}[1]{\let\thefootnote\relax\footnotetext{\scriptsize\textcolor{kugray1}{Source: #1}}}
+
+% for coloured code citation in text:
+\usepackage{fancyvrb}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%    code sections   %%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% code highlighting commands in own block
+\DefineVerbatimEnvironment{code}{Verbatim}{fontsize=\scriptsize}
+\DefineVerbatimEnvironment{icode}{Verbatim}{fontsize=\scriptsize}
+
+% Fancy code with color commands:
+\DefineVerbatimEnvironment{colorcode}%
+        {Verbatim}{fontsize=\scriptsize,commandchars=\\\{\}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%    some coloring    %%%%%%%%
+
+\definecolor{Red}{RGB}{220,50,10}
+\definecolor{Blue}{RGB}{0,51,102}
+\definecolor{Yellow}{RGB}{102,51,0}
+\definecolor{Orange}{RGB}{178,36,36}
+\definecolor{Grey}{RGB}{180,180,180}
+\definecolor{Green}{RGB}{20,120,20}
+\definecolor{Purple}{RGB}{160,50,100}
+\newcommand{\red}[1]{\textcolor{Red}{{#1}}}
+\newcommand{\blue}[1]{\textcolor{Blue}{{#1}}}
+\newcommand{\yellow}[1]{\textcolor{Yellow}{{#1}}}
+\newcommand{\orange}[1]{\textcolor{Orange}{{#1}}}
+\newcommand{\grey}[1]{\textcolor{Grey}{{#1}}}
+\newcommand{\green}[1]{\textcolor{Green}{{#1}}}
+\newcommand{\purple}[1]{\textcolor{Purple}{{#1}}}
+
+
+
+
+% use "DIKU green" from our color theme for \emph
+\renewcommand{\emph}[1]{\textcolor{structure}{#1}}
+% use some not-too-bright red for an \emp command
+\definecolor{DikuRed}{RGB}{130,50,32}
+\newcommand{\emp}[1]{\textcolor{DikuRed}{ #1}}
+\definecolor{CosGreen}{RGB}{10,100,70}
+\newcommand{\emphh}[1]{\textcolor{CosGreen}{ #1}}
+\definecolor{CosBlue}{RGB}{55,111,122}
+\newcommand{\emphb}[1]{\textcolor{CosBlue}{ #1}}
+\definecolor{CosRed}{RGB}{253,1,1}
+\newcommand{\empr}[1]{\textcolor{CosRed}{ #1}}
+
+\newcommand{\mymath}[1]{$ #1 $}
+\newcommand{\myindx}[1]{_{#1}}
+\newcommand{\myindu}[1]{^{#1}}
+
+\newcommand{\Fasto}{\textsc{Fasto}\xspace}
+
+
+%%%%%%%%%%%%%%%%%%%%
+
+\title[Functions]{Machine-Code Generation for Functions}
+
+\author[C.~Oancea]{Cosmin E. Oancea\\{\tt cosmin.oancea@diku.dk}}
+
+\institute{Department of Computer Science (DIKU)\\University of Copenhagen}
+
+
+\date[December 2012]{December 2012 Compiler Lecture Notes}
+
+
+\begin{document}
+
+\titleslide
+
+\input{Struct_Interm/StructFUN}
+
+\begin{frame}[fragile]
+	\tableofcontents
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Problem Statement and Terminology}
+
+\begin{frame}[fragile,t]
+   \frametitle{Problem Statement}
+
+\bigskip
+
+So far we have generated code for a single function:
+
+\bigskip
+
+\begin{itemize}
+
+    \item A function call is simply translated to a {\tt CALL} instruction.\bigskip
+
+    \item Register allocation is performed on a single-function body.\bigskip
+
+    \item We have assumed that all variables are local.\bigskip
+
+    \item We have assumed that the function's parameters and result are
+            passed via  named variables (symbolic registers).
+
+\end{itemize}
+
+\bigskip
+
+\emp{How to implement these in the machine language?}
+
+\end{frame}
+
+
+
+
+
+\begin{frame}[fragile,t]
+   \frametitle{Call Stack}
+
+\bigskip
+
+We use a stack to store the information that connects the 
+caller to the callee when a function call occurs:
+
+
+\bigskip
+
+\begin{itemize}
+
+    \item \emp{The return address} is stored on the stack.\bigskip
+
+    \item \emp{The registers' content} is stored on the stack before the call and
+            is restored (in registers) after the call.\bigskip
+
+    \item \emp{Parameters and return value} are also passed on the stack.\bigskip
+
+    \item \emp{Spilled variables} are also stored on the stack.\bigskip
+
+    \item \emp{Local arrays/records} are also typically allocated on the stack.\bigskip
+
+    \item Finally, \emp{non-local variables} can be allocated on the stack.
+
+\end{itemize}
+
+
+\end{frame}
+
+
+
+
+\begin{frame}[fragile,t]
+   \frametitle{Activation Records}
+
+\bigskip
+
+Each function allocates a piece of memory on the stack to keep
+associated information. This piece of storage is called 
+function's \emp{activation record} or \emp{frame}.
+
+
+\bigskip
+
+
+The hardware / operating system will dictate a calling convention
+that would standardize \emph{\em the layout of the activation record} 
+(so that we can call function across different compilers and languages).
+
+
+\bigskip
+
+
+However, some languages use extended calling conventions, such that
+only ''simple'' functions can be called from other languages, i.e.,
+foreign-function interface.
+
+\end{frame}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Caller-Saves Strategy}
+
+\begin{frame}[fragile]
+	\tableofcontents[currentsection]
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Caller-Saves: Activation-Record Layout}
+
+\emp{The caller does the work of saving and restoring registers.}
+
+\renewcommand{\arraystretch}{0.9}
+\begin{center}
+\begin{tabular}{r|p{17em}|}
+
+& $\cdots$ \\
+
+& Next activation records \\\hline
+
+ & Space for storing local variables for spill or preservation across
+function calls \\\cline{2-2}
+
+ & Remaining incoming parameters  \\\cline{2-2}
+
+ & First incoming parameter / return value  \\\cline{2-2}
+
+FP $\longrightarrow$ & Return address \\\hline
+& Previous activation records \\
+& $\cdots$
+\end{tabular}
+\end{center}
+
+
+\emp{The frame pointer, FP,} indicates the beginning of the activation
+record.\smallskip
+
+With this layout, \emph{the stack grows up in memory}.
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Prologue, Epilogue and Call Sequence}
+
+The code of a function starts with a \emph{\em prologue}, that (i) retrieves
+parameters from the stack and places them in variables (registers),
+and (ii) \alert{may} save the registers to be preserved.
+
+\bigskip
+
+The code of a function ends with an \blue{\em epilogue} that places the return
+value back on stack, and \alert{may} restore in registers the values saved in
+the {\em prologue}, and then returns control to the calling function.
+
+\bigskip
+
+A CALL instruction is replaced with a \emp{\em call sequence}, which places
+arguments on stack, saves the registers to be preserved, saves the
+return address, calls the function and moves the returned value from
+the stack to a variable (register), restores the saved registers.
+
+\bigskip
+
+What the {\em prologue, epilogue and call sequence} do exactly depends on
+the calling convention.
+
+
+\end{frame}
+
+
+
+\begin{frame}
+\frametitle{Caller-Saves: Prologue and Epilogue}
+
+Assume a function with name {\it function-name} and parameters
+$parameter_1 \ldots parameter_n$ . 
+The result is calculated in variable $result$.\smallskip
+
+We assume that the caller saves the registers: {\em caller-saves}.
+
+\vspace{1ex}
+
+\renewcommand{\arraystretch}{0.9}
+\[\begin{array}{rl}
+
+\mbox{Prologue} & \left\{
+{\begin{array}{l}
+{\tt LABEL}~\mbox{\it function-name} \\
+parameter_1 := M[FP+4] \\
+\cdots \\
+parameter_n := M[FP+4*n]
+\end{array}}
+\right. \\
+\\
+& ~~~\mbox{\it code for the function body} \\
+\\
+\mbox{Epilogue} & \left\{
+{\begin{array}{l}
+M[FP+4] := result \\
+{\tt GOTO}~M[FP]
+\end{array}}
+\right.
+\end{array}\]
+
+\vspace{1ex}
+
+We used here {\sc il} instructions, but typically, the prologue, epilogue
+and call sequence are introduced directly in machine language.
+
+\end{frame}
+
+
+
+
+\begin{frame}
+\frametitle{Caller-Saves: Call Sequence}
+
+Consider call $x := {\tt CALL}~f(a_1,\ldots,a_n)$.
+
+Assume that $RO \ldots Rk$ are used for local variables. 
+
+$framesize$ framesize is the {\em size} of the current activation record.
+
+
+\vspace{0.5ex}
+
+\renewcommand{\arraystretch}{0.87}
+\[\begin{array}{l}
+M[FP+4*m+4] := R0 \\
+\cdots \\
+M[FP+4*m+4*(k+1)] := Rk \\
+\emp{FP := FP + framesize} \\
+M[FP + 4] := a_1 \\
+\cdots \\
+M[FP + 4*n] := a_n \\
+M[FP] := returnaddress \\
+{\tt GOTO}~f \\
+{\tt LABEL}~returnaddress \\
+x := M[FP+4] \\
+\emp{FP := FP - framesize} \\
+R0 := M[FP+4*m+4] \\
+\cdots \\
+Rk := M[FP+4*m+4*(k+1)]
+\end{array}\]
+
+\end{frame}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Callee-Saves Strategy}
+
+\begin{frame}[fragile]
+	\tableofcontents[currentsection]
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Callee-Saves: Activation Records}
+
+\emph{The callee does all the work of saving and restoring registers.}
+
+
+\renewcommand{\arraystretch}{0.9}
+
+\begin{center}
+\begin{tabular}{r|p{17em}|}
+
+& $\cdots$ \\
+
+& Next activation records \\\hline
+
+ & Space for storing local variables for spill \\\cline{2-2}
+
+ & Space for storing registers that need to be preserved \\\cline{2-2}
+
+ & Remaining incoming parameters  \\\cline{2-2}
+
+ & First incoming parameter / return value  \\\cline{2-2}
+
+FP $\longrightarrow$ & Return address \\\hline
+& Previous activation records \\
+& $\cdots$
+\end{tabular}
+\end{center}
+
+\emp{Difference: separate space for {\em saved} and  {\em spill} registers.}
+
+\end{frame}
+
+
+
+\begin{frame}
+\frametitle{Callee-Saves: Prologue and Epilogue}
+
+\renewcommand{\arraystretch}{0.9}
+
+\[\begin{array}{rl}
+
+\mbox{Prologue} & \left\{
+{\begin{array}{l}
+{\tt LABEL}~\mbox{\it function-name} \\
+M[FP+4*n+4] := R0 \\
+\cdots \\
+M[FP+4*n+4*(k+1)] := Rk \\
+parameter_1 := M[FP+4] \\
+\cdots \\
+parameter_n := M[FP+4*n]
+\end{array}}
+\right. \\
+\\
+& ~~~\mbox{\it code for the function body} \\
+\\
+\mbox{Epilogue} & \left\{
+{\begin{array}{l}
+M[FP+4] := result \\
+R0 := M[FP+4*n+4] \\
+\cdots \\
+Rk := M[FP+4*n+4*(k+1)] \\
+{\tt GOTO}~M[FP]
+\end{array}}
+\right.
+\end{array}\]
+
+\emp{Difference: $R0\ldots Rk$ are saved in {\em prologue} and restored in {\em epilogue}.}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Callee-Saves: Call Sequence}
+
+\renewcommand{\arraystretch}{0.9}
+
+\[\begin{array}{l}
+FP := FP + framesize \\
+M[FP + 4] := a_1 \\
+\cdots \\
+M[FP + 4*n] := a_n \\
+M[FP] := returnaddress \\
+{\tt GOTO}~f \\
+{\tt LABEL}~returnaddress \\
+x := M[FP+4] \\
+FP := FP - framesize
+\end{array}\]
+
+\bigskip
+
+\emp{Difference: $R0\ldots Rk$ are not stored here.}
+
+\end{frame}
+
+
+
+\begin{frame}
+\frametitle{Caller-Saves vs. Callee-Saves}
+
+\bigskip
+
+So far, no big difference, but:\pause\bigskip
+
+\begin{itemize}
+
+\item \emph{Caller-saves} need only save the registers containing live variables.\smallskip
+
+\item \emp{Callee-saves} need only save the registers that are used in the
+            function's body.
+
+\end{itemize}
+
+\bigskip
+
+Can use a mixed strategy: some registers are \emph{caller-saves} and others
+are \emp{callee-saves}.
+
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Mixed Strategy (Caller + Callee Saves)}
+
+\begin{frame}[fragile]
+	\tableofcontents[currentsection]
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Use of Registers for Parameter Passing}
+
+If parameters are passed on the stack, they must be transfered from
+registers to stack and shortly after from stack to registers again.
+
+\bigskip
+
+The idea is to transfer some parameters and return value via registers:\smallskip
+
+\begin{itemize}
+
+\item Subset of caller-saves registers (typically $4$-$8$), used for parameter
+        transfer (to be rarely preserved across the function call).\smallskip
+
+\item A caller-saves register (often the same) is used for the result.\smallskip
+
+
+\item The remaining parameters are transferred on the stack as shown.\smallskip
+
+\item Often the return address is also transferred in a register.
+
+\end{itemize}
+
+\end{frame}
+
+
+
+\begin{frame}
+\frametitle{Typical Register Breakdown}
+
+With a $16$-register processor:
+
+\renewcommand{\arraystretch}{0.9}
+
+\begin{center}
+\begin{tabular}{|c|l|l|}\hline
+Register & Saved by & Used for \\\hline
+0 & caller & parameter 1 / result / local variable\\
+1-3 & caller & parameters 2 - 4 / local variables \\
+4-12 & callee & local variables \\
+13 & caller & temporary storage (unused by register allocator) \\
+14 & callee & FP \\
+15 & callee & return address \\\hline
+\end{tabular}
+\end{center}
+
+Typically there are more callee-saves than caller-saves registers.
+
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Activation Records for Register-Passed Parameters}
+
+\renewcommand{\arraystretch}{0.9}
+
+\begin{center}
+\begin{tabular}{r|p{17em}|}
+
+& $\cdots$ \\
+
+& Next activation records \\\hline
+
+ & Space for storing local variables for spill and for storing
+live variables allocated to caller-saves registers across function
+calls \\\cline{2-2}
+
+ & Space for storing callee-saves registers that are used in the body
+\\\cline{2-2}
+
+ & Incoming parameters in excess of four \\\cline{2-2}
+
+FP $\longrightarrow$ & Return address \\\hline & Previous activation
+records \\ & $\cdots$
+\end{tabular}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+
+
+\begin{frame}
+\frametitle{Prologue and Epilogue for Register-Passed Params}
+
+\renewcommand{\arraystretch}{0.85}
+
+\[\begin{array}{rl}
+\mbox{Prologue} & \left\{
+{\begin{array}{l}
+{\tt LABEL}~\mbox{\it function-name} \\
+M[FP+\mbox{\it offset}_{R4}] := R4 ~~~~~~~~\mbox{(if used in body)} \\
+\cdots \\
+M[FP+\mbox{\it offset}_{R12}] := R12 ~~~~~~\mbox{(if used in body)} \\
+M[FP] := R15 ~~~~~~\mbox{(if used in body)} \\
+parameter_1 := R0\\
+parameter_2 := R1\\
+parameter_3 := R2\\
+parameter_4 := R3\\
+parameter_5 := M[FP+4] \\
+\cdots \\
+parameter_n := M[FP+4*(n-4)]
+\end{array}}
+\right. \\[0.5ex]
+
+& ~~~~\mbox{\it code for the function body} \\[0.5ex]
+
+\mbox{Epilogue} & \left\{
+{\begin{array}{l}
+R0 := result \\
+R4 := M[FP+\mbox{\it offset}_{R4}] ~~~~~~~~\mbox{(if used in body)}  \\
+\cdots \\
+R12 := M[FP+\mbox{\it offset}_{R12}] ~~~~~~\mbox{(if used in body)} \\
+R15 := M[FP] ~~~~~~\mbox{(if used in body)} \\
+{\tt GOTO}~R15
+\end{array}}
+\right.
+\end{array}\]
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Calling Sequence for Register-Passed Parameters}
+
+\renewcommand{\arraystretch}{0.88}
+\[\begin{array}{l}
+M[FP+\mbox{\it offset}_{live_1}] := live_1  ~~~~~~\mbox{(if allocated to a
+caller-saves register)} \\
+\cdots \\
+M[FP+\mbox{\it offset}_{live_k}] := live_k ~~~~~~\mbox{(if allocated to a
+caller-saves register)} \\
+FP := FP + framesize \\
+R0 := a_1 \\
+\cdots \\
+R3 := a_4 \\
+M[FP + 4] := a_5 \\
+\cdots \\
+M[FP + 4*(n-4)] := a_n \\
+R15 := returnaddress \\
+{\tt GOTO}~f \\
+{\tt LABEL}~returnaddress \\
+x := R0 \\
+FP := FP - framesize \\
+live_1 := M[FP+\mbox{\it offset}_{live_1}] ~~~~~~\mbox{(if allocated to a
+caller-saves register)} \\
+\cdots \\
+live_k := M[FP+\mbox{\it offset}_{live_k}] ~~~~~~\mbox{(if allocated to a
+caller-saves register)}
+\end{array}\]
+
+\end{frame}
+
+
+
+\begin{frame}
+\frametitle{Interaction with Register Allocator}
+
+Register Allocation Can:\smallskip
+
+\begin{itemize}
+\item Preferably place the variables that are not live after the function
+        call in caller-saves registers (so that they are not saved).\smallskip
+
+\item Determine which caller-saves registers need to be saved by the
+        caller before the function call.\smallskip\pause
+
+\item Preferably place the variables that are live after the function call
+        in callee-saves registers (i.e., the called function might not save
+        them if those registers are not used).\smallskip
+
+\item Determine which callee-saves register need to be saved by the
+        callee, i.e., used in the callee's body.\smallskip
+
+
+\item Eliminate the unnecessary copying of data to and from local vars.
+
+\end{itemize}
+
+\bigskip
+
+The strategy used most often: \pause use caller-saves only for the variables
+that are not live after the function call, hence they need not be saved.\\\smallskip
+This simplifies \emp{the call sequence}.
+
+\end{frame}
+
+
+
+
+\begin{frame}
+\frametitle{Typical Function-Code-Generation Strategy}
+
+\begin{enumerate}
+
+\item Generate code for the {\em function's body} using \emph{symbolic registers}
+        for \emph{named variables}, but using \emp{numbered registers} in the call
+        sequence for \emp{parameters}.\smallskip
+
+\item  Add the prologue and epilogue code for moving \emp{numbered registers} 
+            (and stack locations), i.e., \emp{parameters}, into 
+            \emph{symbolic registers}, i.e., \emph{named variables} 
+            (and the opposite for the result).\smallskip
+
+
+\item Call the register allocator on this expanded function body.
+        \begin{itemize}
+            \item {\tt RegAlloc} is aware of the register division: caller vs callee saves,
+            \item Allocates live-across-call variables only in callee-saves regs,
+            \item Finds both the set of used callee-saves regs and of spilled vars.\smallskip
+        \end{itemize}
+
+\item Add to the prologue and epilogue the code for saving/restoring
+        the callee-saves regs that {\tt RegAlloc} said to have been used 
+        in the extended function body $+$ updating \textsc{FP} 
+        (including space for saved regs and spilled vars).\smallskip
+
+
+\item Add a function label at prologue's start and a jump at then end.
+
+\end{enumerate}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Global Variables, Call by Reference, Aliasing}
+
+\begin{frame}[fragile]
+	\tableofcontents[currentsection]
+\end{frame}
+
+\begin{frame}
+\frametitle{Treating Global Variables}
+
+\emp{\em Global variables}: allocated in memory at statically-known addresses.\smallskip
+
+Generated reading/writing code is similar to that of \emp{spilled variables}:\smallskip
+
+\[\begin{array}{l}
+x := M[address_{x}] \\
+\mbox{instruction that uses}~ x\\
+\\
+x := \mbox{the value to be stored in}~x \\
+M[address_{x}] := x
+\end{array}\]
+
+Various temporary variables (registers) may be used.\smallskip
+
+If a global variable is frequently used in a function, then copy-into a
+register in the beginning, and copy-out to memory at the end.\smallskip
+
+Copy-in/out across fun calls $+$ extra care in the presence of \emp{aliasing}.
+
+\bigskip
+
+\emph{Morale: Use global variables sparingly, local variables are preferred.}
+
+\end{frame}
+
+
+
+
+\begin{frame}
+\frametitle{Call By Reference}
+
+\bigskip
+
+The update to a function parameter is visible after the return point.
+Also applies to fields of records, unions, array's elements, etc.\bigskip
+
+
+Code generation typically treats such parameters as \emp{pointers}.\bigskip
+
+Call by reference give rise to  {\em aliasing}.\bigskip
+
+Morale: cheaper to update a variable via the returned value, rather than 
+passing it by reference: \emp{{\tt x~=~f(x);} is cheaper than {\tt f(\&x);}.}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Aliasing}
+
+\emp{\em Aliasing}: if the same memory location can be accessed via two
+different named variables.\bigskip
+
+
+This can occur when the language allows references, either:\smallskip
+
+\begin{itemize}
+
+\item between two references pointing to the same place,\smallskip
+
+\item between a global variable and a reference to this.\smallskip
+
+\end{itemize}
+
+\bigskip
+
+If two names may alias, then:\smallskip
+
+\begin{itemize}
+
+\item before reading from one save the other to memory,\smallskip
+
+\item if writing into one, then read the other again from memory
+        before using it.\smallskip
+
+\end{itemize}
+
+
+Can be sometimes optimized be means of {\em aliasing analysis}.
+
+
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\end{document}

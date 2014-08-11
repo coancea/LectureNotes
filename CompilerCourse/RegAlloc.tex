@@ -1,0 +1,1349 @@
+\documentclass{beamer}
+
+%% \documentclass[handout]{beamer}
+%% % use this with the [handout] option to create handouts for the audience
+%% \usepackage{pgfpages}
+%% \pgfpagesuselayout{2 on 1}[a4paper,border shrink=5mm]
+
+\mode<presentation>
+{
+  \usetheme{Diku}
+% set this to your preferences:
+  \setbeamercovered{invisible}
+%  \setbeamercovered{transparent}
+}
+
+\usepackage{graphicx}
+\usepackage{epic}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+\newcommand{\basetop}[1]{\vtop{\vskip-1ex\hbox{#1}}}
+\newcommand{\source}[1]{\let\thefootnote\relax\footnotetext{\scriptsize\textcolor{kugray1}{Source: #1}}}
+
+% for coloured code citation in text:
+\usepackage{fancyvrb}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%    code sections   %%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% code highlighting commands in own block
+\DefineVerbatimEnvironment{code}{Verbatim}{fontsize=\scriptsize}
+\DefineVerbatimEnvironment{icode}{Verbatim}{fontsize=\scriptsize}
+
+% Fancy code with color commands:
+\DefineVerbatimEnvironment{colorcode}%
+        {Verbatim}{fontsize=\scriptsize,commandchars=\\\{\}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%    some coloring    %%%%%%%%
+
+\definecolor{Red}{RGB}{220,50,10}
+\definecolor{Blue}{RGB}{0,51,102}
+\definecolor{Yellow}{RGB}{102,51,0}
+\definecolor{Orange}{RGB}{178,36,36}
+\definecolor{Grey}{RGB}{180,180,180}
+\definecolor{Green}{RGB}{20,120,20}
+\definecolor{Purple}{RGB}{160,50,100}
+\newcommand{\red}[1]{\textcolor{Red}{{#1}}}
+\newcommand{\blue}[1]{\textcolor{Blue}{{#1}}}
+\newcommand{\yellow}[1]{\textcolor{Yellow}{{#1}}}
+\newcommand{\orange}[1]{\textcolor{Orange}{{#1}}}
+\newcommand{\grey}[1]{\textcolor{Grey}{{#1}}}
+\newcommand{\green}[1]{\textcolor{Green}{{#1}}}
+\newcommand{\purple}[1]{\textcolor{Purple}{{#1}}}
+
+
+
+
+% use "DIKU green" from our color theme for \emph
+\renewcommand{\emph}[1]{\textcolor{structure}{#1}}
+% use some not-too-bright red for an \emp command
+\definecolor{DikuRed}{RGB}{130,50,32}
+\newcommand{\emp}[1]{\textcolor{DikuRed}{ #1}}
+\definecolor{CosGreen}{RGB}{10,100,70}
+\newcommand{\emphh}[1]{\textcolor{CosGreen}{ #1}}
+\definecolor{CosBlue}{RGB}{55,111,122}
+\newcommand{\emphb}[1]{\textcolor{CosBlue}{ #1}}
+\definecolor{CosRed}{RGB}{253,1,1}
+\newcommand{\empr}[1]{\textcolor{CosRed}{ #1}}
+
+\newcommand{\mymath}[1]{$ #1 $}
+\newcommand{\myindx}[1]{_{#1}}
+\newcommand{\myindu}[1]{^{#1}}
+
+\newcommand{\Fasto}{\textsc{Fasto}\xspace}
+
+
+%%%%%%%%%%%%%%%%%%%%
+
+\title[Register Allocation]{Liveness Analysis and Register Allocation}
+
+\author[C.~Oancea]{Cosmin E. Oancea\\{\tt cosmin.oancea@diku.dk}}
+
+\institute{Department of Computer Science (DIKU)\\University of Copenhagen}
+
+
+\date[December 2012]{December 2012 Compiler Lecture Notes}
+
+
+\begin{document}
+
+\titleslide
+
+\input{Struct_Interm/StructRA}
+
+\begin{frame}[fragile]
+	\tableofcontents
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Problem Statement and Intuition}
+
+\begin{frame}[fragile,t]
+   \frametitle{Problem Statement}
+
+\bigskip
+
+
+\emp{Processors have a limited number of registers:}
+
+\bigskip
+
+\begin{description}
+
+    \item[X86:] $8$ (integer) registers,\bigskip
+
+    \item[ARM:] $16$ (integer) registers,\bigskip
+
+    \item[MIPS:] $31$ (integer) registers.\bigskip
+
+\end{description}
+
+In addition, $3-4$ special-purpose registers (can't hold variables).
+
+\bigskip
+\bigskip
+
+\emp{Solution:}
+
+\bigskip
+
+\begin{itemize}
+
+    \item Whenever possible, let several variables share the same register,\bigskip
+
+    \item If there are still variables that cannot be mapped to a register,
+            store them in memory.
+
+\end{itemize}
+
+
+\end{frame}
+
+
+
+\begin{frame}[fragile,t]
+   \frametitle{Where to Implement Register Allocation?}
+
+\bigskip
+
+Two possibilities: at {\sc il} or at machine-language level. \alert{Pro/Cons?}
+
+\pause
+\smallskip
+
+\begin{itemize}
+
+    \item \emph{{\sc il} Level:}
+
+        \begin{description}
+            \item[+] \emph{Can be shared between multiple architectures
+                    (parameterized on the number of registers).}
+            \item[-] \emp{Translation to machine code can introduce/remove
+                        intermediate results.}
+        \end{description}\bigskip
+
+
+    \item \emph{Machine-Code Level:}
+
+        \begin{description}
+            \item[+] \emph{Accurate, near-optimal mapping.}
+            \item[-] \emp{Implemented for every architecture, no code reuse.}
+        \end{description}
+
+\end{itemize}
+
+\bigskip
+
+We show register allocation at {\sc il} level. Similar for machine code.
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+   \frametitle{Register-Allocation Scope}
+
+\bigskip
+
+\begin{itemize}
+
+    \item \emph{Code Sequence Without Jumps:}
+
+        \begin{description}
+            \item[+] \emph{Simple.}
+            \item[-] \emp{A variable is saved to memory when jumps occur.}
+        \end{description}\bigskip
+
+
+    \item \emph{Procedure/Function Level:}
+
+        \begin{description}
+            \item[+] \emph{Variables can still be in registers even across jumps.}
+            \item[-] \emp{A bit more complicated.}
+            \item[-] \emp{Variables saved to memory before function calls.}
+        \end{description}
+
+    \item \emph{Module/Program Level:}
+
+        \begin{description}
+            \item[+] \emph{Sometimes variables can still be hold in registers
+                        across function calls (but not always: recursion).}
+            \item[-] \emp{More complicated alg of higher time complexity. }
+        \end{description}
+
+\end{itemize}
+
+\bigskip
+
+Most compilers implement register allocation at function level.
+
+\end{frame}
+
+
+
+\begin{frame}[fragile,t]
+   \frametitle{When Can Two Variables Share a Register?}
+
+\bigskip
+\bigskip
+
+\begin{description}
+
+    \item[Intuition:] Two vars can share a register if the two variables do not
+                        have overlapping \emph{periods of use}.\bigskip
+
+    \item[Period of Use:] From var's first assignment to the last use of the var.
+                A variable can have several periods of use (\emph{\em live ranges}).\bigskip
+
+    \item[{\em Liveness:}] If a variable's value may be used on the continuation of
+                            an execution path passing through program point \textsc{PP},
+                            then the variable is {\em live} at \textsc{PP}. 
+                            Otherwise: {\em dead} at \textsc{PP}.\bigskip
+
+\end{description}
+
+\end{frame}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Liveness-Analysis Preliminaries: {\em Succ}, {\em Gen} and {\em Kill} Sets}
+
+\begin{frame}[fragile]
+	\tableofcontents[currentsection]
+\end{frame}
+
+\begin{frame}[fragile,t]
+   \frametitle{Prioritized Rules for Liveness}
+
+\bigskip
+
+\begin{description}
+
+    \item[1)] If a variable, {\sc var}, is used, i.e., its value, in an instruction, I,
+                \emph{then {\sc var} is {\em live} at the entry of I.}\bigskip
+
+    \item[2)] If {\sc var} is assigned a value in instruction I (and \emph{1)} does not
+                apply) \emp{then {\sc var} is {\em dead} at the entry of I.}\bigskip
+
+    \item[3)] If {\sc var} is {\em live} at the end of instruction I \emph{then it is live at the
+                entry of I} (unless \emph{2)} applies).\bigskip
+
+    \item[4)] \emph{A {\sc var} is {\em live} at the end of instruction I} $\Leftrightarrow$ 
+                \emp{{\sc var} is {\em live} at the
+                entry of any instructions that may be executed
+                immediately after I}, i.e., \blue{immediate successors of I.}
+
+\end{description}
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+   \frametitle{Liveness-Analysis Concepts}
+
+\bigskip
+
+\emp{We number program instructions from $1$ to $n$.}\smallskip
+
+For each instruction we define the following sets:\smallskip
+
+\begin{description}
+
+    \item[\mbox{$succ[i]$:}] The instructions (numbers) that can possibly be
+                executed immediately after instruction (numbered) $i$.\smallskip
+
+
+    \item[\mbox{$gen[i]$:}] The set of variables whose values are read by instruct $i$.\smallskip
+
+
+    \item[\mbox{$kill[i]$:}]The set of variables that are overwritten by instruction $i$.\smallskip
+
+
+    \item[\mbox{$in[i]$:}] The set of variables that are live at the entry of instrct $i$.\smallskip
+
+
+    \item[\mbox{$out[i]$:}] The set of variables that are live at the end of instruct $i$.
+
+\end{description}
+
+\bigskip
+
+\emp{In the end, what we need is $out[i]$ for all instructions.}
+
+\end{frame}
+
+
+
+\begin{frame}[fragile,t]
+   \frametitle{Immediate Successors}
+
+\bigskip
+\bigskip
+
+\begin{itemize}
+
+    \item \emp{$succ[i] = \{i+1\}$} unless instruction $i$ is a {\sc goto}, an
+            {\sc if-then-else}, or the last instruction of the program.\bigskip
+
+
+    \item \emp{succ[i] = \{j\}}, if instruction $i$ is: {\tt GOTO $l$}\\
+            {\tt~~~~~~~~~~}and instruction $j$ is: {\tt LABEL $l$}.\bigskip
+
+
+    \item \emp{succ[i] = \{j, k\}}, if instruction $i$ is {\tt IF c THEN $l_1$ ELSE $l_2$},
+            instruction $j$ is {\tt LABEL $l_1$} , and instruction $k$ is {\tt LABEL $l_2$}.\bigskip
+
+
+    \item If $n$ denotes the last instruction of the program, and $n$ is not a
+                {\sc goto} or an {\sc if-then-else} instruction, then \emp{$succ[n] = \emptyset$}.
+
+\end{itemize}
+
+\end{frame}
+
+
+
+\begin{frame}
+\frametitle{Rules for Constructing $gen$ and $kill$ Sets}
+
+\renewcommand{\arraystretch}{0.9}
+\begin{center}
+\begin{tabular}{|l|c|c|} \hline
+Instruction $i$ & $gen[i]$ & $kill[i]$ \\\hline\hline
+${\tt LABEL}~l$ & $\emptyset$ & $\emptyset$ \\\hline
+$x := y$ & $\{y\}$ & $\{x\}$ \\\hline
+$x := k$ & $\emptyset$ & $\{x\}$ \\\hline
+$x := {\bf unop}~y$ & $\{y\}$ & $\{x\}$ \\\hline
+$x := {\bf unop}~k$ & $\emptyset$ & $\{x\}$ \\\hline
+$x := y~{\bf binop}~z$ & $\{y,z\}$ & $\{x\}$ \\\hline
+$x := y~{\bf binop}~k$ & $\{y\}$ & $\{x\}$ \\\hline
+$x := M[y]$ & $\{y\}$ & $\{x\}$ \\\hline
+$x := M[k]$ & $\emptyset$ & $\{x\}$ \\\hline
+$M[x]$ := y& $\{x,y\}$ & $\emptyset$ \\\hline
+$M[k]$ := y& $\{y\}$ & $\emptyset$ \\\hline
+${\tt GOTO}~l$ & $\emptyset$ & $\emptyset$ \\\hline
+${\tt IF}~x~{\bf relop}~y~{\tt THEN}~l_t~{\tt ELSE}~l_f$ & $\{x,y\}$ & $\emptyset$ \\\hline
+$x := {\tt CALL}~f(args)$ & $args$ & $\{x\}$ \\\hline
+\end{tabular}
+\end{center}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Liveness Analysis: Equations, Fix-Point Iteration and Interference}
+
+\begin{frame}[fragile]
+	\tableofcontents[currentsection]
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Data-Flow Equations for Liveness Analysis}
+
+\alert{Let us model the Liveness Rules via Equations!} (Go Back 4 Slides!)
+
+\bigskip
+
+
+\begin{eqnarray}
+in[i] & = & gen[i] \cup (out[i] \setminus kill[i]) \label{in-eq}\\
+out[i] & = & \bigcup_{j \in succ[i]} in[j] \label{out-eq}
+\end{eqnarray}
+
+\bigskip
+
+\emp{Exception:} If $succ[i] = \emptyset$, then $out[i]$ is the set of variables that
+appear in the function's result.
+
+\bigskip
+
+\emp{The (recursive) equations are solved by iterating to a fix point:}\\
+$in[i]$ and $out[i]$ are initialized to $\emptyset$, and iterate until no changes occur.
+
+\bigskip
+
+\alert{Why does it converge?}
+
+\bigskip
+
+For fast(er) convergence: compute $out[i]$ before $in[i]$ and $in[i+1]$
+before $out[i]$, respectively (i.e., \emp{backward flow analysis}).
+
+\end{frame}
+
+
+
+\begin{frame}
+\frametitle{Imperative-Fibonacci Example}
+
+\renewcommand{\arraystretch}{0.9}
+
+\[\begin{array}{rl}\\
+\scriptstyle{1:} & a := 0 \\
+\scriptstyle{2:} & b := 1 \\
+\scriptstyle{3:} & z := 0 \\
+\scriptstyle{4:} & {\tt LABEL}~loop \\
+\scriptstyle{5:} & {\tt IF}~n=z~{\tt THEN}~end~{\tt ELSE}~body \\
+\scriptstyle{6:} & {\tt LABEL}~body \\
+\scriptstyle{7:} & t := a+b \\
+\scriptstyle{8:} & a := b \\
+\scriptstyle{9:} & b := t \\
+\scriptstyle{10:} & n := n-1 \\
+\scriptstyle{11:} & z := 0 \\
+\scriptstyle{12:} & {\tt GOTO}~loop \\
+\scriptstyle{13:} & {\tt LABEL}~end
+\end{array}\begin{array}{|r|c|c|c|} \hline
+i & succ[i] & gen[i] & kill[i] \\\hline\hline
+1 & 2 &  & a \\\hline
+2 & 3 &  & b \\\hline
+3 & 4 &  & z \\\hline
+4 & 5 &  &  \\\hline
+5 & 6,13 & n,z & \\\hline
+6 & 7 &  &  \\\hline
+7 & 8 & a,b & t \\\hline
+8 & 9 & b & a \\\hline
+9 & 10 & t & b \\\hline
+10 & 11 & n & n \\\hline
+11 & 12 &  & z \\\hline
+12 & 4 &  &  \\\hline
+13 &  &  &  \\\hline
+\end{array}\]
+
+Computes {\tt a = fib(n)}. \alert{What would it mean if $in[1] \not= \{n\}$?}
+
+\end{frame}
+
+
+
+\begin{frame}
+\frametitle{Fix-Point Iteration for the Fibonacci Example}
+
+\renewcommand{\arraystretch}{0.9}
+
+\newlength{\savesep}
+\setlength{\savesep}{\arraycolsep}
+\setlength{\arraycolsep}{0.65ex}
+
+\[\hspace{-4ex}\begin{array}{|r||c|c||c|c||c|c||c|c|} \hline
+    & \multicolumn{2}{c||}{\mbox{Initial}}
+    & \multicolumn{2}{c||}{\mbox{Iteration 1}}
+    & \multicolumn{2}{c||}{\mbox{Iteration 2}}
+    & \multicolumn{2}{c|}{\mbox{Iteration 3}} \\
+
+$i$ & out[i] & in[i] &
+      out[i] & in[i] &
+      out[i] & in[i] &
+      out[i] & in[i] \\\hline\hline
+
+1   &        &       &
+      n,a    & n     &
+      n,a    & n     &
+      n,a    & n     \\\hline
+
+2   &        &       &
+      n,a,b  & n,a   &
+      n,a,b  & n,a   &
+      n,a,b  & n,a   \\\hline
+
+3   &        &       &
+     n,z,a,b & n,a,b &
+     n,z,a,b & n,a,b &
+     n,z,a,b & n,a,b \\\hline
+
+4   &        &       &
+     n,z,a,b & n,z,a,b &
+     n,z,a,b & n,z,a,b &
+     n,z,a,b & n,z,a,b \\\hline
+
+5   &        &       &
+     a,b,n   & n,z,a,b &
+     a,b,n   & n,z,a,b &
+     a,b,n   & n,z,a,b \\\hline
+
+6   &        &       &
+     a,b,n   & a,b,n &
+     a,b,n   & a,b,n &
+     a,b,n   & a,b,n \\\hline
+
+7   &        &       &
+     b,t,n   & a,b,n &
+     b,t,n   & a,b,n &
+     b,t,n   & a,b,n \\\hline
+
+8   &        &       &
+     t,n     & b,t,n &
+     t,n,a   & b,t,n &
+     t,n,a   & b,t,n \\\hline
+
+9   &        &       &
+     n       & t,n   &
+     n,a,b   & t,n,a &
+     n,a,b   & t,n,a \\\hline
+
+10   &        &       &
+              & n     &
+     n,a,b    & n,a,b &
+     n,a,b    & n,a,b \\\hline
+
+11   &        &       &
+              &       &
+     n,z,a,b  & n,a,b &
+     n,z,a,b  & n,a,b \\\hline
+
+12   &        &       &
+              &       &
+     n,z,a,b  & n,z,a,b &
+     n,z,a,b  & n,z,a,b \\\hline
+
+13   &        &       &
+       a      & a     &
+       a      & a     &
+       a      & a     \\\hline
+\end{array}\]
+
+\setlength{\arraycolsep}{\savesep}
+
+Usually less than $5$ iterations.
+
+\end{frame}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Register-Allocation via Coloring: Interference Graph \& Intuitive Alg}
+
+\begin{frame}[fragile]
+	\tableofcontents[currentsection]
+\end{frame}
+
+\begin{frame}
+\frametitle{Interference}
+
+\emph{Definition:} Variable $x$ \emp{interferes} with variable $y$, 
+if there is an instruction numbered $i$ such that:
+
+\smallskip
+
+\begin{enumerate}
+\item Instruction $i$ is not of the form $x := y$ \emp{and}
+\item $x \in kill[i]$ \emp{and}
+\item $y \in out[i]$  \emp{and}
+\item $x \neq y$
+\end{enumerate}
+
+\bigskip
+
+\emph{Two variables can share the same register iff they do not interfere
+with each other!}
+
+\end{frame}
+
+
+
+
+\begin{frame}
+\frametitle{Interference for the Fibonacci Example}
+
+\renewcommand{\arraystretch}{0.9}
+\[\begin{array}{|r|c|c|} \hline
+\mbox{Instruction} & \mbox{Left-hand side} & \mbox{Interferes with} \\\hline
+1 & a & n \\\hline
+2 & b & n,a \\\hline
+3 & z & n,a,b \\\hline
+7 & t & b,n \\\hline
+8 & a & t,n \\\hline
+9 & b & n,a \\\hline
+10 & n & a,b \\\hline
+11 & z & n,a,b \\\hline
+\end{array}\]
+
+We can draw interference as a graph:
+
+\begin{center}
+\setlength{\unitlength}{0.5ex}
+
+\begin{picture}(70,35)(0,7)
+
+\put(20,20){\makebox(0,0){$a$}}
+
+\put(23,18){\line(2,-1){14}}
+
+\put(23,20){\line(1,0){34}}
+
+\put(23,21.5){\line(3,2){24.5}}
+
+\put(22,23){\line(1,2){7}}
+
+\put(40,10){\makebox(0,0){$b$}}
+
+\put(39,13){\line(-1,3){8}}
+
+\put(43,12){\line(2,1){14}}
+
+\put(41,13){\line(1,3){8}}
+
+\put(60,20){\makebox(0,0){$n$}}
+
+\put(58,23){\line(-1,2){7}}
+
+\put(57,21.5){\line(-3,2){24.5}}
+
+\put(30,40){\makebox(0,0){$z$}}
+
+\put(50,40){\makebox(0,0){$t$}}
+
+\end{picture}
+\end{center}
+
+\end{frame}
+
+
+
+
+\begin{frame}
+\frametitle{Register Allocation By Graph Coloring}
+
+\emp{Two variables connected by an edge in the interference graph cannot
+share a register!}
+
+\bigskip
+
+
+Idea: Associate variables with register numbers such that:
+
+\smallskip
+
+\begin{enumerate}
+
+\item Two variables connected by an edge receive different numbers.
+
+\item Numbers represent the (limited number of) hardware registers.
+
+\end{enumerate}
+
+\bigskip
+
+Equivalent to {\em graph-coloring problem}: color each node with one of $n$
+(available) colors, such that any two neighbors are colored differently.
+
+\bigskip
+
+Since \emp{graph coloring is NP complete}, we use a \emph{heuristic method} that
+gives good results in most cases.
+
+\bigskip
+
+\emph{{\em Idea:} a node with less-than-$n$ neighbors can always be colored.\\
+Eliminate such nodes from the graph and solve recursively!}
+
+\end{frame}
+
+
+
+\begin{frame}
+\frametitle{Farvning af eksempelgraf med fire farver}
+
+\only<1>{
+\begin{center}
+\setlength{\unitlength}{0.7ex}
+
+\begin{picture}(70,35)(0,7)
+\put(20,20){\makebox(0,0){$a$}}
+\put(23,18){\line(2,-1){14}}
+\put(23,20){\line(1,0){34}}
+\put(23,21.5){\line(3,2){24.5}}
+\put(22,23){\line(1,2){7}}
+\put(40,10){\makebox(0,0){$b$}}
+\put(39,13){\line(-1,3){8}}
+\put(43,12){\line(2,1){14}}
+\put(41,13){\line(1,3){8}}
+\put(60,20){\makebox(0,0){$n$}}
+\put(58,23){\line(-1,2){7}}
+\put(57,21.5){\line(-3,2){24.5}}
+\put(30,40){\makebox(0,0){$z$}}
+\put(50,40){\makebox(0,0){$t$}}
+\end{picture}
+\end{center}
+
+\emp{$z$ and $t$ have only three neighbors so they can wait.}
+
+}
+%
+\only<2>{
+\begin{center}
+\setlength{\unitlength}{0.7ex}
+
+\begin{picture}(70,35)(0,7)
+\put(20,20){\makebox(0,0){$a$}}
+\put(23,18){\line(2,-1){14}}
+\put(23,20){\line(1,0){34}}
+\put(23,21.5){\line(3,2){24.5}}
+\put(22,23){\line(1,2){7}}
+\put(40,10){\makebox(0,0){$b$}}
+\put(39,13){\line(-1,3){8}}
+\put(43,12){\line(2,1){14}}
+\put(41,13){\line(1,3){8}}
+\put(60,20){\makebox(0,0){$n$}}
+\put(58,23){\line(-1,2){7}}
+\put(57,21.5){\line(-3,2){24.5}}
+\put(30,40){\makebox(0,0){\textcolor{lightgray}{$z$}}}
+\put(50,40){\makebox(0,0){\textcolor{lightgray}{$t$}}}
+\end{picture}
+\end{center}
+
+\emph{The remaining three nodes can now be given different colors!}
+
+}
+%
+\only<3>{
+\begin{center}
+\setlength{\unitlength}{0.7ex}
+
+\begin{picture}(70,35)(0,7)
+\put(20,20){\makebox(0,0){\textcolor{red}{$a$}}}
+\put(23,18){\line(2,-1){14}}
+\put(23,20){\line(1,0){34}}
+\put(23,21.5){\line(3,2){24.5}}
+\put(22,23){\line(1,2){7}}
+\put(40,10){\makebox(0,0){\textcolor{green}{$b$}}}
+\put(39,13){\line(-1,3){8}}
+\put(43,12){\line(2,1){14}}
+\put(41,13){\line(1,3){8}}
+\put(60,20){\makebox(0,0){\textcolor{blue}{$n$}}}
+\put(58,23){\line(-1,2){7}}
+\put(57,21.5){\line(-3,2){24.5}}
+\put(30,40){\makebox(0,0){\textcolor{lightgray}{$z$}}}
+\put(50,40){\makebox(0,0){\textcolor{lightgray}{$t$}}}
+\end{picture}
+\end{center}
+
+\emph{$z$ and $t$ can now be given a different color!}
+
+}
+%
+\only<4>{
+\begin{center}
+\setlength{\unitlength}{0.7ex}
+
+\begin{picture}(70,35)(0,7)
+\put(20,20){\makebox(0,0){\textcolor{red}{$a$}}}
+\put(23,18){\line(2,-1){14}}
+\put(23,20){\line(1,0){34}}
+\put(23,21.5){\line(3,2){24.5}}
+\put(22,23){\line(1,2){7}}
+\put(40,10){\makebox(0,0){\textcolor{green}{$b$}}}
+\put(39,13){\line(-1,3){8}}
+\put(43,12){\line(2,1){14}}
+\put(41,13){\line(1,3){8}}
+\put(60,20){\makebox(0,0){\textcolor{blue}{$n$}}}
+\put(58,23){\line(-1,2){7}}
+\put(57,21.5){\line(-3,2){24.5}}
+\put(30,40){\makebox(0,0){\textcolor{yellow}{$z$}}}
+\put(50,40){\makebox(0,0){\textcolor{yellow}{$t$}}}
+\end{picture}
+\end{center}
+
+\emp{But what if we only have three colors (registers) available?}
+
+}
+
+\end{frame}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Register-Allocation via Coloring: Improved Algorithm with Spilling}
+
+\begin{frame}[fragile]
+	\tableofcontents[currentsection]
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Improved Algorithm}
+
+\begin{description}
+
+\item[{\bf Initialization}:] Start with an empty stack.\bigskip
+
+\item[{\bf Simplify}:] 1) If there is a node with less than $n$ edges (neighbors):
+        (i) place it on the stack together with the list of edges,
+        and (ii) remove it and its edges from the graph.\smallskip
+
+
+  2. \blue{If there is no node with less than $n$ neighbors, pick
+        any node and do as above.}\smallskip
+
+
+  3. Continue until the graph is empty. If so go to {\em select}.\bigskip
+
+
+\item[{\bf Select}:] 1. Take a node and its neighbor list from the stack.\smallskip
+
+    2. \emph{If possible, color it differently than its neighbor's.}\smallskip
+
+    3. If not possible, select the node for {\em spilling} (fails).\smallskip
+
+    4. Repeat until stack is empty.
+
+\end{description}
+
+\bigskip
+
+The quality of the result depends on \blue{(i) how to chose a node in
+{\em simplify}}, and \emph{(ii) how to chose a color in {\em select}}.
+
+\end{frame}
+
+
+
+
+
+\begin{frame}
+\frametitle{Example: Coloring the Graph with Three Colors}
+
+
+\only<1>{
+\begin{center}
+\setlength{\unitlength}{0.7ex}
+
+\begin{picture}(80,35)(0,7)
+\put(20,20){\makebox(0,0){$a$}}
+\put(23,18){\line(2,-1){14}}
+\put(23,20){\line(1,0){34}}
+\put(23,21.5){\line(3,2){24.5}}
+\put(22,23){\line(1,2){7}}
+\put(40,10){\makebox(0,0){$b$}}
+\put(39,13){\line(-1,3){8}}
+\put(43,12){\line(2,1){14}}
+\put(41,13){\line(1,3){8}}
+\put(60,20){\makebox(0,0){$n$}}
+\put(58,23){\line(-1,2){7}}
+\put(57,21.5){\line(-3,2){24.5}}
+\put(30,40){\makebox(0,0){$z$}}
+\put(50,40){\makebox(0,0){$t$}}
+\end{picture}
+
+No node has $< 3$ neighbors, hence choose arbitrarily, say $z$.
+
+
+\renewcommand{\arraystretch}{0.9}
+\[\begin{array}{|c|c|c|}\hline
+\mbox{Node} & \mbox{Neighbours} & \mbox{Colour} \\\hline
+ & &  \\
+ & &  \\
+ & &  \\
+ & &  \\
+z & a,b,n & \\\hline
+\end{array}\]
+\end{center}
+}
+%
+\only<2>{
+\begin{center}
+\setlength{\unitlength}{0.7ex}
+
+\begin{picture}(80,35)(0,7)
+\put(20,20){\makebox(0,0){$a$}}
+\put(23,18){\line(2,-1){14}}
+\put(23,20){\line(1,0){34}}
+\put(23,21.5){\line(3,2){24.5}}
+\put(22,23){\line(1,2){7}}
+\put(40,10){\makebox(0,0){$b$}}
+\put(39,13){\line(-1,3){8}}
+\put(43,12){\line(2,1){14}}
+\put(41,13){\line(1,3){8}}
+\put(60,20){\makebox(0,0){$n$}}
+\put(58,23){\line(-1,2){7}}
+\put(57,21.5){\line(-3,2){24.5}}
+\put(30,40){\makebox(0,0){\textcolor{lightgray}{$z$}}}
+\put(50,40){\makebox(0,0){$t$}}
+\end{picture}
+
+There are still no nodes with $< 3$ neighbors, hence we chose $a$.
+
+
+\renewcommand{\arraystretch}{0.9}
+\[\begin{array}{|c|c|c|}\hline
+\mbox{Node} & \mbox{Neighbours} & \mbox{Colour} \\\hline
+ & &  \\
+ & &  \\
+ & &  \\
+a & b,n,t &  \\
+z & a,b,n &  \\\hline
+\end{array}\]
+\end{center}
+}
+%
+\only<3>{
+\begin{center}
+\setlength{\unitlength}{0.7ex}
+
+\begin{picture}(80,35)(0,7)
+\put(20,20){\makebox(0,0){\textcolor{lightgray}{$a$}}}
+\put(23,18){\line(2,-1){14}}
+\put(23,20){\line(1,0){34}}
+\put(23,21.5){\line(3,2){24.5}}
+\put(22,23){\line(1,2){7}}
+\put(40,10){\makebox(0,0){$b$}}
+\put(39,13){\line(-1,3){8}}
+\put(43,12){\line(2,1){14}}
+\put(41,13){\line(1,3){8}}
+\put(60,20){\makebox(0,0){$n$}}
+\put(58,23){\line(-1,2){7}}
+\put(57,21.5){\line(-3,2){24.5}}
+\put(30,40){\makebox(0,0){\textcolor{lightgray}{$z$}}}
+\put(50,40){\makebox(0,0){$t$}}
+\end{picture}
+
+$b$ has two neighbors, so we choose it.
+
+
+\renewcommand{\arraystretch}{0.9}
+\[\begin{array}{|c|c|c|}\hline
+\mbox{Node} & \mbox{Neighbours} & \mbox{Colour} \\\hline
+ & &  \\
+ & &  \\
+b & t,n & \\
+a & b,n,t & \\
+z & a,b,n & \\\hline
+\end{array}\]
+\end{center}
+}
+%
+\only<4>{
+\begin{center}
+\setlength{\unitlength}{0.7ex}
+
+\begin{picture}(80,35)(0,7)
+\put(20,20){\makebox(0,0){\textcolor{lightgray}{$a$}}}
+\put(23,18){\line(2,-1){14}}
+\put(23,20){\line(1,0){34}}
+\put(23,21.5){\line(3,2){24.5}}
+\put(22,23){\line(1,2){7}}
+\put(40,10){\makebox(0,0){\textcolor{lightgray}{$b$}}}
+\put(39,13){\line(-1,3){8}}
+\put(43,12){\line(2,1){14}}
+\put(41,13){\line(1,3){8}}
+\put(60,20){\makebox(0,0){$n$}}
+\put(58,23){\line(-1,2){7}}
+\put(57,21.5){\line(-3,2){24.5}}
+\put(30,40){\makebox(0,0){\textcolor{lightgray}{$z$}}}
+\put(50,40){\makebox(0,0){$t$}}
+\end{picture}
+
+Finally, choose $t$ and $n$.
+
+
+\renewcommand{\arraystretch}{0.9}
+\[\begin{array}{|c|c|c|}\hline
+\mbox{Node} & \mbox{Neighbours} & \mbox{Colour} \\\hline
+n & &  \\
+t & n &  \\
+b & t,n &  \\
+a & b,n,t &  \\
+z & a,b,n &  \\\hline
+\end{array}\]
+\end{center}
+}
+%
+\only<5>{
+\begin{center}
+\setlength{\unitlength}{0.7ex}
+
+\begin{picture}(80,35)(0,7)
+\put(20,20){\makebox(0,0){\textcolor{lightgray}{$a$}}}
+\put(23,18){\line(2,-1){14}}
+\put(23,20){\line(1,0){34}}
+\put(23,21.5){\line(3,2){24.5}}
+\put(22,23){\line(1,2){7}}
+\put(40,10){\makebox(0,0){\textcolor{lightgray}{$b$}}}
+\put(39,13){\line(-1,3){8}}
+\put(43,12){\line(2,1){14}}
+\put(41,13){\line(1,3){8}}
+\put(60,20){\makebox(0,0){\textcolor{lightgray}{$n$}}}
+\put(58,23){\line(-1,2){7}}
+\put(57,21.5){\line(-3,2){24.5}}
+\put(30,40){\makebox(0,0){\textcolor{lightgray}{$z$}}}
+\put(50,40){\makebox(0,0){\textcolor{lightgray}{$t$}}}
+\end{picture}
+
+$n$ has no neighbors so we can choose \textcolor{red}{1}.
+
+\renewcommand{\arraystretch}{0.9}
+\[\begin{array}{|c|c|c|}\hline
+\mbox{Node} & \mbox{Neighbours} & \mbox{Colour} \\\hline
+n & & \textcolor{red}{1} \\
+t & n &  \\
+b & t,n &  \\
+a & b,n,t &  \\
+z & a,b,n &  \\\hline
+\end{array}\]
+\end{center}
+}
+%
+\only<6>{
+\begin{center}
+\setlength{\unitlength}{0.7ex}
+
+\begin{picture}(80,35)(0,7)
+\put(20,20){\makebox(0,0){\textcolor{lightgray}{$a$}}}
+\put(23,18){\line(2,-1){14}}
+\put(23,20){\line(1,0){34}}
+\put(23,21.5){\line(3,2){24.5}}
+\put(22,23){\line(1,2){7}}
+\put(40,10){\makebox(0,0){\textcolor{lightgray}{$b$}}}
+\put(39,13){\line(-1,3){8}}
+\put(43,12){\line(2,1){14}}
+\put(41,13){\line(1,3){8}}
+\put(60,20){\makebox(0,0){\textcolor{red}{$n$}}}
+\put(58,23){\line(-1,2){7}}
+\put(57,21.5){\line(-3,2){24.5}}
+\put(30,40){\makebox(0,0){\textcolor{lightgray}{$z$}}}
+\put(50,40){\makebox(0,0){\textcolor{lightgray}{$t$}}}
+\end{picture}
+
+$t$ only has $n$ as neighbor, so we can color it with \textcolor{blue}{2}.
+
+\renewcommand{\arraystretch}{0.9}
+\[\begin{array}{|c|c|c|}\hline
+\mbox{Node} & \mbox{Neighbours} & \mbox{Colour} \\\hline
+n & & \textcolor{red}{1} \\
+t & n & \textcolor{blue}{2} \\
+b & t,n & \\
+a & b,n,t & \\
+z & a,b,n &  \\\hline
+\end{array}\]
+\end{center}
+}
+%
+\only<7>{
+\begin{center}
+\setlength{\unitlength}{0.7ex}
+
+\begin{picture}(80,35)(0,7)
+\put(20,20){\makebox(0,0){\textcolor{lightgray}{$a$}}}
+\put(23,18){\line(2,-1){14}}
+\put(23,20){\line(1,0){34}}
+\put(23,21.5){\line(3,2){24.5}}
+\put(22,23){\line(1,2){7}}
+\put(40,10){\makebox(0,0){\textcolor{lightgray}{$b$}}}
+\put(39,13){\line(-1,3){8}}
+\put(43,12){\line(2,1){14}}
+\put(41,13){\line(1,3){8}}
+\put(60,20){\makebox(0,0){\textcolor{red}{$n$}}}
+\put(58,23){\line(-1,2){7}}
+\put(57,21.5){\line(-3,2){24.5}}
+\put(30,40){\makebox(0,0){\textcolor{lightgray}{$z$}}}
+\put(50,40){\makebox(0,0){\textcolor{blue}{$t$}}}
+\end{picture}
+
+$b$ has $t$ and $n$ as neighbors, hence we can color it with  \textcolor{green}{3}.
+
+\renewcommand{\arraystretch}{0.9}
+\[\begin{array}{|c|c|c|}\hline
+\mbox{Node} & \mbox{Neighbours} & \mbox{Colour} \\\hline
+n & & \textcolor{red}{1} \\
+t & n & \textcolor{blue}{2} \\
+b & t,n & \textcolor{green}{3} \\
+a & b,n,t &  \\
+z & a,b,n & \\\hline
+\end{array}\]
+\end{center}
+}
+%
+\only<8>{
+\begin{center}
+\setlength{\unitlength}{0.7ex}
+
+\begin{picture}(80,35)(0,7)
+\put(20,20){\makebox(0,0){\textcolor{lightgray}{$a$}}}
+\put(23,18){\line(2,-1){14}}
+\put(23,20){\line(1,0){34}}
+\put(23,21.5){\line(3,2){24.5}}
+\put(22,23){\line(1,2){7}}
+\put(40,10){\makebox(0,0){\textcolor{green}{$b$}}}
+\put(39,13){\line(-1,3){8}}
+\put(43,12){\line(2,1){14}}
+\put(41,13){\line(1,3){8}}
+\put(60,20){\makebox(0,0){\textcolor{red}{$n$}}}
+\put(58,23){\line(-1,2){7}}
+\put(57,21.5){\line(-3,2){24.5}}
+\put(30,40){\makebox(0,0){\textcolor{lightgray}{$z$}}}
+\put(50,40){\makebox(0,0){\textcolor{blue}{$t$}}}
+\end{picture}
+
+$a$ has three differently-colored neighbors, so it is marked as {\em spill}.
+
+\renewcommand{\arraystretch}{0.9}
+\[\begin{array}{|c|c|c|}\hline
+\mbox{Node} & \mbox{Neighbours} & \mbox{Colour} \\\hline
+n & & \textcolor{red}{1} \\
+t & n & \textcolor{blue}{2} \\
+b & t,n & \textcolor{green}{3} \\
+a & b,n,t & spill \\
+z & a,b,n &  \\\hline
+\end{array}\]
+\end{center}
+}
+%
+\only<9>{
+\begin{center}
+\setlength{\unitlength}{0.7ex}
+
+\begin{picture}(80,35)(0,7)
+\put(20,20){\makebox(0,0){\textcolor{lightgray}{$a$}}}
+\put(23,18){\line(2,-1){14}}
+\put(23,20){\line(1,0){34}}
+\put(23,21.5){\line(3,2){24.5}}
+\put(22,23){\line(1,2){7}}
+\put(40,10){\makebox(0,0){\textcolor{green}{$b$}}}
+\put(39,13){\line(-1,3){8}}
+\put(43,12){\line(2,1){14}}
+\put(41,13){\line(1,3){8}}
+\put(60,20){\makebox(0,0){\textcolor{red}{$n$}}}
+\put(58,23){\line(-1,2){7}}
+\put(57,21.5){\line(-3,2){24.5}}
+\put(30,40){\makebox(0,0){\textcolor{lightgray}{$z$}}}
+\put(50,40){\makebox(0,0){\textcolor{blue}{$t$}}}
+\end{picture}
+
+$z$ has colors \textcolor{red}{1} and \textcolor{green}{3} as neighbors, 
+hence we can color it with \textcolor{blue}{2}.
+
+\renewcommand{\arraystretch}{0.9}
+\[\begin{array}{|c|c|c|}\hline
+\mbox{Node} & \mbox{Neighbours} & \mbox{Colour} \\\hline
+n & & \textcolor{red}{1} \\
+t & n & \textcolor{blue}{2} \\
+b & t,n & \textcolor{green}{3} \\
+a & b,n,t & spill \\
+z & a,b,n & \textcolor{blue}{2} \\\hline
+\end{array}\]
+\end{center}
+}
+%
+\only<10>{
+\begin{center}
+\setlength{\unitlength}{0.7ex}
+
+\begin{picture}(80,35)(0,7)
+\put(20,20){\makebox(0,0){\textcolor{lightgray}{$a$}}}
+\put(23,18){\line(2,-1){14}}
+\put(23,20){\line(1,0){34}}
+\put(23,21.5){\line(3,2){24.5}}
+\put(22,23){\line(1,2){7}}
+\put(40,10){\makebox(0,0){\textcolor{green}{$b$}}}
+\put(39,13){\line(-1,3){8}}
+\put(43,12){\line(2,1){14}}
+\put(41,13){\line(1,3){8}}
+\put(60,20){\makebox(0,0){\textcolor{red}{$n$}}}
+\put(58,23){\line(-1,2){7}}
+\put(57,21.5){\line(-3,2){24.5}}
+\put(30,40){\makebox(0,0){\textcolor{blue}{$z$}}}
+\put(50,40){\makebox(0,0){\textcolor{blue}{$t$}}}
+\end{picture}
+
+We are now finished, but we need to {\em spill} $a$.
+
+\renewcommand{\arraystretch}{0.9}
+\[\begin{array}{|c|c|c|}\hline
+\mbox{Node} & \mbox{Neighbours} & \mbox{Colour} \\\hline
+n & & \textcolor{red}{1} \\
+t & n & \textcolor{blue}{2} \\
+b & t,n & \textcolor{green}{3} \\
+a & b,n,t & spill \\
+z & a,b,n & \textcolor{blue}{2} \\\hline
+\end{array}\]
+\end{center}
+}
+%
+
+\end{frame}
+
+
+
+
+\begin{frame}
+\frametitle{Spilling}
+
+\emph{\em Spilling} means that some variables will reside in memory (except for
+brief periods). \emp{For each spilled variable:}\smallskip
+
+
+\begin{itemize}
+
+\item[1)] Select a memory address $addr_x$ , where the value of $x$ will reside.\smallskip
+
+\item[2)] If instruction $i$ uses $x$, then rename it locally to $x_i$.\smallskip
+
+\item[3)] Before an instruction $i$, which reads $x_i$, insert $x_i~:=~M[addr_x]$.\smallskip
+
+\item[4)] After an instruction $i$, which updates $x_i$, insert  $M[addr_x]~:=~x_i$.\smallskip
+
+\item[5)] If $x$ is alive at the beginning of the function/program, insert
+            $M[addr_x]~:=~x$ before the first instruction of the function.\smallskip
+
+\item[6)] If $x$ is live at the end of the program/function, insert
+            $x~:=~M[addr_x]$ after the last instruction of the function.
+
+\end{itemize}
+
+\bigskip
+
+\emp{Finally, perform liveness analysis and register allocation again.}
+
+\end{frame}
+
+
+
+
+
+\begin{frame}
+\frametitle{Spilling Example}
+
+\renewcommand{\arraystretch}{0.9}
+\[\begin{array}{rl}
+\scriptstyle{1:} & a_1 := 0 \\
+                 & M[address_a] := a_1 \\
+\scriptstyle{2:} & b := 1 \\
+\scriptstyle{3:} & z := 0 \\
+\scriptstyle{4:} & {\tt LABEL}~loop \\
+\scriptstyle{5:} & {\tt IF}~n=z~{\tt THEN}~end~{\tt ELSE}~body \\
+\scriptstyle{6:} & {\tt LABEL}~body \\
+                 & a_7 := M[address_a] \\
+\scriptstyle{7:} & t := a_7+b \\
+\scriptstyle{8:} & a_8 := b \\
+                 & M[address_a] := a_8 \\
+\scriptstyle{9:} & b := t \\
+\scriptstyle{10:} & n := n-1 \\
+\scriptstyle{11:} & z := 0 \\
+\scriptstyle{12:} & {\tt GOTO}~loop \\
+\scriptstyle{13:} & {\tt LABEL}~end \\
+                  & a := M[address_a] \\
+\end{array}\]
+
+
+\end{frame}
+
+
+
+\begin{frame}
+\frametitle{After Spilling, Coloring Succeeds!}
+
+\begin{center}
+\setlength{\unitlength}{0.7ex}
+
+\begin{picture}(70,40)(0,7)
+\put(20,30){\makebox(0,0){\textcolor{green}{$a_8$}}}
+\put(23,28.5){\line(4,-1){34}}
+\put(23,31.5){\line(3,1){24.5}}
+\put(20,20){\makebox(0,0){\textcolor{blue}{$a_1$}}}
+\put(23,20){\line(1,0){34}}
+\put(20,10){\makebox(0,0){\textcolor{blue}{$a_7$}}}
+\put(23,10){\line(1,0){14}}
+\put(23,11.5){\line(4,1){34}}
+\put(40,10){\makebox(0,0){\textcolor{green}{$b$}}}
+\put(39,13){\line(-1,3){8}}
+\put(43,12){\line(2,1){14}}
+\put(41,13){\line(1,3){8}}
+\put(60,20){\makebox(0,0){\textcolor{red}{$n$}}}
+\put(58,23){\line(-1,2){7}}
+\put(57,21.5){\line(-3,2){24.5}}
+\put(20,40){\makebox(0,0){\textcolor{red}{$a$}}}
+\put(30,40){\makebox(0,0){\textcolor{blue}{$z$}}}
+\put(50,40){\makebox(0,0){\textcolor{blue}{$t$}}}
+\end{picture}
+\end{center}
+
+\end{frame}
+
+
+
+\begin{frame}
+\frametitle{Heuristics}
+
+\begin{description}
+\item[For {\bf Simplify}:] when choosing a node with $\geq n$ neighbors:\smallskip
+\begin{itemize}
+
+\item Chose the node with fewest neighbors, which is
+        more likely to be colorable, or\smallskip
+
+\item Chose a node with many neighbors, each of them
+        having close to $n$ neighbors, i.e., spilling this node
+        would allow the coloring of its neighbors.
+
+\end{itemize}
+
+\bigskip
+
+\item[For {\bf Select}:] when choosing a color:\smallskip
+\begin{itemize}
+
+\item Chose colors that have already been used.\smallskip
+
+\item If instructions such as  $x:=y$ exist, color $x$ and $y$
+        with the same color, i.e., eliminate this instruction.
+
+\end{itemize}
+
+\end{description}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\end{document}

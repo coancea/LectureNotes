@@ -1,0 +1,883 @@
+\documentclass{beamer}
+
+%% \documentclass[handout]{beamer}
+%% % use this with the [handout] option to create handouts for the audience
+%% \usepackage{pgfpages}
+%% \pgfpagesuselayout{2 on 1}[a4paper,border shrink=5mm]
+
+\mode<presentation>
+{
+  \usetheme{Diku}
+% set this to your preferences:
+  \setbeamercovered{invisible}
+%  \setbeamercovered{transparent}
+}
+
+\usepackage{graphicx}
+\usepackage{epic}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+\newcommand{\basetop}[1]{\vtop{\vskip-1ex\hbox{#1}}}
+\newcommand{\source}[1]{\let\thefootnote\relax\footnotetext{\scriptsize\textcolor{kugray1}{Source: #1}}}
+
+% for coloured code citation in text:
+\usepackage{fancyvrb}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%    code sections   %%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% code highlighting commands in own block
+\DefineVerbatimEnvironment{code}{Verbatim}{fontsize=\scriptsize}
+\DefineVerbatimEnvironment{icode}{Verbatim}{fontsize=\scriptsize}
+
+% Fancy code with color commands:
+\DefineVerbatimEnvironment{colorcode}%
+        {Verbatim}{fontsize=\scriptsize,commandchars=\\\{\}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%    some coloring    %%%%%%%%
+
+\definecolor{Red}{RGB}{220,50,10}
+\definecolor{Blue}{RGB}{0,51,102}
+\definecolor{Yellow}{RGB}{102,51,0}
+\definecolor{Orange}{RGB}{178,36,36}
+\definecolor{Grey}{RGB}{180,180,180}
+\definecolor{Green}{RGB}{20,120,20}
+\definecolor{Purple}{RGB}{160,50,100}
+\newcommand{\red}[1]{\textcolor{Red}{{#1}}}
+\newcommand{\blue}[1]{\textcolor{Blue}{{#1}}}
+\newcommand{\yellow}[1]{\textcolor{Yellow}{{#1}}}
+\newcommand{\orange}[1]{\textcolor{Orange}{{#1}}}
+\newcommand{\grey}[1]{\textcolor{Grey}{{#1}}}
+\newcommand{\green}[1]{\textcolor{Green}{{#1}}}
+\newcommand{\purple}[1]{\textcolor{Purple}{{#1}}}
+
+
+
+
+% use "DIKU green" from our color theme for \emph
+\renewcommand{\emph}[1]{\textcolor{structure}{#1}}
+% use some not-too-bright red for an \emp command
+\definecolor{DikuRed}{RGB}{130,50,32}
+\newcommand{\emp}[1]{\textcolor{DikuRed}{ #1}}
+\definecolor{CosGreen}{RGB}{10,100,70}
+\newcommand{\emphh}[1]{\textcolor{CosGreen}{ #1}}
+\definecolor{CosBlue}{RGB}{55,111,122}
+\newcommand{\emphb}[1]{\textcolor{CosBlue}{ #1}}
+\definecolor{CosRed}{RGB}{253,1,1}
+\newcommand{\empr}[1]{\textcolor{CosRed}{ #1}}
+
+\newcommand{\mymath}[1]{$ #1 $}
+\newcommand{\myindx}[1]{_{#1}}
+\newcommand{\myindu}[1]{^{#1}}
+
+\newcommand{\Fasto}{\textsc{Fasto}\xspace}
+
+
+
+%%%%%%%%%%%%%%%%%%%%
+
+\title[Optimizations]{Optimizations}
+
+\author[C.~Oancea]{Cosmin E. Oancea\\{\tt cosmin.oancea@diku.dk}}
+
+\institute{Department of Computer Science (DIKU)\\University of Copenhagen}
+
+
+\date[December 2012]{December 2012 Compiler Lecture Notes}
+
+
+
+
+\begin{document}
+
+\titleslide
+
+\input{Struct_Interm/StructTACoptim}
+
+\begin{frame}[fragile]
+	\tableofcontents
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Data-Flow Analysis}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Common-Subexpression Elimination}
+
+
+\begin{frame}[fragile,t]
+    \frametitle{Data-Flow Analysis}
+
+Global analysis is used to derive information that can drive
+optimizations. Example: {\em Liveness analysis.}
+
+
+\bigskip
+
+Information can flow forwards or backwards through the program.\\
+Typical Structure:\smallskip
+
+\begin{itemize}
+    \item Successor/predecessor on basic blocks ($succ[B_i]$ or $pred[B_i]$).\smallskip
+    \item Define $gen[i]$ and $kill[i]$ sets.\smallskip
+    \item Define equations for $in[i]$ and $out[i]$.\smallskip
+    \item Initialize $in[i]$ and $out[i]$.\smallskip
+    \item Iterate to a fix point.\smallskip
+    \item Use $in[i]$ or $out[i]$ for optimizations.
+\end{itemize}
+
+\end{frame}
+
+
+
+\begin{frame}
+\frametitle{Common-Subexpression elimination}
+
+Goal: remove redundant computations.
+
+\smallskip
+
+Example: statement {\tt a[i] := a[i]+1} translates to:
+
+\smallskip
+
+\vspace{1ex}
+\texttt{
+\begin{tabular}{l}
+t1 := 4*i\\
+t2 := a+t1\\
+t3 := M[t2]\\
+t4 := t3+1\\
+t5 := 4*i\\
+t6 := a+t5\\
+M[t6] := t4
+\end{tabular}
+}
+
+\bigskip
+
+Potential for optimization:\smallskip
+
+\begin{itemize}
+\item Term {\tt 4*i} is computed twice.\smallskip
+\item {\tt a+t1} and {\tt a+t5} are equal, since {\tt t1}={\tt t5}. 
+\end{itemize}
+
+\end{frame}
+
+
+
+
+
+\begin{frame}
+\frametitle{Available-Assignments Analysis}
+
+\begin{center}
+\scalebox{0.75}{\makebox{
+\begin{tabular}{|l|c|c|} \hline
+Instruction $i$ & $gen[i]$ & $kill[i]$ \\\hline\hline
+${\tt LABEL}~l$ & $\emptyset$ & $\emptyset$ \\\hline
+$x := y$ & $\emptyset$ & $assg(x)$\\\hline
+$x := k$ & $\{x := k\}$ & $assg(x)$ \\\hline
+$x := {\bf unop}~y$~~~~ where $x\neq y$ & $\{x := {\bf unop}~y\}$
+  & $assg(x)$ \\\hline
+$x := {\bf unop}~x$ & $\emptyset$
+  & $assg(x)$ \\\hline
+$x := {\bf unop}~k$ &  $\{x := {\bf unop}~k\}$
+  & $assg(x)$ \\\hline
+$x := y~{\bf binop}~z$~~~~where $x\neq y$ and $x\neq z$
+  & $\{x := y~{\bf binop}~z\}$
+  & $assg(x)$ \\\hline
+$x := y~{\bf binop}~z$~~~~ where $x=y$ or $x=z$ 
+  &  $\emptyset$
+  & $assg(x)$ \\\hline
+$x := y~{\bf binop}~k$~~~~ where $x\neq y$
+  & $\{x := y~{\bf binop}~k\}$
+  & $assg(x)$ \\\hline
+$x := x~{\bf binop}~k$
+  & $\emptyset$
+  & $assg(x)$ \\\hline
+$x := M[y]$ ~~~~ where $x\neq y$ & $\{x := M[y]\}$ & $assg(x)$ \\\hline
+$x := M[x]$ & $\emptyset$ & $assg(x)$ \\\hline
+$x := M[k]$ & $\{x := M[k]\}$  & $assg(x)$ \\\hline
+$M[x]$ := y&  $\emptyset$  & $loads$ \\\hline
+$M[k]$ := y&  $\emptyset$  & $loads$ \\\hline
+${\tt GOTO}~l$ & $\emptyset$ & $\emptyset$ \\\hline
+${\tt IF}~x~{\bf relop}~y~{\tt THEN}~l_t~{\tt ELSE}~l_f$
+ & $\emptyset$  & $\emptyset$ \\\hline
+$x := {\tt CALL}~f(args)$ & $\emptyset$  & $assg(x)$  \\\hline
+\end{tabular}
+}}
+\end{center}
+
+$assg(x)$: Assignements that use $x$ on the left or right-hand sides,\\
+$loads$: Statements of form $y := M[\cdot]$.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Example for Available Assignments}
+
+\scalebox{0.8}{\makebox{$\begin{array}{rl}\\
+\scriptstyle{1:} & i := 0 \\
+\scriptstyle{2:} & a := n*3 \\
+\scriptstyle{3:} & {\tt IF}~i<a~{\tt THEN}~loop~{\tt ELSE}~end \\
+\scriptstyle{4:} & {\tt LABEL}~loop \\
+\scriptstyle{5:} & b := i*4 \\
+\scriptstyle{6:} & c := p+b \\
+\scriptstyle{7:} & d := M[c] \\
+\scriptstyle{8:} & e := d*2 \\
+\scriptstyle{9:} & f := i*4 \\
+\scriptstyle{10:} & g := p+f \\
+\scriptstyle{11:} & M[g] := e \\
+\scriptstyle{12:} & i := i+1 \\
+\scriptstyle{13:} & a := n*3 \\
+\scriptstyle{14:} & {\tt IF}~i<a~{\tt THEN}~loop~{\tt ELSE}~end \\
+\scriptstyle{15:} & {\tt LABEL}~end
+\end{array}~~~~~~~~~
+\begin{array}{|r|c|c|c|} \hline
+i & pred[i] & gen[i] & kill[i] \\\hline\hline
+1 &   & 1 & 1,5,9,12 \\\hline
+2 & 1 & 2 & 2 \\\hline
+3 & 2 &  &  \\\hline
+4 & 3,14 &  &  \\\hline
+5 & 4 & 5 & 5,6 \\\hline
+6 & 5 & 6 & 6,7 \\\hline
+7 & 6 & 7 & 7,8 \\\hline
+8 & 7 & 8 & 8 \\\hline
+9 & 8 & 9 & 9,10 \\\hline
+10 & 9 & 10 & 10 \\\hline
+11 & 10 &  & 7 \\\hline
+12 & 11 &  & 1,5,9,12 \\\hline
+13 & 12 & 2 & 2 \\\hline
+14 & 13 &  &  \\\hline
+15 & 3,14 &  &  \\\hline
+\end{array}
+$}}
+
+\bigskip
+
+
+Note: Assignment 2 and assignment 13 both represented by 2.
+
+\end{frame}
+
+
+
+\begin{frame}
+\frametitle{Fix-Point Iteration}
+
+\begin{eqnarray}
+out[i] & = & gen[i] \cup (in[i] \setminus kill[i])\label{aa-out}\\
+in[i] & = & \bigcap_{j \in pred[i]} out[j]\label{aa-in}
+\end{eqnarray}
+
+Initialized to the set of all assignments, except for $in[1] = \emptyset$.
+
+\vspace{1ex}
+\scalebox{0.55}{\makebox{$\begin{array}{|r||c|c||c|c||c|c|} \hline
+    & \multicolumn{2}{c||}{\mbox{Initialisation}}
+    & \multicolumn{2}{c||}{\mbox{Iteration 1}}
+    & \multicolumn{2}{c|}{\mbox{Iteration 2}} \\
+
+$i$ & in[i] & out[i] &
+      in[i] & out[i] &
+      in[i] & out[i] \\\hline\hline
+
+1   &        & 1,2,5,6,7,8,9,10 &
+             & 1      &
+             & 1     \\\hline
+
+2   & 1,2,5,6,7,8,9,10 & 1,2,5,6,7,8,9,10 &
+      1                & 1,2      &
+      1                & 1,2     \\\hline
+
+3   & 1,2,5,6,7,8,9,10 & 1,2,5,6,7,8,9,10 &
+      1,2              & 1,2      &
+      1,2              & 1,2     \\\hline
+
+4   & 1,2,5,6,7,8,9,10 & 1,2,5,6,7,8,9,10 &
+      1,2              & 1,2      &
+      2                & 2       \\\hline
+
+5   & 1,2,5,6,7,8,9,10 & 1,2,5,6,7,8,9,10 &
+      1,2              & 1,2,5      &
+      2                & 2,5       \\\hline
+
+6   & 1,2,5,6,7,8,9,10 & 1,2,5,6,7,8,9,10 &
+      1,2,5            & 1,2,5,6    &
+      2,5              & 2,5,6     \\\hline
+
+7   & 1,2,5,6,7,8,9,10 & 1,2,5,6,7,8,9,10 &
+      1,2,5,6          & 1,2,5,6,7  &
+      2,5,6            & 2,5,6,7   \\\hline
+
+8   & 1,2,5,6,7,8,9,10 & 1,2,5,6,7,8,9,10 &
+      1,2,5,6,7        & 1,2,5,6,7,8 &
+      2,5,6,7          & 2,5,6,7,8  \\\hline
+
+9   & 1,2,5,6,7,8,9,10 & 1,2,5,6,7,8,9,10 &
+      1,2,5,6,7,8      & 1,2,5,6,7,8,9 &
+      2,5,6,7,8        & 2,5,6,7,8,9  \\\hline
+
+10  & 1,2,5,6,7,8,9,10 & 1,2,5,6,7,8,9,10 &
+      1,2,5,6,7,8,9    & 1,2,5,6,7,8,9,10 &
+      2,5,6,7,8,9      & 2,5,6,7,8,9,10  \\\hline
+
+11  & 1,2,5,6,7,8,9,10 & 1,2,5,6,7,8,9,10 &
+      1,2,5,6,7,8,9,10    & 1,2,5,6,8,9,10      &
+      2,5,6,7,8,9,10      & 2,5,6,8,9,10 \\\hline
+
+12  & 1,2,5,6,7,8,9,10 & 1,2,5,6,7,8,9,10 &
+      1,2,5,6,8,9,10      & 2,6,8,10    &
+      2,5,6,8,9,10        & 2,6,8,10   \\\hline
+
+13  & 1,2,5,6,7,8,9,10 & 1,2,5,6,7,8,9,10 &
+      2,6,8,10         & 2,6,8,10    &
+      2,6,8,10         & 2,6,8,10  \\\hline
+
+14  & 1,2,5,6,7,8,9,10 & 1,2,5,6,7,8,9,10 &
+      2,6,8,10         & 2,6,8,10    &
+      2,6,8,10         & 2,6,8,10  \\\hline
+
+15  & 1,2,5,6,7,8,9,10 & 1,2,5,6,7,8,9,10 &
+      2                & 2          &
+      2                & 2         \\\hline
+
+\end{array}
+$}}
+
+\vspace{1ex}
+Iteration 3 $=$ iteration 2.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Used in Common-Subexpression Elimination}
+
+The computation ~$\scriptstyle{5:}~ \blue{b := i*4}$~ is available at
+~$\scriptstyle{9:}~ \red{f := i*4}$.
+
+\vspace{1ex}
+
+\scalebox{0.8}{\makebox{$
+\begin{array}{rl}
+\scriptstyle{1:} & i := 0 \\
+\scriptstyle{2:} & \blue{a := n*3} \\
+\scriptstyle{3:} & {\tt IF}~i<a~{\tt THEN}~loop~{\tt ELSE}~end \\
+\scriptstyle{4:} & {\tt LABEL}~loop \\
+\scriptstyle{5:} & \blue{b := i*4} \\
+\scriptstyle{6:} & c := p+b \\
+\scriptstyle{7:} & d := M[c] \\
+\scriptstyle{8:} & e := d*2 \\
+\scriptstyle{9:} & \mbox{\textcolor{red}{$f := \only<1>{i*4}\only<2->{b}$}} \\
+\scriptstyle{10:} & g := p+f~~~~\only<3>{\textcolor{red}{\leftarrow~~\mbox{will not be eliminated}}}\\
+\scriptstyle{11:} & M[g] := e \\
+\scriptstyle{12:} & i := i+1 \\
+\scriptstyle{13:} & \textcolor{red}{a := \only<1>{n*3}\only<2->{a}} \\
+\scriptstyle{14:} & {\tt IF}~i<a~{\tt THEN}~loop~{\tt ELSE}~end \\
+\scriptstyle{15:} & {\tt LABEL}~end
+\end{array}
+$}}
+
+\end{frame}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Jump-to-Jump Elimination}
+\begin{frame}[fragile]
+    \tableofcontents[currentsubsection]
+\end{frame}
+
+
+
+\begin{frame}
+\frametitle{Jump-to-Jump Elimination}
+
+Avoid successive jumps: {\tt [... GOTO $l_1$,..., LABEL $l_1$, GOTO $l_2$...]}.
+
+{\footnotesize
+\begin{center}
+\begin{tabular}{|l|l|l|}\hline
+  instruction & $gen$ & $kill$ \\\hline
+  {\tt LABEL}~$l$ & $\{l\}$ & $\emptyset$ \\\hline
+  {\tt GOTO}~$l$ & $\emptyset$ & $\emptyset$ \\\hline
+  {\tt IF $c$ THEN $l_1$ ELSE $l_2$} & $\emptyset$ & $\emptyset$ \\\hline
+  any other & $\emptyset$ & the set of all labels \\\hline
+\end{tabular}
+\end{center}
+
+\begin{eqnarray}
+in[i] & = & \left\{ {\begin{array}{ll}
+                      gen[i]\setminus kill[i] & \mbox{if $out[i]$ is empty} \\
+                      out[i]\setminus kill[i] & \mbox{if $out[i]$ is non-empty}
+                     \end{array}}
+            \right.
+ \label{jump-in}\\
+out[i] & = & \bigcap_{j \in succ[i]} in[j] \label{jump-out}
+\end{eqnarray}
+}
+
+\vspace{1ex}
+A jump ~$\scriptstyle{i:}~{\tt GOTO}~l$~ can be replaced with ~$\scriptstyle{i:}~{\tt GOTO}~l'$, if $l' \in in[i]$.
+
+\end{frame}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Index-Checking Elimination}
+
+\begin{frame}[fragile]
+    \tableofcontents[currentsubsection]
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Index-Check Elimination}
+
+Checks if {\tt i} is within the array-size bounds when used in {\tt a[i]}.\smallskip
+
+Idea: use {\tt IF-THEN-ELSE} to check bounds and analyze whether the
+condition reduces statically to {\em true} or {\em false}.\smallskip
+
+Example: If {\tt a}'s lowest/highest index is $0/10$, translate ~{\tt
+for~i:=0~to~9~do~a[i]:=0;} ~~~~to:
+\vspace{1ex}
+
+\scalebox{0.7}{\makebox{$\begin{array}{rl}
+\scriptstyle{1:} & i := 0 \\
+\scriptstyle{2:} & {\tt LABEL}~for1\\
+\scriptstyle{3:} & {\tt IF}~i\leq 9~{\tt THEN}~for2~{\tt ELSE}~for3 \\
+\scriptstyle{4:} & {\tt LABEL}~for2 \\
+\scriptstyle{5:} & \textcolor{red}{{\tt IF}~i<0~{\tt THEN}~error~{\tt ELSE}~ok1} \\
+\scriptstyle{6:} & {\tt LABEL}~ok1 \\
+\scriptstyle{7:} & \textcolor{red}{{\tt IF}~i>10~{\tt THEN}~error~{\tt ELSE}~ok2} \\
+\scriptstyle{8:} & {\tt LABEL}~ok2 \\
+\scriptstyle{9:} & t := i*4 \\
+\scriptstyle{10:} & t := a+t \\
+\scriptstyle{11:} & M[t] := 0 \\
+\scriptstyle{12:} & i := i+1 \\
+\scriptstyle{13:} & {\tt GOTO}~for1 \\
+\scriptstyle{14:} & {\tt LABEL}~for3
+\end{array}$}}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Inequalities}
+
+Collect inequalities of the form $p \leq q$ and $p<q$, where $p$ and $q$ are
+either variables or constants.\smallskip
+
+In order to ensure a finite number of inequalities, use an universe $Q$ of
+inequalities derived from program's condition(al)s. For example:\smallskip
+
+\begin{itemize}
+
+\item $when(x < 10) = \{x < 10\}$, $whennot(x<10)=\{10 \leq x\}$.\smallskip
+
+\item $when(x = y)$ = $\{x \leq y,\, y \leq x\}$, $whennot(x=y)=\emptyset$.
+
+\end{itemize}
+
+\bigskip
+
+Our example program provides the following universe:
+
+\[Q = \{i\leq 9,\,9<i,\,i<0,\,0\leq i,10<i,\,i\leq 10\}\]
+
+Fixpoint-iteration computes $in[i] = {}$ the set of inequalities (from $Q$) 
+that are true (hold) at the beginning of instruction $i$.
+
+\end{frame}
+
+
+
+\begin{frame}
+\frametitle{Equations for Inequalities}
+
+\scalebox{0.8}{\makebox{$
+in[i] = \left\{
+\begin{array}{l}
+\bigcap_{j \in pred[i]} in[j] \\
+~~~~~~~~~~ \mbox{if $pred[i]$ has more than one element} \\
+in[pred[i]] \cup when(c) \\
+~~~~~~~~~~ \mbox{if $pred[i]$ is {\tt IF\,$c$\,THEN\,$i$\,ELSE\,$j$}} \\
+in[pred[i]] \cup whennot(c) \\
+~~~~~~~~~~ \mbox{if $pred[i]$ is {\tt IF\,$c$\,THEN\,$j$\,ELSE\,$i$}} \\
+(in[pred[i]] \setminus conds(Q,x)) \cup equal(Q, x, p) \\
+~~~~~~~~~~ \mbox{if $pred[i]$ is of the form $x:=p$} \\
+in[pred[i]] \setminus upper(Q,x) \\
+~~~~~~~~~~ \mbox{if $pred[i]$ is of the form $x:=x+k$ where $k\geq 0$} \\
+in[pred[i]] \setminus lower(Q,x) \\
+~~~~~~~~~~ \mbox{if $pred[i]$ is of the form $x:=x-k$ where $k\geq 0$} \\
+in[pred[i]] \setminus conds(Q,x) \\
+~~~~~~~~~~ \mbox{if $pred[i]$ is of a form $x:=e$ not covered above} \\
+in[pred[i]]\\
+~~~~~~~~~~ otherwise \\
+\end{array}
+\right.
+$}}
+
+\vspace{0.5ex}
+{\footnotesize
+$conds(Q,x)$: inequalities in $x$\newline
+$upper(Q,x)$: inequalities of form $x<p$ or $x\leq p$\newline
+$lower(Q,x)$: inequalities of form $p<x$ or $p\leq x$\newline
+$equal(Q,x,p)$: inequalities from $Q$, which are consequences of $x=p$
+}
+\end{frame}
+
+\begin{frame}
+\frametitle{Limitations of Data-Flow Analysis}
+
+\bigskip
+
+Can never be exact:\smallskip
+
+\begin{itemize}
+
+\item many analysis problems are undecidable, i.e., one cannot solve
+        them accurately.
+
+\item Tradeoff between efficient computation and precision.
+
+\item Use conservative approximation: optimize only when you are sure
+        the assumptions hold.
+
+\end{itemize}
+
+\end{frame}
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Loop Optimizations}
+
+\begin{frame}[fragile]
+    \tableofcontents[currentsection]
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Hoisting Loop-Invariant Computation}
+
+\begin{frame}
+\frametitle{Hoisting Loop-Invariant Computation}
+
+A term is loop invariant if it is computed inside a loop but has the
+same value at each iteration.\smallskip
+
+Solution: Unroll the loop once and do common-subexpression
+elimination.\smallskip
+
+The loop-invariant term is now computed in the unrolled part and
+reused in the subsequent loop.   \alert{Example:}
+
+\definecolor{light}{gray}{0.99}
+\vspace{1ex}
+\begin{tabular}{lcl}
+\scalebox{0.8}{\begin{minipage}{4cm}
+{\tt
+while ($c$) \{\newline
+\textcolor{light}{xx}$body$\newline
+\}
+}
+\end{minipage}}
+&$\longrightarrow$&
+\scalebox{0.8}{\begin{minipage}{4cm}
+{\tt
+if ($c$) \{\newline
+\textcolor{light}{xx}$body$;\newline
+\textcolor{light}{xx}while ($c$) \{\newline
+\textcolor{light}{xxxx}$body$\newline
+\textcolor{light}{xx}\}\newline
+\}
+}
+\end{minipage}}\\
+\textcolor{light}{xx}&&\\
+\scalebox{0.8}{\begin{minipage}{4cm}
+{\tt
+do\newline
+\textcolor{light}{xx}$body$\newline
+while ($c$)
+}
+\end{minipage}}
+
+&$\longrightarrow$&
+\scalebox{0.8}{\begin{minipage}{4cm}
+{\tt
+$body$;\newline
+while ($c$) \{\newline
+\textcolor{light}{xx}$body$\newline
+\}
+}
+\end{minipage}}
+\end{tabular}
+
+
+\bigskip
+Disadvantage: Code size.
+
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Prefetching}
+%\begin{frame}[fragile]
+%\tableofcontents[currentsubsection]
+%\end{frame}
+
+\begin{frame}
+\frametitle{Memory Prefetching}
+
+\definecolor{light}{gray}{0.99}
+
+\scalebox{0.8}{\begin{minipage}{10cm}
+{\tt
+sum = 0;\newline
+for (i=0, i<100000; i++) \{\newline
+\textcolor{light}{xx}sum += a[i];\newline
+\}
+}
+\end{minipage}
+}
+
+\bigskip
+
+Problem: the array does not fit in the cache so we constantly wait (for {\tt IO}).
+%
+Some architectures offer a {\em prefetch} instruction that downloads from
+memory into cache and is safe under addressing errors:\smallskip
+
+\vspace{1ex}
+\scalebox{0.8}{\begin{minipage}{10cm}
+{\tt
+sum = 0;\newline
+for (i=0, i<100000; i++) \{\newline
+\textcolor{light}{xx}\emp{if (i\&3==0)} \blue{prefecth(a[i+32]);}\newline
+\textcolor{light}{xx}sum += a[i];\newline
+\}
+}
+\end{minipage}
+}
+
+\bigskip
+NB!: We assumed that the cache-line size is 4 words.\\\smallskip
+We can deploy loop body to avoid testing.
+
+\end{frame}
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Function Calls}
+
+\begin{frame}[fragile]
+    \tableofcontents[currentsection]
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Inlining}
+
+
+\begin{frame}
+\frametitle{Inlining}
+
+A function call:
+\scalebox{0.8}{\makebox{
+{\tt
+$x$ = f($exp_1$,\ldots,$exp_n$);
+}}}
+
+\definecolor{light}{gray}{0.99}
+\vspace{1.5ex}
+where {\tt f} is declared as:
+
+\vspace{1.5ex}
+\scalebox{0.8}{\begin{minipage}{10cm}
+{\tt
+$type_0$ f($type_1$ $x_1$,\ldots,$type_n$ $x_n$)\newline
+\{\newline
+\textcolor{light}{xx}$body$\\
+\textcolor{light}{xx}return($exp$);\newline
+\}
+}
+\end{minipage}}
+
+\bigskip
+can be replaced with:
+
+\bigskip
+\scalebox{0.8}{\begin{minipage}{10cm}
+{\tt
+\{\newline
+\textcolor{light}{xx}$type_1$ $x_1$ = $exp_1$;\newline
+\textcolor{light}{xx}\ldots\newline
+\textcolor{light}{xx}$type_n$ $x_n$ = $exp_n$;\newline
+\textcolor{light}{xx}$body$\newline
+\textcolor{light}{xx}$x$ = $exp$;\newline
+\}
+}
+\end{minipage}
+}
+
+\bigskip
+Variables need to be renamed whenever necessary, e.g., rename
+$x_1 \ldots x_n$ as needed.
+
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Tail-Call Optimization}
+
+%\begin{frame}[fragile]
+%   \tableofcontents[currentsubsection]
+%\end{frame}
+
+
+\begin{frame}
+\frametitle{Tail-Call Optimization}
+
+
+A tail call is a call happening just before returning from the (current) function, {\tt f},
+e.g., {\tt return(g(x,y));}\smallskip
+
+We use the following observations:\smallskip
+
+\begin{itemize}
+\item None of {\tt f}'s variables are {\em live} after the call.\smallskip
+
+\item If {\tt f}'s epilogue is empty (except for the return jump), then 
+{\tt g} can return directly to {\tt f}'s return address.\smallskip
+
+\item Since {\tt f}'s activation record contains nothing useful at this point,
+we can reuse the space for {\tt g}'s activation record.
+
+\end{itemize}
+
+\bigskip
+
+Hence the program is more efficient in both runtime and memory space.\smallskip
+
+Tail-call optimization is very important for functional languages as it
+makes tail recursion as efficient as loops.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Tail-Call Example}
+
+{\tt return(g(x,y));}~~ via stack-based {\em caller saves}.
+
+\vspace{1ex}
+
+\scalebox{0.8}{\makebox{$\begin{array}{ll}
+\only<1>{M[FP+4*m+4] := R0}\only<2>{\textcolor{red}{M[FP+4*m+4] := R0}}
+ & \only<2>{\longleftarrow~\mbox{Eliminated since no variables are live}} \\
+\only<1>{\cdots}\only<2>{\textcolor{red}{\cdots}} \\
+\only<1>{M[FP+4*m+4*(k+1)] := Rk}\only<2>{\textcolor{red}{M[FP+4*m+4*(k+1)] := Rk}} \\
+\only<1-2>{FP := FP + framesize}\only<3>{\textcolor{red}{FP := FP + framesize}}
+ & \only<3>{\longleftarrow~\mbox{Eliminated when we recycle activation records}} \\
+M[FP + 4] := {\tt x} \\
+M[FP + 4*n] := {\tt y} \\
+\only<1-4>{M[FP] := returnaddress}\only<5>{\textcolor{red}{M[FP] := returnaddress}}
+ & \only<5>{\longleftarrow~\mbox{Eliminated when we recycle the return address}} \\
+\only<1-7>{{\tt GOTO}~{\tt g}} \\
+\only<1-4>{{\tt LABEL}~returnaddress}\only<5>{\textcolor{red}{{\tt LABEL}~returnaddress}} \\
+\only<1-3>{result := M[FP+4]}\only<4>{\textcolor{red}{result := M[FP+4]}}
+ & \only<4>{\longleftarrow~\mbox{Going off against each other (copy propagation)}} \\
+\only<1-2>{FP := FP - framesize}\only<3>{\textcolor{red}{FP := FP - framesize}}\\
+\only<1>{R0 := M[FP+4*m+4]}\only<2>{\textcolor{red}{R0 := M[FP+4*m+4]}} \\
+\only<1>{\cdots}\only<2>{\textcolor{red}{\cdots}} \\
+\only<1>{Rk := M[FP+4*m+4*(k+1)]}\only<2>{\textcolor{red}{Rk := M[FP+4*m+4*(k+1)]}}\\
+\only<1-3>{M[FP+4] := result}\only<4>{\textcolor{red}{M[FP+4] := result}} \\
+\only<1-5>{{\tt GOTO}~M[FP]}\only<6>{\textcolor{red}{{\tt GOTO}~M[FP]}}
+ & \only<6>{\longleftarrow~\mbox{Dead code}}
+\end{array}$}}
+
+\end{frame}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Specialization}
+
+\begin{frame}[fragile]
+    \tableofcontents[currentsection]
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Specialisering}
+
+Ideea: Specialize version of functions for constant-value parameters.\\
+Example:
+
+
+\definecolor{light}{gray}{0.99}
+\vspace{1.5ex}
+
+\begin{tabular}{ll}
+\scalebox{0.8}{\begin{minipage}{7cm}
+{\tt
+double power(double x, int n)\newline
+\{ \newline
+\textcolor{light}{xx}double p=1.0; \newline
+\textcolor{light}{xx}while (n>0)\newline
+\textcolor{light}{xxxx}if (n\%2 == 0) \{\newline
+\textcolor{light}{xxxxxx}x = x*x;\newline
+\textcolor{light}{xxxxxx}n = n/2;\newline
+\textcolor{light}{xxxx}\} else \{\newline
+\textcolor{light}{xxxxxx}p = p*x;\newline
+\textcolor{light}{xxxxxx}n = n-1;\newline
+\textcolor{light}{xxxx}\}\newline
+\textcolor{light}{xx}return(p);\newline
+\}}
+\end{minipage}}
+&
+\scalebox{0.8}{\begin{minipage}{7cm}
+{\tt
+\only<1>{\textcolor{light}{xx}}\only<2->{double power5(double x)}\newline
+\only<2->{\{}\newline
+\only<2->{\textcolor{light}{xx}double p=1.0;}\newline
+\only<3->{\textcolor{light}{xxxxxx}p = p*x;}\newline
+\only<4->{\textcolor{light}{xxxxxx}x = x*x;}\newline
+\only<5->{\textcolor{light}{xxxxxx}x = x*x;}\newline
+\only<6->{\textcolor{light}{xxxxxx}p = p*x;}\newline
+\only<7->{\textcolor{light}{xx}return(p);}\newline
+\only<7->{\}
+}}
+\end{minipage}}
+\end{tabular}
+
+\bigskip
+Specialized version of power for parameter {\tt n=5}.
+
+\only<8>{Specialization is the implementation method for C{\tt{}++} templates.}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\end{document}
