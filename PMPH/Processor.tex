@@ -987,8 +987,293 @@ I4 & L.D   F14,0(R3)    &    &    &    &     & IF  & ID  & EX  & ME  & \alert{WB
         a store can be issued only when all preceding instr are certified 
         free of exceptions. 
 \end{itemize}
-
 \end{scriptsize}
 \end{frame}
+
+\subsection{SuperPipelined and SuperScalar CPUs}
+
+\begin{frame}[fragile,t]
+\frametitle{Superpipelined CPU}
+
+\includegraphics[width=59ex]{Figures/SuperPipeline}
+
+\bigskip
+
+\begin{scriptsize}
+\begin{itemize}
+\item In a given technology, some of the 5 stages have more delays than others.
+        For example I-cache access in IF may take twice as decoding.
+        Same with ME, because virtual-mem address translation in TLB is 
+        done before accessing the data cache.\smallskip
+
+\item \blue{CPU is superpipelined} when one of the 5 stages is further pipelined.\smallskip
+
+\item It is also possible to pipeline every single stage (of the 5) to increase
+            throughput.\bigskip
+
+\item \blue{\em Superpipelines are clocked faster than the worst-case delay 
+            of the bottleneck stage of the 5-stage pipeline}.
+        \emph{Cycle time decreases,} \emp{but CPI increases} 
+        $\Rightarrow$ no free lunch!\bigskip
+
+\item For example, branches are executed in EX1 and have penalty 3.
+\item Latency (of operation) of loads is 3.
+\item Latency of register-to-register instructions is 1 (\# of EX stages-1).
+\end{itemize}
+\end{scriptsize}
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Superscalar CPU}
+
+\includegraphics[width=59ex]{Figures/SuperScalar}
+
+\bigskip
+
+\begin{scriptsize}
+\begin{itemize}
+\item More than one instruction is fetched, decoded and issued in each cycle:
+
+\item works well on workloads with a good mix of integer and float operations.\smallskip
+
+\item \emph{With the above arch, up to two instrs (one int and one float) can proceed
+        to execution once they are free of hazards $\Rightarrow$ CPI < 1}\bigskip
+
+\item \emp{Supporting precise exceptions is difficult}.
+\item \emp{Difficult to build static superscalars wider than 2 ways (int-float)},
+\item e.g., integer pipeline could be split into three pipelines 
+        (integer ALU, branches, memory) but such an architecture was never built!\bigskip
+\end{itemize}
+\end{scriptsize}
+
+In practice superscalars may be superpipelined as well!
+
+\end{frame}
+
+\subsection{Branch Prediction}
+
+\begin{frame}[fragile,t]
+\frametitle{Branch Prediction}
+
+\emp{Hardwired Prediction} is the most static algorithm and out of compiler's control.
+\begin{scriptsize}
+\begin{itemize}
+\item always predict branch untaken $\Rightarrow$ no penalty when branch is untaken,
+        but loop backedge misspredicted most of the time.\smallskip
+\item predict based on {\tt opcode} \& direction/size of the address offset of the 
+        branch instr
+\item[1] {\tt BNEZ/BEZ} is predicted untaken/taken
+\item[2] backward branches predicted as taken and forward as untaken
+\item[3] branches with large offsets predicted as taken 
+\item \emp{Prediction alg. is made at $\mu$architecture design time based on 
+            a mix of benchmarks}.
+\end{itemize}
+\end{scriptsize}
+
+\bigskip
+
+\emp{Compiler-Guided Prediction}
+\begin{scriptsize}
+\begin{itemize}
+\item Uses code profiling to determine the best prediction
+        for each static branch in the code \& is communicated to hardware 
+        by one extra bit in the branch instr format.
+\item Note that if a branch is only taken for the first half of prg exec,
+        and untaken for the second half, the compiler will predict it biased (50-50). 
+\end{itemize}
+\end{scriptsize}
+
+\bigskip
+
+For the studied architectures, target address is known only at the end of ID $\Rightarrow$
+instrs in earlier stages must be flushed if branch is predicted taken, even when 
+prediction is correct!
+
+\end{frame}
+
+\subsection{Strength \& Weaknesses of Static Pipelining}
+
+\begin{frame}[fragile,t]
+\frametitle{Strength \& Weaknesses of Static Pipelining}
+
+
+\begin{scriptsize}
+The studied (static) pipelines schedule instrs in the strict order 
+dictated by compiler (while dynamic archs reorder instrs at runtime 
+to optimize delays/stalls). {\bf Static Pipelines:} 
+\begin{itemize}
+\item[+] are \emph{simple} $\Rightarrow$ (1) better clock rate,
+            (2) predictable performance, (3) consume less power since
+                dynamic activities are migrated to the compiler.
+\item[-] \emp{weak on dynamic events} such as conditional branches,
+            exceptions, cache misses. 
+        For example, the only way to deal with cache misses is to freeze
+            the processor, refill the cache, \& replay cycle $\Rightarrow$
+            only one mem access can proceed at any one time
+            $\Leftarrow$ \emph{Alleviated by core multi-threading.}
+\item[-] \emp{Static instr scheduling is limited by lack of dynamic info},
+            such as memory addresses, e.g., do {\tt a[b[i]]} and 
+            {\tt a[b[i+1]]} refer to the same element of {\tt a}?
+\item[-] \emp{Precise exceptions are hard to handle efficiently} if OoO
+            instr completion is allowed.
+\item[-] \emp{The design of static pipelines might not scale well}, 
+            i.e., as pipelines becoming deeper
+            and wider (instr issuing), latencies $\uparrow$ and the
+            compiler might solve them efficiently.  
+\end{itemize}
+
+\bigskip
+\end{scriptsize}
+
+\begin{itemize}
+\item Static pipelines favored in embedded systems (simplicity),
+\item Dynamic pipelines, studied towards the end of the course, are/were used
+        in general-purpose environments,
+\item \emph{Trend might reverse due to the advent of core multi-threading}.  
+\end{itemize}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Core Multi-Threading}
+
+\begin{frame}[fragile]
+	\tableofcontents[currentsection]
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Core Multi-Threading Overview}
+
+\begin{scriptsize}
+Operating System:
+\begin{itemize}
+\item Resources are precious \& expensive $\Rightarrow$ 
+            better utilized by time multiplexing (sharing) them over a 
+            number of concurrent processes, 
+            $\Rightarrow$ $\uparrow$ process throughput.\smallskip
+\item An active process is \emp{running or ready or blocked} 
+            on a long latency IO (page fault).\smallskip
+\item {\tt running $\rightarrow$ blocked/ready} and 
+      {\tt ready $\rightarrow$ running} transitions
+        involve context switching (100s of cycles overhead).
+        Implemented entirely in software (flexibility).
+\end{itemize}
+
+\bigskip
+
+Core Multi-Threading
+\begin{itemize}
+\item Same idea, but hides much smaller latencies,
+        e.g., level-1/2/3 cache misses, TLB misses, long-latency instrs
+                (co-processor), unsuccessful thread synch, etc.\smallskip
+                % exceptions %and simplifies exception handling. 
+
+\item Motivated by the ever increasing memory wall \& underutilization of 
+        functional units (1990s), requires little to no modification of Operating System.
+
+\item Each thread runs in a \emp{\em hardware thread context} ({\sc htc}): 
+        a set of hwd resources supporting execution and switching.
+
+\item A temporarily suspended thread, i.e., not \emp{running} from hwd view but running 
+            from kernel's point of view, is either 
+\item[1] \emp{\em blocked}, i.e., waiting for a pending event to complete, or
+\item[2] \emp{\em ready}, i.e., {\sc htc} allocated but waiting for execution bandwidth.
+\end{itemize} 
+\end{scriptsize}
+
+\end{frame}
+
+\subsection{The Barrel Processor}
+
+\begin{frame}[fragile,t]
+\frametitle{Barrel Processor or Extreme Core Multi-Threading}
+
+\alert{Given many enough {\sc htc}s and active threads $\Rightarrow$ 
+No Two Instrs of the Same Thread Are In The Pipeline in the Same Time.}
+
+\begin{scriptsize}
+\begin{columns}
+\column{0.66\textwidth}
+\includegraphics[width=59ex]{Figures/Barrel}
+\column{0.31\textwidth}
+Figure shows a 5-stage pipeline which 128 {\sc htc}s, which can
+        hide long mem-access latencies using no or very large 
+        and slow caches without ever starving the pipeline.
+\end{columns}
+
+\pause
+
+\begin{itemize}
+\item Data/Control/Structural Hazards cannot occur \& Precise Exceptions are
+        respected because of the \alert{assumption}.  \alert{Problems are}:
+    \begin{itemize}\pause
+    \begin{scriptsize}
+        \item[1] with current technology 1000s of threads would be needed
+                 in workload and such hardware replication would be prohibitive,
+        \item[2] memory wall gets larger and larger, \emph{[3]} too different from legacy code
+        \item[4] if num running threads $<$ 5 $\Rightarrow$ NOOPs inserted $\Rightarrow$
+                    slow sequential execution.\smallskip
+    \end  {scriptsize}
+    \end{itemize}
+\pause
+\item CDC 6600 (Control Data Corporation) in \alert{1960s}: 32-way multi-threading (MT).
+\item Later in 1980s, Deneclor's HEP: 16-way MT, 8-stage pipeline,  no cache.
+\item Denclor's TERA contains 256 Horizon Processors, each a 128-way MT, 3-stage pipeline. 
+        PC \& register file replicated.
+        No data cache $\Rightarrow$ no cache coherence.\\\emp{Estimated that the pipeline
+        is fully utilized even if instrs takes 80 cycles to execute!}
+\end{itemize} 
+\end{scriptsize}
+
+\end{frame}
+
+
+\subsection{Interleaved Core Multi-Threading}
+
+\begin{frame}[fragile,t]
+\frametitle{Interleaved Core Multi-Threading}
+\vspace{-1ex}
+\includegraphics[width=55ex]{Figures/InterleavedMT}
+\smallskip
+
+\begin{scriptsize}
+\begin{columns}
+\column{0.48\textwidth}
+Several threads run simultaneously.
+Processor fetches, decodes, and schedules 
+instrs from $\neq$ threads in consec cycles.\smallskip
+
+A 2-way MT \emp{must have 2 PCs, 2 sets of regs and interrupt flags, 
+2 page table base regs}, \emph{BUT shares L1/2 caches \&
+pipeline}.\smallskip
+
+Other resources might be replicated, e.g., branch prediction hwd and TLB,
+to avoid prediction interferences between tasks.\smallskip
+
+Each instr carries extra bits that identifies its thread id $\Rightarrow$
+thread-aware data forwd, stage flushing (exception \& branches).
+e.g., on a L1 data-cache miss of {\tt T1}, ME raises a low-level
+hwd exception that directs the flushing and insertion
+in IFQ1 of the instrs of T1 in ID, EX and ME.\smallskip
+
+\column{0.48\textwidth}
+\emp{Seq exec same speed as 5-stage pipeline.}
+\emph{Multiple running thds $\Rightarrow$ reduced latencies:}\newline
+[1] 5 running thds eliminate all hazards.\newline 
+[2] 2 running thds eliminate the bubble of load followed by dependent instr.\smallskip
+
+\alert{SunSparc T1\&T2} (shown in Figure) targets workloads with lots of thds, 
+but with little to no FP operations, in which the runtime is dominated by cache misses. 
+Decoupling the IF stage via 2 IF-queues smooths out instr delivery in the case of cache 
+misses.   Branches are statically predicted by instr bit set by compiler. 
+SunSparc T1 has 8 cores, 4-way MT, and SunSparc T2 has 8 cores, 8-way MT each. 
+
+\end{columns}
+\end{scriptsize}
+
+\end{frame}
+
 
 \end{document}

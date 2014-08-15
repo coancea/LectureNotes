@@ -302,9 +302,9 @@ With our example {\tt for(i=0;i<100;i++) A[i]+=B[i]} in {\sc tac} form:
 \begin{frame}[fragile,t]
     \frametitle{Loop Unrolling on A Single-Issue Pipeline}
 
-The \# cycles in the ID stage shown in parenthesis. 
+\includegraphics[width=50ex]{Figures/SimpleOoOPipeline}
 
-\begin{block}{TAC Optim Code{\tt~~~~~~~~~~~}MIPS Optim Code}\vspace{-2ex}
+\begin{block}{TAC Optim Code{\tt~~~~~~~~~~~}MIPS Optim Code~~~~~~\# clocks in ID}\vspace{-2ex}
 \begin{columns}
 \column{0.42\textwidth}
 \begin{colorcode}[fontsize=\scriptsize]
@@ -343,12 +343,11 @@ Loop: \emph{L.S   F0, 0(R1)}   (1)
 
 
 \begin{frame}[fragile,t]
-    \frametitle{Loop Unrolling on A Super-Pipeline}
+    \frametitle{Loop Unrolling on A 5-stage-FP-Unit Super-Pipeline}
 
-The \# clocks taken by each instr shown in parenthesis,
-assuming a 5-stage floating-point execution pipeline.  
+\includegraphics[width=50ex]{Figures/SuperPipeline}
 
-\begin{block}{TAC Optim Code{\tt~~~~~~~~~~~}MIPS Optim Code}\vspace{-2ex}
+\begin{block}{TAC Optim Code{\tt~~~~~~~~~~~}MIPS Optim Code~~~~~~\# clocks in ID}\vspace{-2ex}
 \begin{columns}
 \column{0.42\textwidth}
 \begin{colorcode}[fontsize=\scriptsize]
@@ -389,10 +388,13 @@ is twice as fast $\Rightarrow$ Speedup = 2*15/8.5 = 3.52$\times$.
 \begin{frame}[fragile,t]
     \frametitle{Loop Unrolling on A Super-Scalar}
 
-Does not fare well because the fraction of FP instrs is small:\\
-14 cycles for 2 iters $\Rightarrow$ Speedup = 15/7 = 2.14$\times$
+\includegraphics[width=33ex]{Figures/SuperScalar}
 
-\begin{block}{TAC Optim Code{\tt~~~~~~~~~~~}MIPS Optim Code}\vspace{-2ex}
+Modest speedup $2.14\times$ because fraction of FP instrs is small:
+%Does not fare well because the fraction of FP instrs is small:\\
+%14 cycles for 2 iters $\Rightarrow$ Speedup = 15/7 = 2.14$\times$
+
+\begin{block}{TAC Optim Code{\tt~~~~~~~~~~~}MIPS Optim Code~~~~~~\# clocks in ID}\vspace{-2ex}
 \begin{columns}
 \column{0.25\textwidth}
 \begin{colorcode}[fontsize=\scriptsize]
@@ -423,7 +425,7 @@ Loop: \emph{L.S   F0, 0(R1)}                         (1)
 \end{block}
 \smallskip
 
-{\bf Drawbacks of Loop Unrolling:}\pause
+\emp{\bf Drawbacks of Loop Unrolling:}\pause
 \begin{itemize}
     \item Ineffective for loop-carried dependencies (restrict code motion),
     \item Consumes many addressable registers (since renaming is critical),
