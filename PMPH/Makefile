@@ -4,6 +4,8 @@ default:
 	pdflatex Processor.tex
 	pdflatex VLIW.tex
 	pdflatex VLIW.tex
+	pdflatex MemHierarchy.tex
+	pdflatex MemHierarchy.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
 processor:
@@ -14,6 +16,11 @@ processor:
 vliw:
 	pdflatex VLIW.tex
 	pdflatex VLIW.tex
+	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
+
+mem:
+	pdflatex MemHierarchy.tex
+	pdflatex MemHierarchy.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
 clean:
