@@ -56,7 +56,8 @@
 %      % position marker, slightly shifted, switched off
 %      \draw [fill=fg] (\progressbar@currentbarlength, 0) rectangle ++(0.02cm, 0.08cm);
       % shaded complete bar (frame only)
-      \draw[draw=fg!80!bg] (\progressbar@leftbar, 0.4mm) rectangle ++(\progressbar@barlength mm, 0.3mm);
+% commented mm in: \progressbar@barlength mm
+      \draw[draw=fg!80!bg] (\progressbar@leftbar, 0.4mm) rectangle ++(\progressbar@barlength, 0.3mm);
       % natgreen progressing bar
       \draw [fill=fg] (\progressbar@leftbar, 0.4mm) rectangle ++(\progressbar@currentbarlength, 0.2mm);
       \fi

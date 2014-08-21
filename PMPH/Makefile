@@ -6,6 +6,8 @@ default:
 	pdflatex VLIW.tex
 	pdflatex MemHierarchy.tex
 	pdflatex MemHierarchy.tex
+	pdflatex Interconnect.tex
+	pdflatex Interconnect.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
 processor:
@@ -21,6 +23,11 @@ vliw:
 mem:
 	pdflatex MemHierarchy.tex
 	pdflatex MemHierarchy.tex
+	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
+
+interconnect:
+	pdflatex Interconnect.tex
+	pdflatex Interconnect.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
 clean:

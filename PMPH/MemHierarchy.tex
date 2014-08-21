@@ -82,12 +82,12 @@
 
 \title[Shared Memory Systems]{Memory Hierarchies \& \\Shared Memory Systems}
 
-\author[C.~Oancea]{Cosmin E. Oancea\\{\tt cosmin.oancea@diku.dk}}
+\author[C.~Oancea]{Cosmin E. Oancea {\tt cosmin.oancea@diku.dk}}
 
 \institute{Department of Computer Science (DIKU)\\University of Copenhagen}
 
 
-\date[Sept 2014]{September 2014 Compiler Lecture Notes}
+\date[Sept 2014]{September 2014 PMPH Lecture Notes}
 
 
 \begin{document}
@@ -104,35 +104,35 @@
 	\tableofcontents
 \end{frame}
 
-\begin{frame}%[fragile,t]
-\frametitle{Overview}
-
-\begin{itemize}
-    \item \emp{Memory Hierarchy} 
-            \begin{itemize}
-                \item optimizes the exponentially-$\uparrow$ memory wall
-                \item principle of locality of accesses,
-                \item cache and memory inclusion, coherehnce
-            \end  {itemize}\smallskip
-    \item \emp{Cache Design}
-            \begin{itemize}
-                \item cache mapping \& access,
-                \item replacement and write policies
-                \item cache-miss classification
-            \end  {itemize}\smallskip
-    \item \emp{Techniques to Improve Cache Performance}
-            \begin{itemize}
-                \item lockup-free caches
-                \item prefetching
-            \end  {itemize}\smallskip
-    \item \emp{Architectural Support for Virtual Memory} 
-            \begin{itemize}
-                \item page tables
-                \item translation lookahead buffers
-            \end  {itemize}\smallskip
-\end  {itemize}
-
-\end{frame}
+%\begin{frame}%[fragile,t]
+%\frametitle{Overview}
+%
+%\begin{itemize}
+%    \item \emp{Memory Hierarchy} 
+%            \begin{itemize}
+%                \item optimizes the exponentially-$\uparrow$ memory wall
+%                \item principle of locality of accesses,
+%                \item cache and memory inclusion, coherehnce
+%            \end  {itemize}\smallskip
+%    \item \emp{Cache Design}
+%            \begin{itemize}
+%                \item cache mapping \& access,
+%                \item replacement and write policies
+%                \item cache-miss classification
+%            \end  {itemize}\smallskip
+%    \item \emp{Techniques to Improve Cache Performance}
+%            \begin{itemize}
+%                \item lockup-free caches
+%                \item prefetching
+%            \end  {itemize}\smallskip
+%    \item \emp{Architectural Support for Virtual Memory} 
+%            \begin{itemize}
+%                \item page tables
+%                \item translation lookahead buffers
+%            \end  {itemize}\smallskip
+%\end  {itemize}
+%
+%\end{frame}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -141,7 +141,7 @@
 \section{The Pyramid of Memory Levels}
 
 \begin{frame}[fragile,t]
-
+\frametitle{Typical Memory Hierarchy}
 \begin{columns}
 \column{0.66\textwidth}
 \frametitle{Typical Memory Hierarchy}
@@ -151,7 +151,6 @@
 \end{columns}
 \vspace{-5ex}
 
-\pause
 \emph{Locality Principle:}\pause
 \begin{itemize}
     \begin{scriptsize}
@@ -197,9 +196,12 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Cache (Hierarchy) Design}
+\section{Cache Design}
 
-\subsection{Performance Measures}
+\begin{frame}[fragile]
+	\tableofcontents[currentsection]
+\end{frame}
+
 \begin{frame}[fragile,t]
 \frametitle{Cache Performance}
 
@@ -344,7 +346,7 @@ Small Caches: fully associative because potential for conflict in hot sets
 
 \end{frame}
 
-\subsection{Replacement Policies}
+\subsection{Replacement \& Write (Back/Through) Policies}
 \begin{frame}[fragile,t]
 \frametitle{Replacement Policies (Selects a Victim Block)}
 
@@ -365,7 +367,6 @@ $\Leftarrow$ LRU Example:
 \end{frame}
 
 
-\subsection{Write (Through/Back) Policies}
 \begin{frame}[fragile,t]
 \frametitle{Write Policies}
 
@@ -495,9 +496,12 @@ Higher Set Associativity (SA):
 \end  {itemize}
 \end{frame}
 
-\section{Improving Cache Performance}
+\section{Improving Performance: Lockup-Free Cache and Prefetching}
 
-\subsection{Lockup-Free Caches}
+\begin{frame}[fragile]
+	\tableofcontents[currentsection]
+\end{frame}
+
 
 \begin{frame}[fragile,t]
 \frametitle{Lockup-Free Caches}
@@ -556,7 +560,6 @@ $C_{cm}:$ cache to memory interface
 \end  {itemize}
 \end{frame}
 
-\subsection{Hardware/Software Prefetching}
 
 \begin{frame}[fragile,t]
 \frametitle{Hardware Prefetching}
@@ -690,7 +693,11 @@ UltraSparc-III  &  64KB, 4-way, random\\\hline
 \end{scriptsize}
 \end{frame}
 
-\section{Virtual Memory}
+\section{Architectural Support for Virtual Memory}
+
+\begin{frame}[fragile]
+	\tableofcontents[currentsection]
+\end{frame}
 
 \begin{frame}[fragile,t]
 \frametitle{Why Virtual Memory?}
@@ -814,7 +821,6 @@ PID added to deal with homonyms.
 \begin{frame}[fragile,t]
 \frametitle{Optimizing TLB Access}
 
-
 TLB is on the critical memory-access path:
 \begin{itemize}
     \item pipeline: IF split into IF$_{TLB}$ \& IF$_{cache}$, same for ME stage
@@ -838,7 +844,830 @@ Otherwise: one block might be placed in two sets (due to synonyms).
 {\scriptsize Moving TLB after L1 cache, by indexing on the 
  virtual address $\Rightarrow$ many other problems!}
 
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Cache Coherence in Bus-Based Shared-Memory Multiprocessors}
+\begin{frame}[fragile]
+	\tableofcontents[currentsection]
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Organization of Bus-Based Shared-Memory SMPs}
+
+Design space of cache coherence for small scale SMPs 
+assuming a broadcast-based interconnect, such as a bus.
+
+\begin{columns}\hspace{-10ex}
+\column{0.6\textwidth}
+\includegraphics[width=50ex]{FigsInfCoherence/DanceHall}
+\column{0.5\textwidth}\pause
+        \begin{itemize}
+        \begin{scriptsize}
+            \item[\emp{(a)}] \emp{Dance-Hall}: implicit coherency\\but not realistic!
+            \item Cache hierarchy vital for SMPs:
+            \item hides memory \& interconnect latency,
+            \item saves mem \& interconnect bandwidth.
+        \end {scriptsize}
+        \end  {itemize}
+\bigskip
+        \begin{itemize}
+        \begin{scriptsize}
+            \item[\emp{(b)}] \emp{Shared Cache} between processor \& interconnect:
+            \item[\emph{+}] constructive sharing of cache resources.
+            \item[\emp{--}] interconnect latency added to the critical 
+                             mem access path $\Rightarrow$\\effective when very few processors.
+        \end {scriptsize}
+        \end  {itemize}
+\end{columns}
 
 \end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Organization of Bus-Based Shared-Memory SMPs}
+
+Design space of cache coherence for small scale SMPs 
+assuming a broadcast-based interconnect, such as a bus.
+
+\begin{columns}\hspace{-10ex}
+\column{0.6\textwidth}
+\includegraphics[width=50ex]{FigsInfCoherence/PrivCachSMP}
+\column{0.5\textwidth}\pause
+        \emp{(c) Private Cache on Proc Side}:
+\bigskip
+\bigskip
+\bigskip
+
+        \emph{(d) Hybrid Private-Shared Cache}:
+        \begin{itemize}
+        \begin{scriptsize}
+            \item \emp{Shared Cache} between processor \& interconnect:
+            \item 2nd level cache (SLC) reduces memory access latency gap
+                    between 1st level cache (FLC) and memory
+            \item used in most commercially available processors.
+        \end {scriptsize}
+        \end  {itemize}
+\end{columns}
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Informal Definition of Cache Coherence}
+
+\begin{definition}[Sequential Cache Coherence]
+A load must return the value of the latest store 
+in process order to the same address. (Simple, but check the write buffers.)
+\end{definition}
+
+\begin{definition}[Cache Coherence in Multiprocessors]
+A cache system is cache coherent {\em iff} all processors, 
+at any time, have a consistent view of the last 
+globally written value to each location.
+\end{definition}
+
+Assume processors P1 \& P2 access the same location {\tt M}:
+\begin{scriptsize}
+\begin{description}
+    \item[write back:] P1 and P2 write {\tt M}, then barrier, then both
+        read {\tt M} $\Rightarrow$\\\pause
+        if cache line not evicted, both read their private-cache value.\smallskip
+    \item[write through:] P1 writes {\tt M} (mem updated), then P2 writes {\tt M}, barrier 
+        $\Rightarrow$\\P1 will read an inconsistent value next from its private cache.
+\end  {description}
+\end {scriptsize}
+
+\medskip
+
+\alert{Coherence Problem: pervasive \& performance critical}
+\begin{scriptsize}
+\begin{itemize}
+    \item sharing of data, implicit communication, 
+    \item thread migration, software not informed $\Rightarrow$ hardware must solve the problem.
+\end  {itemize}
+\end {scriptsize}
+
+\end{frame}
+
+
+\subsection{Simple Protocol for Write-Through Caches}
+
+\begin{frame}[fragile,t]
+\frametitle{Simple Protocol For Write-Through Caches}
+
+Simplifying Assumptions:
+\begin{scriptsize}
+\begin{itemize}
+    \item blocking, write-through, write-allocate, single-level private cache as in (b) 
+    \item when granted access, cache controller owns the bus until transaction completes.
+\end  {itemize}
+\end {scriptsize}
+\smallskip
+
+\begin{columns}
+\column{0.5\textwidth}
+\includegraphics[width=35ex]{FigsInfCoherence/SMPreqbuff}
+\column{0.45\textwidth}\pause
+Local cache updated last:\\
+\emp{``last globally written value''
+cannot be released until all
+other procs can see the new value}.
+\end{columns} 
+
+\smallskip
+%\begin{scriptsize}
+\begin{itemize}
+    \item[Rd Miss] inserted in (request) buffer, V(alid) bit set.
+    When bus acquired $\Rightarrow$ {\tt BusRd} request placed on bus \& returns copy of mem block. 
+
+    \item[Wr Hit:] value and address inserted in buffer. When acquired, 
+    {\tt BusWrite} request on bus $\Rightarrow$ updates memory AND \alert{invalidates all
+    remote copies} (clears V). \emp{Local cache updated just before releasing bus.}
+
+    \item[Wr Miss] like Wr Hit, but {\tt BusRdX} on bus (also brings block from mem).
+    For no-write-allocate: like WR Hit, but local cache not updated.
+
+\end  {itemize}
+%\end {scriptsize}
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Specify Behavior via Finite State Machine (FST)}
+
+%%Assumptions: no-allocate on store miss, all store and loads propagate on bus,
+%% store may update or invalidate caches.
+
+Each cache represented by a FST:
+\begin{itemize}
+    \item Imagine P identical FSM working together (one per cache), 
+    \item Actually, FSM shows the cache behavior w.r.t. a memory block.
+    \item 2 states: Valid or Invalid (not in cache), requires 1 bit (V)
+\end  {itemize}
+\bigskip
+
+For example a write (hit) in valid state remains in valid, but
+triggers a {\tt BusWrite} which may cause other caches to transition
+to invalid. 
+
+\includegraphics[width=59ex]{FigsInfCoherence/SimpleCohProt}
+
+\end{frame}
+
+
+
+\begin{frame}[fragile,t]
+\frametitle{Copy Invalidation By Bus Snooping}
+
+
+%\begin{scriptsize}
+\begin{itemize}
+    \item Bus interface can monitor (snoop) traffic \& 
+    \item if tag matches $\Rightarrow$ invalidate (local) cache entry (clear V).
+\end  {itemize}
+%\end {scriptsize}
+\smallskip
+
+\begin{columns}
+\column{0.5\textwidth}
+\includegraphics[width=35ex]{FigsInfCoherence/SnoopingEg}
+\column{0.45\textwidth}\pause
+\emp{Dual Directory (DD)} is a copy of cache directory,
+kept consistent on updates (rare).
+
+DD filters out bus requests to avoid conflicts with CPU.
+
+\bigskip
+Inclusion $\Rightarrow$ \emp{SLC} contains bit indicating whether block is in FLC,
+and is used to \emp{filter out transactions from FLC}
+(since SLC far less busy than FLC) 
+\end{columns} 
+
+\smallskip
+%\begin{scriptsize}
+%\begin{itemize}
+%\end  {itemize}
+%\end {scriptsize}
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Example of Subtle Issue}
+
+\begin{columns}
+\column{0.48\textwidth}
+\includegraphics[width=35ex]{FigsInfCoherence/SimpleCohProt}
+\column{0.48\textwidth}
+\includegraphics[width=30ex]{FigsInfCoherence/SMPreqbuff}
+\end{columns}
+\vspace{-3ex}
+FST specifies the \emp{high-level} behavior of cache as a whole.\\
+\emp{The use of request buffer is not safe, and will be fixed later.}
+%\begin{scriptsize}
+\begin{itemize}
+    \item P1 and P2 issue \emp{write hits} to block A. 
+    \item Assume P1 acquire bus while P2 waits in buffer. \alert{What happens?}\pause
+    \item P1 issues a \emp{\tt BusWrite}, which invalidates the P2's cache $\Rightarrow$
+    \item When P2 acquires bus, it has to check V bit in cache, and send a \emp{\tt BusRdX},
+            rather than {\tt BusWrite} request.
+\end{itemize}
+
+\end{frame}
+
+
+\subsection{Design Space: MSI, MESI, MOESI Protocols}
+
+\begin{frame}[fragile,t]
+\frametitle{MSI Protocol for Write Back Caches}
+
+Simple Protocol suffers performance bottlenecks:
+\begin{itemize}
+    \item \alert{All writes launch buss transactions.}
+    \item \emph{Key Insight}: most blocks accessed exclusively
+            by one processor $\Rightarrow$ accesses to non-shared 
+            block cannot interfere with other caches!
+\end{itemize} 
+
+
+\begin{columns}\hspace{-7ex}
+\column{0.43\textwidth}
+\includegraphics[width=40ex]{FigsInfCoherence/MSI}\pause
+\column{0.55\textwidth}
+\begin{scriptsize}
+\begin{itemize}
+    \item State V split into M(odified) \& S(hared):\smallskip
+    \item[M] local copy is the only up-to-date one,\\
+            read \& writes performed locally!\\
+            (Extra state bit M for write-back cache.)\smallskip
+    \item[S] several remote copies available \& all copies in S and memory are up-to-date!\\
+             Reads operate locally, but a write must invalidate 
+            all remote copies (via {\tt BusUpgr}).\smallskip
+    \item[I] local copy invalid or not in cache.\\
+                \emp{Who provides the value on a read miss?}\\
+                    \emp{If exists}, {\bf necessarily} by a remote copy in M;\\ 
+                    Operation named {\tt Flush}: forward block\\ 
+                    copy to requester \& also update memory.\\
+                    \emp{Otherwise}, either by a copy in S or mem.
+\end{itemize}
+\end{scriptsize}
+\end{columns}
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+\frametitle{MSI Protocol: Examples}
+
+\begin{itemize}
+    \item \emph{\tt BusRd(X)} requests copy with (no) intent to modify.
+    \item \emph{\tt BusUpgr} invalidate remote copies.  
+    \item \emph{\tt Flush} forward copy to requester \& update memory.
+\end{itemize} 
+
+
+\begin{columns}\hspace{-7ex}
+\column{0.43\textwidth}
+\includegraphics[width=40ex]{FigsInfCoherence/MSI}
+\column{0.55\textwidth}
+\begin{scriptsize}
+\begin{itemize}
+    \item[1] \emph{Assume P has the 1 valid copy of block A:}
+    \item P reads A: 
+    \item P writes A:  
+    \item Next reads \& writes of P:\medskip
+
+    \item[2] \emph{Assume only $P_i$ and $P_j$ have S copies.}
+    \item[$P_i$ writes] {\tt~~}\\
+                        {\tt~~}
+    \item[$P_j$ reads.] {\tt~~}\\
+                        {\tt~~}\\
+                        {\tt~~}
+    \item[$P_k$ reads.] {\tt~~}\\
+                        {\tt~~}\\ 
+                        {\tt~~}\\
+\end{itemize}
+\end{scriptsize}
+\end{columns}
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{MSI Protocol: Examples}
+
+\begin{itemize}
+    \item \emph{\tt BusRd(X)} requests copy with (no) intent to modify.
+    \item \emph{\tt BusUpgr} invalidate remote copies.  
+    \item \emph{\tt Flush} forward copy to requester \& update memory.
+\end{itemize} 
+
+
+\begin{columns}\hspace{-7ex}
+\column{0.43\textwidth}
+\includegraphics[width=40ex]{FigsInfCoherence/MSI}
+\column{0.55\textwidth}
+\begin{scriptsize}
+\begin{itemize}
+    \item[1] \emph{Assume P has the 1 valid copy of block A:}
+    \item P reads A: I $\rightarrow$ S
+    \item P writes A: S $\rightarrow$ M and launches {\tt BusUpgrd} to invalidate remote copies,  
+    \item Next reads \& writes of P: execute locally.\medskip
+
+    \item[2] \emph{Assume only $P_i$ and $P_j$ have S copies:}
+    \item[$P_i$ writes] $P_i$: S $\rightarrow$ M and launches {\tt BusUpgr},\\
+                        on which $P_j$: S $\rightarrow$ I
+    \item[$P_j$ reads.]  $P_j$: I $\rightarrow$ S and launches {\tt BusRd},\\
+                         on which $P_i$: M $\rightarrow$ S and flushes its\\
+                        (only up-to-date) copy to $P_j$ and memory.
+    \item[$P_k$ reads.] $P_k$: I $\rightarrow$ S and launches {\tt BusRd},\\
+                        and the value is brought from memory.\\ 
+                        All copies are in state S.
+\end{itemize}
+\end{scriptsize}
+\end{columns}
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+\frametitle{MSI: Hardware Structures}
+
+\begin{columns}\hspace{-5ex}
+\column{0.6\textwidth}
+\includegraphics[width=47ex]{FigsInfCoherence/SnoopingBus}
+\column{0.45\textwidth}
+\vspace{-3ex}
+\begin{scriptsize}
+\begin{itemize}
+    \item Transaction starts by supplying \emp{address/data} and a \emp{request}.
+    \item and triggers a \emp{snoop action}, e.g., invalidate tag, and \emp{reply},
+            e.g., when have all completed it?
+    \item \emp{Synchronous} reply:  
+    \item \emp{Asynchronous} by handshake (b):\\{{\tt NOR(D1,..,Dn)$\Rightarrow$ DONE}}, i.e.,\\
+    \item \emp{Fetch from Remote or Memory?}
+\end{itemize}
+\end{scriptsize}
+\end{columns}
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{MSI: Hardware Structures}
+
+\begin{columns}\hspace{-5ex}
+\column{0.6\textwidth}
+\includegraphics[width=47ex]{FigsInfCoherence/SnoopingBus}
+\column{0.45\textwidth}
+\vspace{-3ex}
+\begin{scriptsize}
+\begin{itemize}
+    \item Transaction starts by supplying \emp{address/data} and a \emp{request}.
+    \item and triggers a \emp{snoop action}, e.g., invalidate tag, and \emp{reply},
+            e.g., when have all completed it?
+    \item \emp{Synchronous} reply: establishes an upper-bound latency that 
+            factors in conflicts $\Rightarrow$ use DualDirectory. 
+    \item \emp{Asynchronous} by handshake (b):\\{{\tt NOR(D1,..,Dn)$\Rightarrow$ DONE}}, i.e.,\\
+            {\tt If} any {\tt Di} is 1 {\tt Then} {\tt DONE} driven to ground 0
+            {\tt Else} to supply volt 1. 
+    \item \emp{Fetch from Remote or Memory?}\\
+            $\overline{\mbox{\tt REMOTE}}${\tt=NOR(M1,..,Mn)}, where {\tt Mi} 
+            is 1 when block in cache {\tt i} is in state M. Similar handshake.
+\end{itemize}
+\end{scriptsize}
+\end{columns}
+
+\begin{itemize}
+    \item Initiate memory access in PARALLEL with snoop action, but memory responds 
+        only after $\overline{\mbox{\tt REMOTE}}$ is known as 1.
+    \item To reduce miss latency when it triggers replacement of M block $\Rightarrow$
+            move block to \emp{victim buffer, which also supports snooping}.
+\end{itemize} 
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{MESI Protocol for Write Back Caches}
+
+MSI: read miss followed by write require TWO bus accesses.\smallskip
+
+\emp{E(xclusive)} State entered on a read miss, when block is only in mem.\\
+Uses a \emp{S(hared) bus line} to detect whether the copy will be unique.
+
+
+\begin{columns}\hspace{-7ex}
+\column{0.65\textwidth}
+\includegraphics[width=55ex]{FigsInfCoherence/MESI}\pause
+\column{0.38\textwidth}
+\vspace{-3ex}
+%\begin{scriptsize}
+\begin{itemize}
+    \item A read miss transitions from I to S if shared line is 1, and to E otherwise.
+    \item If a block in E is updated ({\tt PrWr}) then E$\rightarrow$M without {\tt BusUpgr}.
+    \item Could use {\tt BusUpgr} in transition S $\rightarrow$ M. 
+\end{itemize}
+%\end{scriptsize}
+\end{columns}
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{MOESI: A General Class of Protocols}
+
+MOESI adds a notion of ownership:
+\begin{itemize}
+    \item memory is eventually updated by owner (not at every write)
+    \item allows cache-to-cache transfers between owner and requester
+            (even when access was not exclusive).
+\end  {itemize}
+
+
+\begin{columns}\hspace{-5ex}
+\column{0.65\textwidth}
+\includegraphics[width=45ex]{FigsInfCoherence/MOESI}
+\column{0.38\textwidth}
+%\begin{scriptsize}
+\emp{Ownership transfered to another cache or memory when
+block is invalidated or replaced!}
+%\end{scriptsize}
+\end{columns}
+
+\end{frame}
+
+\subsection{Cache Protocol Optimizations}
+\begin{frame}[fragile,t]
+\frametitle{Cache Protocol Optimizations}
+
+\emph{Producer-Consumer Sharing via Read Snarfing (Broadcast):}
+\begin{scriptsize}
+\begin{itemize}
+    \item {R$_i$/W$_i$} read/write of block A by processor {\tt i}. All caches have a copy of A.
+    \item Sequence: {\tt W$_1$,R$_2$,R$_3$,..,R$_n$, W$_1$,R$_2$,R$_3$,..,R$_n$, ...}\pause
+    \item \emp{results in an invalidation followed by $n-1$ read misses, all using the bus.}
+    \item \emph{Optimized by letting the first read miss bring A into all caches.}
+\end  {itemize}
+\end{scriptsize}
+\bigskip
+
+\begin{block}{Migratory Sharing refers to data accessed in critical sections}
+\begin{columns}
+\column{0.22\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+LOCK(LV);
+    sum+=mysum;
+UNLOCK(LV);
+\end{colorcode} 
+\column{0.75\textwidth}
+\begin{scriptsize}
+{\tt BusRd$_1$,BusUpgr$_1$, BusRd$_2$,BusUpgr$_2$, BusRd$_3$,BusUpgr$_3$, ...}\\
+\emp{// $\downarrow$ Coherence miss then invalidation: combine Read \& Upgrade: $\downarrow$}\\
+{\tt BusRdX$_1$, BusRdX$_2$, BusRdX$_2$, ...}
+\end{scriptsize}
+\end{columns}
+\end{block}
+
+Requires slight modificantions to MOESI, e.g., need to detect such sequences
+and switch the optimization on/off.
+\bigskip
+
+\emph{Update-Based Protocols}: if every write is consumed by a different processor,
+it is better to update eagerly all remote copies instead of invalidating them.
+\emp{Optimizes latency and bandwidth.}
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Write Back: MSI Update Protocol}
+
+Dragon Multiprocessor (Xerox PARC 1980):\\
+Same states as MOESI, but Invalid omitted to simplify.
+
+\begin{columns}\hspace{-7ex}
+\column{0.43\textwidth}
+\includegraphics[width=40ex]{FigsInfCoherence/MSIupdate}\pause
+\column{0.55\textwidth}
+\begin{scriptsize}
+\begin{itemize}
+    \item[Shared] multiple copies, memory is clean. 
+    \item[Modified] one copy, memory is stale, etc.
+    \item[Transactions] BusRd requests a copy, BusUpdate updates remote copies.
+    \item[S bus line] indicates whether remote copies exist.\bigskip
+    \item[RdMiss] If no other cached copies, block loaded from mem in E,
+                   Otherwise in S.\\
+    \item[WrHit] If no other copies E$\rightarrow$M without using bus.\\
+                 \emp{Else (Shared line 1) all copies are updated via 
+                    {\tt BusUpdate}, and the update is propagated from owner.}  
+\end{itemize}
+\end{scriptsize}
+\end{columns}
+\bigskip
+Under which program behavior is invalidation or update protocol best?
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Comparison Invalidate vs Update Protocol}
+
+\emp{Write-Run} of an access sequence to the same block is
+the set of consecutive writes of the same processor before 
+encountering a read/write of another processor.\\
+\smallskip
+Example: Write Run Length of {\tt R$_1$,W$_1$,R$_1$,W$_1$, W$_2$,R$_2$} is 2.
+\bigskip
+
+Bandwidth ({\tt B}) for a Write-Run of length N:
+\begin{description}
+    \item[INVALIDATE] {\tt B(UPGRADE) + B(READ MISS)}
+    \item[UPDATE]     {\tt N $\times$ B(UPDATE)}
+\end{description}
+
+Assuming {\tt B(UPGRADE) $\equiv$ B(UPDATE)} then\\
+\emp{Update outperforms Invalidate when}\\
+\emp{{\tt N < 1 + B(READ MISS)/B(UPDATE)}}
+\medskip
+
+This becomes: \emp{\tt N $<$ 1 + s}, where {\tt s} is the \# of words in a cache line, 
+(because the update protocol updates only one word.)
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Multiphase Cache Protocols}
+
+\begin{frame}[fragile,t]
+\frametitle{Multi-Phase Snoopy Cache Protocols}
+
+\begin{columns}\hspace{-8ex}
+\column{0.70\textwidth}
+\includegraphics[width=50ex]{FigsInfCoherence/MultiLevCache}\pause
+\column{0.28\textwidth}
+\begin{scriptsize}
+So far we have assumed:
+\begin{itemize}
+    \item single level of private cache, 
+    \item and atomic pipelined buses.
+\end{itemize}
+\bigskip
+\emp{A More Realistic Model:}
+\begin{itemize}
+    \item \emp{multi-level private cache hierarchy}
+    \item \emp{a split transaction (pipelined) bus}\\
+            {\em request \& response phases}
+\end{itemize}
+\end{scriptsize}
+\end{columns}
+\bigskip
+
+Different caches/memory cannot consume requests at the same rate.
+\emp{FIFO requests buffers} smooth out differences, and \emp{have a profound 
+impact on the protocol design!}
+
+\end{frame}
+
+%\begin{frame}[fragile,t]
+%\frametitle{REMEMBER Subtle Issue Slide?}
+%
+%\begin{columns}
+%\column{0.48\textwidth}
+%\includegraphics[width=35ex]{FigsInfCoherence/MSI}
+%\column{0.48\textwidth}
+%\includegraphics[width=30ex]{FigsInfCoherence/SMPreqbuff}
+%\end{columns}
+%
+%\alert{Even the atomic protocols with a single level cache are too high level
+%to resolve races in the presence of requests buffers.} Example MSI:%\begin{scriptsize}
+%\begin{itemize}
+%    \item P1 and P2 queue \emp{two {\tt BusUpgr}} to block A in request buffer. 
+%    \item Assume P1 acquire bus while P2 waits in buffer. \alert{What happens?}
+%    \item P1's {\tt BusUpgr} should move P2 to Invalid state, hence
+%    \item when P2 acquires bus, should send a \emp{\tt BusRdX} (not {\tt BusWrite}).
+%\end{itemize}
+%
+%\end{frame}
+
+
+\begin{frame}[fragile,t]
+\frametitle{Transient Non-Atomic Cache States for MSI}
+
+\alert{Even the atomic protocols with a single level cache are too high level
+to resolve races in the presence of requests buffers.}\medskip
+
+Transient states SM, IM are needed to cope with 
+non-atomic (multi-phase) transactions. \smallskip
+
+
+
+\begin{columns}\hspace{-5ex}
+\column{0.55\textwidth}
+\includegraphics[width=44ex]{FigsInfCoherence/MSInonatomicStates}\pause
+\column{0.43\textwidth}
+\begin{scriptsize}
+\begin{itemize}
+    \item On a P1 write hit a block in S transitions to SM and enqueues {\tt BusUpgr}.
+    \item If a {\tt BusUpgr} received from P2 before P1 transact completed,\\ 
+          Then P1 goes to IM and {\tt BusRdX} replaces {\tt BusUpgr} in buffer. 
+    \item Eventually, when transition completed, i.e., request sent and reply received,
+            P1 goes to M.
+\end{itemize}
+\end{scriptsize}
+\end{columns}
+\bigskip
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Split-Transaction Bus}
+
+Pipelines a sequence of phases in a bus transaction,
+e.g., arbitration, transfer, response.\bigskip
+
+Dividing a transaction into subtransactions $\Rightarrow$
+Tradeoff between additional latency (repeated bus arbitration) and better bandwidth.\bigskip
+
+Pipeline stages must be balanced to maximize throughput.\bigskip
+
+For example, if both request and response transfer use the address bus,
+they can only be pipelined:
+\vspace{-4ex}
+
+\includegraphics[width=44ex]{FigsInfCoherence/SplitTransBus}
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Access Races on Split-Transaction Buses}
+
+Are dealt via transient states, but additional issues are:
+\begin{itemize}
+    \item[1] \emp{Resolve conflicting requests (to the same address):}\\
+            \begin{itemize} 
+                \item use request tables monitored by all nodes;
+                \item request launched only if no entry in the table matches its address 
+                \item $\Rightarrow$ only one request to same address in the system at a time.
+            \end{itemize} 
+    \item[2] \emp{How to report snoop results, e.g., shared line?}
+            \begin{itemize} 
+                \item snoop result needed to transition in new state, 
+                        hence it should be part of request phase,
+                \item but inbound buffers, e.g., bus to cache) would add too big a delay. 
+                \item $\Rightarrow$ Essential to look directly in CacheDir before buffering.
+                \item Requires \emph{1} to work correctly.
+            \end{itemize} 
+    \item[3] \emp{Prevent buffer overflows:}
+            \begin{itemize} 
+                \item Add provisions in protocol to {\tt NACK} when buffers overflow, i.e.,
+                \item Do not start transaction until all relevant FIFO buffers have space. 
+            \end{itemize}             
+\end{itemize}
+
+This is part of the solution of SGI Challenge mid90s.
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+\frametitle{Multi-Level Cache Issues}
+
+Adding another level of private cache offers benefits:
+\begin{itemize} 
+    \item shorter miss penalty to next level,
+    \item filters out snoop actions to first level $\Rightarrow$
+    \item \emph{less proc-bus conflicts on L1 cache \& less snoop latency!}
+    \item especially if cache inclusion is maintained
+            (e.g., it can be forced by evicting an L1 
+            block when is evicted from L2.)
+\end{itemize} 
+\bigskip
+
+Write Policy is important to reduce snoop overhead:
+\begin{itemize}
+    \item If L1 is write-back Then L2's copy is inconsistent and
+            dirty miss requests must be serviced by L1.
+    \item \emph{If L1 is write-through and inclusion is maintained $\Rightarrow$
+                L2 is consistent and can service all miss requests from
+                other processors,}
+    \item which can significantly improve performance.
+\end{itemize}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Cache Miss Classification (Updated)}
+\begin{frame}[fragile,t]
+\frametitle{True vs False Sharing}
+
+\emph{True Sharing Communicates Values (Essential):}
+\begin{itemize} 
+    \item Two processors access the same word. \emp{Remember:}
+    \item Update protocol better for Fine-Grained Sharing (short Write Runs)
+    \item Invalidate better for Coarse-Grain Sharing: {\tt N $>$ 1+b},\\
+            where {\tt b} is \# of words in a cache line,
+                    {\tt N} is the write-run length.
+\end{itemize} 
+\bigskip
+
+\alert{False Sharing Does Not Communicate Values (pure overhead)}
+\begin{itemize}
+    \item P1 and P2 access two different words in the same block.
+    \item Write Invalidate causes false sharing misses, e.g., P1 write {\tt W1} then
+            P2 reads {\tt W2}, where {\tt W1} and {\tt W2} are distinct words in the same block. 
+    \item Write Update causes false sharing updates to dead copies.
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Essential vs Non-Essential Misses}
+
+Assume A, B, C belong to same word B1, and D to another word.
+\begin{tabular}{lllll}
+\hline
+Time    & Proc1 & Proc2 & Proc3 & Miss Type \\\hline
+1       & R$_A$ &       &       & Cold      \\
+2       &       & R$_B$ &       & Cold      \\
+3       &       &       & R$_C$ & Cold      \\
+4       &       &       & R$_D$(evict B1) & Cold      \\
+5       & W$_A$ &       &       &           \\
+6       &       & R$_A$ &       & True Sharing      \\
+7       & W$_B$ &       &       &           \\
+8       &       & R$_A$ &       & False Sharing     \\
+9       &       &       & R$_C$ & Replacement \\\hline
+\end{tabular}
+\bigskip
+
+Cold, True Sharing (coherence), and replacement (conflict or capacity)
+misses are \emph{Essential}; False Sharing misses are \alert{Non Essential}.\bigskip
+
+Same reasoning can be applied to memory traffic.
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Classification of Misses}
+\includegraphics[width=59ex]{FigsInfCoherence/MissClassif}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Translation Lookahead Buffer (TLB) Consistency}
+\begin{frame}[fragile,t]
+\frametitle{Recall Translation Lookahead Buffer}
+\bigskip
+
+\emph{Virtual Memory (VM) manages the Main Memory (MM) ``cache'' by 
+migrating fixed-size memory pages between MM and Disk:}
+\begin{itemize} 
+    \item Page Tables are stored in MM and keep track of the pages resident in MM 
+    \item A VM Address is translated to a Physical-MM Address,
+            with the use of \emp{hardware support}:
+    \item TLB is a cache for virtual-to-physical translations and typically sits 
+            between processor and L1 cache. \alert{Why?}
+%            (because processor addresses are virtual,
+%            but we have assumed caches are addressable via physical-MM address).
+\end{itemize} 
+\bigskip
+
+In a multiprocessor, TLBs act as private caches and\\
+\alert{Consistency Between TLBs is Essential For Correct Execution}
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Sources of TLB Inconsistency}
+\bigskip
+
+TLB is inconsistent when one of its entries differs from the Page-Table Entry.
+\emp{Sources of Inconsistency:}
+\begin{itemize} 
+    \item A page is evicted and replaced with another: An unaware TLB
+            maps now addresses of the evicted page to the new
+            loaded page \& also all the cached blocks of the old page are stale.
+    \item Access rights are changed: An unaware TLB would not enforce the
+            more restrictive rights or generates unnecessary exceptions.
+    \item Access statistics are changed (page becomes dirty): may loose the
+            updates of the inconsistent TLB. 
+\end{itemize} 
+\bigskip
+
+Not all critical for correctness, e.g., reference-bit inconsistency 
+leads to suboptimal VM manager decisions.
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Enforcing TLB Consistency}
+\bigskip
+
+One Solution is \emp{TLB SHOOTDOWN}:
+\begin{itemize} 
+    \item[1] On page eviction the Master processor (executing the VM manager)
+                locks the page table entry, and
+    \item[2] Sends interrupt signals to all processors involved. 
+    \item[3] Each processor invalidates the inconsistent TLB entry
+    \item[4] Each processor invalidates the inconsistent cache entries
+    \item[5] Each processor acknowledges back to Master.
+    \item[6] Master replaces the page and unlocks the page-table entry.
+\end{itemize} 
+
+\bigskip
+\alert{TLB shootdown is expensive}, \emph{but luckily it happens rarely!}
+
+\end{frame}
+
 
 \end{document}
