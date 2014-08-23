@@ -1443,6 +1443,19 @@ impact on the protocol design!}
 %
 %\end{frame}
 
+\begin{frame}[fragile,t]
+\frametitle{Atomic Transaction Disadvantages}
+Example: bus clocked at 100MHz can transfer 3 parallel segments in one cycle: 
+(1) a request, (2) an address and (3) 256-bits of data. Assume no caches and
+that memory is banked and can supply a 32-byte cache block in 200 ns. 
+\alert{What fraction of the time will the atomic bus be idle?}
+\bigskip\pause
+
+1 clock cycle: {\tt 1sec / freq = 10ns}.\\ 
+Bus is idle: $200/220 = 91$\% of time.
+
+\end{frame}
+
 
 \begin{frame}[fragile,t]
 \frametitle{Transient Non-Atomic Cache States for MSI}
@@ -1452,8 +1465,6 @@ to resolve races in the presence of requests buffers.}\medskip
 
 Transient states SM, IM are needed to cope with 
 non-atomic (multi-phase) transactions. \smallskip
-
-
 
 \begin{columns}\hspace{-5ex}
 \column{0.55\textwidth}
