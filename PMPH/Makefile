@@ -8,6 +8,8 @@ default:
 	pdflatex MemHierarchy.tex
 	pdflatex Interconnect.tex
 	pdflatex Interconnect.tex
+	pdflatex MemSeqCons.tex
+	pdflatex MemSeqCons.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
 processor:
@@ -28,6 +30,11 @@ mem:
 interconnect:
 	pdflatex Interconnect.tex
 	pdflatex Interconnect.tex
+	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
+
+seqcons:
+	pdflatex MemSeqCons.tex
+	pdflatex MemSeqCons.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
 clean:
