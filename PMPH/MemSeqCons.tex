@@ -1199,6 +1199,8 @@ print A
 	\tableofcontents[currentsection]
 \end{frame}
 
+\subsection{General Case}
+
 \begin{frame}[fragile,t]
 \frametitle{Formal Model For Sequential Consistency (SC)}
 
@@ -1343,10 +1345,531 @@ L\mymath{\myindu{2}}(A)0
 \begin{itemize}
     \item with store buffers, the outcome can be {\tt (0,0)}
     \item P1 executes {\tt A:=1;} which stays in store buffer, similar for P2
-    \item \alert{Under MSI invalidate T1 and T2 are both read 0!}
+    \item \alert{P1 and P2 can both read 0 before (MSI) invalidation occurs!}
 \end{itemize}
 
 
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+\frametitle{Sequential Consistency Conclusions}
+
+\begin{itemize}
+    \item \emp{Sequential Consistency cannot take advantage of store buffers.}\medskip
+    \item \emp{Also problems with compilers:}
+\end{itemize}
+
+\begin{block}{Point-to-Point Synchronization}
+\begin{columns}
+\column{0.23\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+        INIT: A := B := 0
+//P1
+...
+A    := 1;
+FLAG := 1;
+...
+\end{colorcode} 
+\column{0.23\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+
+//P1
+...
+while ( FALG == 0 ) ;
+print(A);
+...
+\end{colorcode} 
+\column{0.45\textwidth}
+\begin{itemize}
+    \item There is no dependency between {\tt FLAG} and {tt A} $\Rightarrow$\smallskip
+    \item \emp{Compiler may reorder instructions in {\tt P1}}
+    \item \alert{Compiler may even remove the {\tt while} loop!}
+    \item use of \emph{\tt volatile}.
+\end  {itemize}
+\end{columns}
+\end{block}
+\bigskip
+
+\emph{Bend the Rules Again: Memory Consistency Models} implement a 
+tradeoff between performance and ease of use (user intuition).
+
+\end{frame}
+
+\subsection{Memory Consistency Models}
+
+\begin{frame}[fragile,t]
+\frametitle{Memory Consistency Models}
+
+Any other programmer intuition that we may exploit?
+
+Explicit Synchronization (still expensive):
+
+\begin{columns}
+\column{0.2\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+        INIT: BAR := 0
+//P1
+A := 1;
+B := 2;
+BARRIER(BAR,2);
+\end{colorcode} 
+\column{0.2\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+
+//P1
+BARRIER(BAR,2);
+R1 := A;
+R2 := B;
+\end{colorcode} 
+\column{0.5\textwidth}
+\begin{itemize}
+    \item When shared, access to variables protected by locks. 
+    \item Because of the barrier the result is always SC.
+\end  {itemize}
+\end{columns}
+\bigskip
+
+\emp{Should we care about programmer at all?} E.g.,
+hardware-friendly memory-access ordering rules constraining what
+programmer can do.
+\medskip
+
+Need an agreement between programmers (intuitive model) 
+and hardware architects (performance)! 
+\medskip
+
+\emph{Memory Consistency Model is the interface between hardware and software \& 
+should be/IS part of ISA Definition.}
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+\frametitle{Relaxed Memory Consistency Models}
+
+\begin{columns}
+\column{0.48\textwidth}
+\includegraphics[width=39ex]{Ch7Figs/SeqConsRelatexOrders}\pause
+\column{0.48\textwidth}
+\begin{itemize}
+    \item Relax some of the access orders of threads,e.g.,
+    \item Allow loads to bypass stores!
+    \item Processor View: memory is atomic, i.e., loads return 
+            values from memory only when values are GPed.
+    \item {\tt store-loads} are not ordered $\Rightarrow$ 
+            loads do not wait for store buffer to empty!  
+\end{itemize}
+\end{columns}
+\bigskip
+
+{\tt load$\rightarrow$load} {\tt store$\rightarrow$store} and {\tt load$\rightarrow$store}
+performed by one processor still have to be observed in order by other procs, i.e., are ordered.
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+\frametitle{Relaxing Store-to-Load Orders}
+
+
+\begin{columns}
+\column{0.25\textwidth}
+\begin{colorcode}[fontsize=\large]
+  INIT: A := B := 0
+//P1
+A := 1;
+print(B)
+\end{colorcode} 
+\column{0.25\textwidth}
+\begin{colorcode}[fontsize=\large]
+
+//P2
+B := 1;
+print(A);
+\end{colorcode} 
+\column{0.45\textwidth}
+\alert{Remember This:\\Valid Execution\\May Print {\tt (0,0)}!}
+\end{columns}
+\bigskip
+
+\begin{itemize}
+    \item Example: Sun Micro Total Store Order (TSO)
+        \begin{itemize}
+            \item Dekker's algorithm does not work
+            \item point-to-point communication still works.
+        \end  {itemize}\smallskip
+
+    \item Combining the stores in buffer {\em IFF} 
+            no interleaved stores to different addresses.\smallskip
+
+    \item Accesses to cache are submitted out of program order.\smallskip
+
+    \item Values may or may not be forwarded from SB to loads:  
+        \begin{itemize}
+            \item no forwarding $\Rightarrow$ \emp{store atomic behavior}, but \alert{not coherent} 
+                    (intra-thread dependencies not preserved)
+            \item with forwarding $\Rightarrow$ plain coherence (a case of TSO),
+                    i.e., some loads may return non-GPed values.  
+        \end  {itemize}
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+\frametitle{TSO with No Forwarding}
+
+
+\begin{columns}
+\column{0.48\textwidth}
+\includegraphics[width=39ex]{Ch7Figs/NoFwdingStoreBuf}\\\vspace{-5ex}
+\includegraphics[width=39ex]{Ch7Figs/NoFwdingStoreBufGraph}\pause
+\column{0.48\textwidth}
+\vspace{-9ex}
+\begin{itemize}
+    \item Atomic stores; loads only returned GPed values.
+    \item \alert{SB denotes the Private Store Pipeline} of the core, e.g., lockup-free cache.
+    \item The Dekker's execution that fails to synchronize is VALID:
+    \item no arrow between store and load in each thread $\Rightarrow$
+    \item no global order between store and load
+    \item still store is atomic overall, hence the order is coherent under the model's rules.
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{TSO With Forwarding}
+
+\begin{columns}
+\column{0.48\textwidth}
+\includegraphics[width=39ex]{Ch7Figs/TSOfwd}\\\vspace{-5ex}
+\includegraphics[width=39ex]{Ch7Figs/TSOfwdGraph}\pause
+\column{0.55\textwidth}
+\vspace{-9ex}
+\begin{itemize}
+    \item \alert{Remember: Abstract View of Memory Behavior:}
+    \item SB is the Private Store Pipeline.
+    \item as long as a store can only be observed by its thread $\Rightarrow$
+            it does not have to be propagated to others, but
+    \item as soon as it can be observed by others it must become visible to all, atomically!
+%    \item E.g., private, lockup-free L1 then its thread can use NOT-GPed L1 values,   
+%    \item but if L1 shared by several threads, it may not use non-GPed values!
+    \item \emp{Graph is for No Forwarding:}
+    \item exec: valid but NOT coherent
+    \item \emph{With Forwarding $\Rightarrow$ arrow from store to load of {\tt C} $\Rightarrow$ cycles in graph $\Rightarrow$ invalid execution.}
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{SUN Micro Relaxed Memory Model (RMO)}
+
+\begin{itemize}
+    \item \emp{\bf In RMO only intra-thread dependency order is enforced},
+            i.e., there is no implicit order between threads\medskip
+
+    \item \emp{\tt MEMBAR} instructions specifies inter-thread orders explicitly:
+    \begin{itemize}
+        \item 4 bits used to specify up to 4 orders
+        \item \emp{\bf Load-Load}: fence forcing all preceding loads to GPed before any subsequent load may issue,
+        \item \emp{\bf Load-Store}: all preceding loads GPed before subsequent store,
+        \item \emp{\bf Store-Store}: all preceding stores GPed before subsequent store,
+        \item \emp{\bf Store-Load}: all preceding stores GPed before subsequent load.
+    \end{itemize}
+    \item {\tt MEMBAR} instructions inserted by compiler or programmer.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{SUN Micro Relaxed Memory Model (RMO)}
+
+\begin{block}{Use of MEMBAR instructions}
+\begin{columns}
+\column{0.15\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+            INIT: A := B := 0; 
+
+//T1
+A := 1;
+
+\alert{// Non-SC: Valid Exec May Result in (A,B) = (0,1)}
+
+
+            INIT: A := B := 0; 
+
+//T1
+A := 1;
+
+
+\emph{// SC Execution Cannot Result in (A,B) = (0,1)}
+\end{colorcode} 
+\column{0.23\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+
+//T2
+while(A==0) ;
+B := 1;
+
+
+
+
+
+//T2
+while(A==0) ;
+MEMBAR 0100
+B := 1;
+
+\end{colorcode} 
+\column{0.15\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+
+//T3
+print(B);
+print(A);
+
+
+
+
+
+//T3
+print(B);
+MEMBAR1000
+print(A);
+
+\end{colorcode} 
+\column{0.3\textwidth}
+\begin{itemize}
+    \item first code may yield Non-SC outcome\bigskip
+    \item second code may not:
+    \item 4 bits specify orders\smallskip
+    \item 1000: load-load
+    \item 0100: load-store
+\end  {itemize}
+\end{columns}
+\end{block}
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+\frametitle{MCM Using Synchronization}
+
+\includegraphics[width=65ex]{Ch7Figs/MCSsync}
+
+\end{frame}
+
+
+\subsection{Weak Ordering}
+
+\begin{frame}[fragile,t]
+\frametitle{Weak Ordering}
+
+\begin{itemize}
+    \item Multi-Threaded execution uses locking to avoid race conditions.\medskip
+
+    \item Execution involves several stages
+        \begin{itemize}
+            \item accesses to private or read-only shared data: unprotected,
+            \item accesses to shared modifiable data: protected by locks/barriers.
+        \end  {itemize}\medskip
+
+    \item In each phase thread has exclusive access to all its data,
+            i.e., no other thread can write or read the data it modifies.\medskip 
+
+    \item \emp{\bf Access to synchronization data}, including all locks in sync protocol,
+                treated differently by hwd than ``regular'' accesses:
+        \begin{itemize}
+            \item They act as fences on all accesses,
+            \item Must Globally Perform all accesses preceding SYNC (in TO)
+            \item Must Globally Perform SYNC accesses BEFORE all subsequent accesses (in TO)   
+        \end  {itemize}\medskip
+
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Weak Ordering}
+
+\begin{itemize}
+    \item Access to (Non-SYNC) shared and private data must enforce 
+            uniprocessor dependencies (thread order TO) \medskip
+        \begin{itemize}
+            \item no other requirements, e.g., coherence NOT required,
+        \end  {itemize}\medskip
+
+    \item Variables used for synchronization MUST be declared as such,
+            so that special instructions can be issued by compiler, 
+            e.g., fences.
+\end{itemize}
+
+\begin{columns}
+\column{0.33\textwidth}
+\begin{colorcode}
+        INIT: X := FLAG := 0
+//P1
+X    := 1;
+\alert{FLAG} := 1;
+
+        INIT: A := B := 0
+//P1
+\alert{A} := 1;
+while(\alert{B}==1) ;
+<critical section>
+\alert{A} := 0;
+\end{colorcode} 
+\column{0.33\textwidth}
+\begin{colorcode}
+
+//P2
+while(\alert{FLAG} == 0) ;
+print(X)
+
+
+//P2
+\alert{B} := 1
+while(\alert{A}==1) ;
+<critical section>
+\alert{B} := 0
+\end{colorcode} 
+\column{0.3\textwidth}
+In the first code {\tt FLAG} must be declared as SYNC variable.\bigskip
+
+In the second code both {\tt A} and {\tt B} must be declared as SYNC variable.
+\end{columns}
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+\frametitle{Weak Ordering}
+
+\begin{itemize}
+    \item Special treatment for read-modify-write {\tt RMW} accesses:  
+            it is Globally Performed when both the load \alert{AND} 
+            the store are globally performed and atomic.\bigskip
+        
+
+    \item SYNC operations must be recognizable by hardware at ISA level, e.g., 
+            {\tt T\&S} instruction, and special load and store instructions for
+            SYNC variables\bigskip
+
+    \item \emp{\bf Orders to Enforce}, where {\tt Op} denotes regular 
+                load/store, and {\tt Sync}  {\tt T\&S,CAS,SWAP}, etc
+\end{itemize}
+
+\includegraphics[width=55ex]{Ch7Figs/WeakOrdering}
+
+%\begin{columns}
+%\column{0.48\textwidth}
+%\includegraphics[width=39ex]{Ch7Figs/WeakOrdering}\pause
+%\column{0.55\textwidth}
+%{\tt OP}: regular load/store
+%{\tt SYNC}: $\forall$ synch access, e.g., {\tt T\&S, CAS, SWAP}.
+%\end{columns}
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+\frametitle{What Does Weak Ordering Mean for IO Procs?}
+\vspace{-3ex}
+\includegraphics[width=55ex]{Ch7Figs/WeakOrdPipeline}
+\vspace{-23ex}
+
+\begin{itemize}
+    \item \emph{\bf Loads can return values even if they are not GPed.}\smallskip
+
+    \item \emph{\bf Regular stores in SB executed in any order in parallel.}\smallskip
+
+    \item \emph{\bf Regular Loads never wait for stores and can be forwarded.}
+
+    \item \emp{\bf When a {\tt Sync} is executed, it is treated differently:}
+        \begin{itemize}
+            \item it blocks the entire memory stage until all stores in SB
+                    are globally performed. This enforces \emp{\tt Op-TO-Sync}.
+            \item \emp{\tt Sync-TO-Op} and \emp{\tt Sync-TO-Sync} are automatically
+                    enforced. % by the IO Processor. 
+        \end  {itemize}
+\end{itemize}
+
+\includegraphics[width=55ex]{Ch7Figs/WeakOrdering}
+
+\end{frame}
+
+\subsection{Release Consistency}
+
+\begin{frame}[fragile,t]
+\frametitle{Release Consistency}
+
+\begin{itemize}
+    \item Is a More-Relaxed refinement of Weak Ordering:
+        \begin{itemize}
+            \item distinguish between acquire and release phases:
+            \item \emp{Acquire} must be globally performed 
+                        before executing subsequent instrs,
+            \item all memory operations must be globally performed 
+                        BEFORE a \emp{release} can start. 
+        \end  {itemize}\medskip
+
+    \item Programmers must declare synchronization as 
+            \emp{acquire} and \emp{release} stages\medskip
+
+    \item \emp{Acquires and Releases} \emph{\bf Must Be Sequential Consistent. Orders to Enforce:}
+\end{itemize}
+
+\includegraphics[width=55ex]{Ch7Figs/ReleasedOrdering}
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Release Consistency Example}
+\vspace{-3ex}
+\includegraphics[width=55ex]{Ch7Figs/ReleasedConsistGraph}
+\vspace{-4ex}
+
+\begin{itemize}
+    \item Significantly more ILP in Release Consistency:
+        \begin{itemize}
+            \item code before {\tt Unlock(Lx)} can be executed in parallel.
+            \item code after {\tt Lock(Lb)} can all be executed in parallel. 
+        \end  {itemize}\medskip
+
+    \item Challenge is to take advantage of it within each thread!
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+\frametitle{What Does Release Consistency Mean for IO Proc?}
+\vspace{-3ex}
+\includegraphics[width=44ex]{Ch7Figs/ReleasedIOpipeOrd}
+\vspace{-8ex}
+
+\begin{itemize}
+    \item \emph{\bf No Ordering for Regular Load/Stores} (return non-GPed vals)\smallskip
+        \begin{itemize}
+            \item regular stores in SB can be executed in any order in parallel,
+            \item regular loads are forwarded \& never wait for regular stores in SB.
+        \end  {itemize}
+
+    \item \emph{\bf Acquires are blocking $\Rightarrow$} 
+                \emp{\tt Acquire-Op/Sync} \emph{\bf auto enforced}\smallskip
+
+    \item \emph{\bf A Release is inserted in SB with regular loads}
+        \begin{itemize}
+            \item Releases must wait in SB until all prior stores and releases are GPed
+                    $\Rightarrow$ \emp{\tt OP-Release} and \emp{\tt Release-Release} enforced 
+                %(because previous loads have already retired),
+            \item Acquire waits until all prior releases in SB 
+                    have been GPed $\Rightarrow$ \emp{\tt Release-Acquire} enforced.
+        \end  {itemize}
+\end{itemize}
+
+%\begin{columns}
+%\column{0.48\textwidth}
+%\includegraphics[width=39ex]{Ch7Figs/WeakOrdering}\pause
+%\column{0.55\textwidth}
+%{\tt OP}: regular load/store
+%{\tt SYNC}: $\forall$ synch access, e.g., {\tt T\&S, CAS, SWAP}.
+%\end{columns}
 \end{frame}
 
 \end{document}
