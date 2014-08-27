@@ -1,0 +1,648 @@
+\documentclass{beamer}
+
+%% \documentclass[handout]{beamer}
+%% % use this with the [handout] option to create handouts for the audience
+%% \usepackage{pgfpages}
+%% \pgfpagesuselayout{2 on 1}[a4paper,border shrink=5mm]
+
+\mode<presentation>
+{
+  \usetheme{Diku}
+% set this to your preferences:
+  \setbeamercovered{invisible}
+%  \setbeamercovered{transparent}
+}
+
+\usepackage{graphicx}
+\usepackage{epic}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+\newcommand{\basetop}[1]{\vtop{\vskip-1ex\hbox{#1}}}
+\newcommand{\source}[1]{\let\thefootnote\relax\footnotetext{\scriptsize\textcolor{kugray1}{Source: #1}}}
+
+% for coloured code citation in text:
+\usepackage{fancyvrb}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%    code sections   %%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% code highlighting commands in own block
+\DefineVerbatimEnvironment{code}{Verbatim}{fontsize=\scriptsize}
+\DefineVerbatimEnvironment{icode}{Verbatim}{fontsize=\scriptsize}
+
+% Fancy code with color commands:
+\DefineVerbatimEnvironment{colorcode}%
+        {Verbatim}{fontsize=\scriptsize,commandchars=\\\{\}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%    some coloring    %%%%%%%%
+
+\definecolor{Red}{RGB}{220,50,10}
+\definecolor{Blue}{RGB}{0,51,102}
+\definecolor{Yellow}{RGB}{102,51,0}
+\definecolor{Orange}{RGB}{178,36,36}
+\definecolor{Grey}{RGB}{180,180,180}
+\definecolor{Green}{RGB}{20,120,20}
+\definecolor{Purple}{RGB}{160,50,100}
+\newcommand{\red}[1]{\textcolor{Red}{{#1}}}
+\newcommand{\blue}[1]{\textcolor{Blue}{{#1}}}
+\newcommand{\yellow}[1]{\textcolor{Yellow}{{#1}}}
+\newcommand{\orange}[1]{\textcolor{Orange}{{#1}}}
+\newcommand{\grey}[1]{\textcolor{Grey}{{#1}}}
+\newcommand{\green}[1]{\textcolor{Green}{{#1}}}
+\newcommand{\purple}[1]{\textcolor{Purple}{{#1}}}
+
+
+
+
+% use "DIKU green" from our color theme for \emph
+\renewcommand{\emph}[1]{\textcolor{structure}{#1}}
+% use some not-too-bright red for an \emp command
+\definecolor{DikuRed}{RGB}{130,50,32}
+\newcommand{\emp}[1]{\textcolor{DikuRed}{ #1}}
+\definecolor{CosGreen}{RGB}{10,100,70}
+\newcommand{\emphh}[1]{\textcolor{CosGreen}{ #1}}
+\definecolor{CosBlue}{RGB}{55,111,122}
+\newcommand{\emphb}[1]{\textcolor{CosBlue}{ #1}}
+\definecolor{CosRed}{RGB}{253,1,1}
+\newcommand{\empr}[1]{\textcolor{CosRed}{ #1}}
+
+\newcommand{\mymath}[1]{$ #1 $}
+\newcommand{\myindx}[1]{_{#1}}
+\newcommand{\myindu}[1]{^{#1}}
+
+\newcommand{\Fasto}{\textsc{Fasto}\xspace}
+
+
+%%%%%%%%%%%%%%%%%%%%
+
+\title[Intro]{Introduction: Hardware Trends\\and Vector Machines}
+
+\author[C.~Oancea]{Cosmin E. Oancea {\tt cosmin.oancea@diku.dk}}
+
+\institute{Department of Computer Science (DIKU)\\University of Copenhagen}
+
+
+\date[Sept 2014]{September 2014 PMPH Lecture Notes}
+
+
+\begin{document}
+
+\titleslide
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+	\tableofcontents
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%\section{Scalable Shared Memory Systems}
+
+\section{Introduction$^{\mbox{\bf 2}}$}
+
+\subsection{Brief History}
+
+\begin{frame}[fragile,t]
+\frametitle{Introduction$^{\mbox{\bf 2}}$}
+
+\begin{itemize}
+    \item Past $>$ 20 years \emph{Information Revolution}:\\
+        Explosive growth of semiconductor integration + Internet.\bigskip
+
+    \item Moore's Low 1960s: 
+    \begin{itemize}
+        \item computing power doubles every 19-24 months 
+        \item \emph{system cost effectiveness = {\tt performance/cost} 
+                grows exp}.
+        \item \alert{CMOS endpoint is near}: miniaturization reaches its limits.   
+    \end  {itemize}\bigskip
+
+    \item Improved Chip Design:
+    \begin{itemize}
+        \item each new process generation $\Rightarrow$ higher clock rates 
+        \item logic switching speed \& amount of on-chip logic increase ($\uparrow$)
+        \item better circuit design \& deep pipelines $\Rightarrow$ 
+                fewer gate delays / stage
+        \item $\uparrow$ on-chip resources $\Rightarrow$ $\uparrow$ throughput by 
+                parallelism at all stages. 
+    \end  {itemize}\bigskip
+
+    \item \emp{Computer Arch 1970s: How to Best Use the ever-increasing ($\uparrow$) 
+            Wealth of Resources?}
+
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Brief History}
+
+\begin{itemize}
+        \item \emph{ICPP, ISCA 1980/90s: parallel architectures popular topic.}\\
+              Demise of SingleCPU System: inevitable \& fast approaching.\bigskip
+
+        \item \alert{Whatever happened? Mid90 Killer-Micro:}
+        \begin{itemize}
+            \item The rapid increase ($\uparrow$) transistor density $\Rightarrow$\\
+            \item path of least resistance: ever-increasing speed of SingleCPU
+            \item Complex Out-Of-Order (OoO) processors: 100s instructions/cycle.
+            \item Commercial arena: multiprocessors just an uniprocessor extension.
+        \end  {itemize}\bigskip
+
+        \item \alert{What Changed?} Multiprocessors Trend: Academia \& Industry:
+        \begin{itemize}
+            \item \emp{power complexity}
+            \item \emp{Memory WALL}: $\uparrow$ performance gap between processor \& memory 
+        \end  {itemize}\bigskip
+
+       \item \emph{All Future Architectures adopt some form of massive parallelism!}
+\end{itemize}
+
+\end{frame}
+
+
+\subsection{Computer Architecture Definition}
+
+\begin{frame}[fragile,t]
+\frametitle{What used to Be Computer Architecture?}
+
+\begin{columns}\hspace{-8ex}
+\column{0.6\textwidth}
+\includegraphics[width=44ex]{Ch1Figs/SysOrg}
+\column{0.65\textwidth}\vspace{-3ex}
+\begin{itemize}
+    \item Multi-Layered: focus competences.
+    \item Each layer uses the ones below it.
+    \item \emp{Application} C++/Java/SML/Haskell.
+    \item \emp{Compiler}: machine code + OpSys calls.
+    \item \emp{OpSys}: extends hardware funct \&
+              orchestrates resource sharing among multiple users.
+    \item \emp{ISA \& Computer Organization}: 
+            software-hardware interface. 
+\end{itemize}
+\end{columns}
+
+\emp{Old Definition} ISA -- critical role in the success of computer industry:
+\begin{itemize}
+    \item Early on, used to be the hallmark of system design $\Rightarrow$
+    \item Non-Portable Software \& No Compiler at that time
+    \item 1960s IBM System360 ISA guarantees backward compatibility $\Rightarrow$
+    \item Strategy endured test of time \& Behemoth company today
+\end{itemize}
+\end{frame}
+
+
+
+\begin{frame}[fragile,t]
+\frametitle{What Is Computer Architecture Today?}
+
+\begin{columns}
+\column{0.59\textwidth}
+\hspace{-6ex}\includegraphics[width=44ex]{Ch1Figs/SimpleCPU}
+
+\includegraphics[width=39ex]{Ch1Figs/SimpleInterconnect}
+\column{0.55\textwidth}\vspace{-17ex}
+\begin{itemize}
+    \item \emp{Much Broader Definition}: how best to build the computer 
+            (includes ISA, but focus changed on organization).\medskip
+
+    \item North Bridge: sys bus connects cores to memory \& IO devs.
+    \item PCI bus: IO bus connecting North Bridge to high-speed IO 
+            to disk, network \& slower dev\medskip
+
+    \item $\leftarrow$ Generic Multiprocessor with Distributed Memory\medskip
+
+    \item \alert{Parallel Sys Main Components:
+                (1) Processor, (2) Memory Hierarchy and 
+                (3) Interconnection}
+\end{itemize}
+\end{columns}
+
+\end{frame}
+
+
+
+\begin{frame}[fragile,t]
+\frametitle{Software-Hardware Synergy \& Biggest Challenge}
+\medskip
+\begin{columns}
+\column{0.33\textwidth}
+\includegraphics[width=29ex]{Ch1Figs/Synergy}
+\column{0.63\textwidth}\vspace{-3ex}
+\begin{itemize}
+    \item Computer Architect Role:
+    \item \emp{design trade-offs across HW/SW interf to meet functional 
+            \& performance requirements within cost constraints.}
+\end{itemize}
+\end{columns}
+\medskip
+
+\begin{itemize}
+    \item software: flexible approach to simplifying hardware, 
+            e.g., TLB exceptions, FP ops,
+    \item hardware faster $\Rightarrow$ world of tradeoff in between 
+    \item guided by the common case $\Rightarrow$ trends are important.\bigskip
+
+    \item \emp{Important Juncture:} 
+        \begin{itemize}
+            \item \emph{Higher performance requires Parallel Hardware}
+            \item \alert{Biggest Challenge: 
+                    develop Effective Massively Parallel Software!}
+        \end  {itemize}
+\end{itemize}
+\end{frame}
+
+
+\subsection{Course Organization}
+\input{Struct_Interm/StructIntro}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Trends of Critical Components of a Parallel System}
+
+\begin{frame}[fragile]
+	\tableofcontents[currentsection]
+\end{frame}
+
+\subsection{Processor}
+
+\begin{frame}[fragile,t]
+\frametitle{Abstractions}
+\medskip
+
+\begin{itemize}
+%    \item[Program] set of statements performing computational steps.
+%    \item[Process/Thread] embeds the execution of the computation.
+    \item A \emp{program} is to a \emp{process/thread} 
+            what a recipe is for cooking.\smallskip
+
+    \item \emp{Processor (core)}: hardware entity capable of
+            sequencing \& executing thread's instructions.\smallskip
+
+    \item \emp{MT Cores} multiple threads, each 
+            running in its thread context.\smallskip
+
+    \item \emp{Multiprocessor:} set of cores connected to execute a workload
+        \begin{itemize}
+            \item mass produced, off-the-shelf, each several cores \& levels of cache
+            \item trend towards migrating system functions on the chip:\\
+                    memory controllers, external cache directories, network interface
+        \end  {itemize}
+\end{itemize}
+
+%\begin{columns}
+%\column{0.33\textwidth}
+%\includegraphics[width=29ex]{Ch1Figs/Synergy}
+%\column{0.63\textwidth}\vspace{-3ex}
+%\begin{itemize}
+%    \item Computer Architect Role:
+%    \item \emp{design trade-offs across HW/SW interf to meet functional 
+%            \& performance requirements within cost constraints.}
+%\end{itemize}
+%\end{columns}
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+\frametitle{Processor: Clock Frequency/Rate}
+
+Historically the clock rate (at which instr are executed) has increased 
+exponentially (1990-2004).
+
+\begin{columns}
+\column{0.65\textwidth}
+\hspace{-5ex}\includegraphics[width=52ex]{Ch1Figs/FreqGraph}
+\column{0.48\textwidth}\vspace{-3ex}
+\begin{scriptsize}
+        \begin{itemize}
+            \item $1.19\times$ per-year due technology scaling
+                    (same hwd on new techn).
+
+            \item 1990-2002: doubled every $21$ months
+                    \alert{Curve $1.49\times$: $30$GHz in 2008!}
+            
+            \item $1.49\times - 1.19\times$: very-deep (10-20 stages) pipelines!
+                    ILP via speculative OoO: register renaming, 
+                        reorder buffs, branch prediction, 
+                        lockup-free caches, memory disambiguation, etc. 
+
+            \item 2004: Intel cancels Pentium4 @4Ghz \&
+                    \emph{Switched Track to Multi-Cores} $\Rightarrow$\\
+                    \alert{Tectonic Shift away from muscled deeply-pipelined 
+                    uniprocessor.}
+
+            \item \emp{Peaked in 2005, but mostly stalled since 2002!}
+                     
+        \end  {itemize}
+\end{scriptsize}
+\end{columns}
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+\frametitle{Closer Look at Clock Rate}
+
+\begin{columns}
+\column{0.5\textwidth}
+\includegraphics[width=40ex]{Ch1Figs/FreqGraph}
+\column{0.57\textwidth}
+        \begin{itemize}
+            \item \emph{Technology} (process shrinkage):\smallskip
+                \begin{itemize}
+                    \item every generation 
+                            transistors' \emph{switching speed increases $41\%$}.
+
+                    \item Impact blunted in the future due to \emp{wire delays}
+                                (do not scale)
+%                            because speed of wire transmission grows much slower than
+%                            switching speed.
+                \end  {itemize}\medskip
+            \item \emph{Pipeline Depth:} more stages $\Rightarrow$\smallskip 
+                            less complex $\Rightarrow$ less gates 
+                \begin{itemize}
+                    \item \# of gate(s delays) dropped by $25\%$ every process generation.
+                \end  {itemize}\medskip
+
+                \item \emph{Improved Circuit Design} 
+        \end  {itemize}\bigskip
+\end{columns}
+
+Clock Rate Increase is Not Sustainable:
+\begin{itemize}
+    \item \emp{Deeper pipelines}: difficult to build useful stages with $<$ 10 gates
+    \item \emp{Wire delays:} wire-transm speed $\uparrow$ much 
+            slower than switching,
+    \item Circuits clocked at \emp{higher rates consume more power}!  
+\end  {itemize}
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Processor: Feature Size \& Number of Transistors}
+
+\begin{columns}
+\column{0.65\textwidth}
+\includegraphics[width=47ex]{Ch1Figs/FeatureSize}
+\column{0.4\textwidth}
+%\begin{scriptsize}
+        \begin{itemize}
+            \item new process generation every 2 years\smallskip
+                
+            \item feature size reduced $30\%$ every generation
+
+            \item \# of transistors doubles every 2 years (Moore's low).\\
+                    1 Billion in 2008. 
+        \end  {itemize}
+%\end{scriptsize}
+\end{columns}
+\vspace{-2ex}
+
+Each process generation offers new resources.
+\emp{How best to use the $>100$ billion transistors? Large-Scale CMPs (100s-1000s cores)}:
+\begin{itemize}
+    \item more cache, better memory-system design
+    \item fetch and decode multiple instr per clock
+    \item running multiple threads per core and on multiple cores
+\end  {itemize} 
+
+\end{frame}
+
+\subsection{Memory}
+
+\begin{frame}[fragile,t]
+\frametitle{Memory Systems}
+
+\begin{itemize}
+    \item \emp{(Main) Memory Wall:} growing gap between processor and memory speed.
+            Processor cannot execute faster than memory system can deliver data 
+            and instructions!\bigskip
+
+    \item Want Big, Fast \& Chip Memory System\smallskip
+    \begin{itemize}
+        \item access time 
+                increases with size as it is dominated by 
+                wire delays$\Rightarrow$ this will not change in future technologies\smallskip
+%(address decoding, address line propagation, bit-line propagation) 
+        \item multi-level hierarchies (relies on principle of locality)\smallskip
+        \item efficient management is KEY, e.g., cache coherence.\smallskip
+        \item Cost and Size memories in a basic PC in 2008:
+    \end  {itemize} 
+\end{itemize}
+\bigskip
+
+\begin{tabular}{|l|l|l|l|l|}\hline
+Memory & Size  & Marginal Cost & Cost Per MB & Access Time \\\hline
+L2 Cache & 1MB & \$20/MB & \$20 & 5nsec \\\hline
+Main Memory & 1 GB & \$50/GB & 5c & 200 nsec \\\hline
+Disk & 500GB & \$100/500GB & 0.02c & 5 msec \\\hline
+\end{tabular}
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+\frametitle{Memory Wall? Which Memory Wall??}
+
+\begin{itemize}
+            \item \emph{DRAM density increases $4\times$ every 3 years, BUT} \smallskip
+
+            \item \emp{DRAM speed $\uparrow$ only with $7\%$ per year!} 
+                    (processor speed by $50\%$) 
+
+            \item \alert{Perception was that Memory Wall will last forever!}
+
+            \item \emph{Memory Wall Stopped Growing around 2002}.
+    
+            \item Multi/Many-Cores $\Rightarrow$ shifted from Latency 
+                    to \emp{Bandwidth WALL}
+\end  {itemize}
+\vspace{-3ex}
+
+\begin{columns}
+\column{0.65\textwidth}
+\includegraphics[width=50ex]{Ch1Figs/MemWall}
+\column{0.3\textwidth}
+\begin{scriptsize}
+\begin{itemize}
+\item {\tt MemoryWall = mem\_cycle/ proc\_cycle} \smallskip
+\item[1990] {\tt MemoryWall = 4} (25MHz,150ns)
+\item[2002] exponential growth {\tt MemoryWall = 200} 
+\item Stalled since then.
+\item If trend continues: 1 Terabit Main Memory by 2021.
+\end{itemize}
+\end{scriptsize}
+\end{columns}
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+\frametitle{Disk Memory}
+
+\begin{itemize}
+            \item \emph{Historically disk performance improved by $40\%$ per year} \smallskip
+
+            \item {\tt DiskTime=AccessTime+TransferTime} ({\scriptsize {\tt AccessTime=Seek+Latency}})
+
+            \item Historically, transfer time have dominated, but
+
+            \item Today: transfer and access time are of the same \alert{msecs} order
+    
+            \item Future, Access Time will dominate, but proc-disk gap still large
+\end  {itemize}
+
+\begin{columns}
+\column{0.5\textwidth}
+\includegraphics[width=33ex]{Ch1Figs/DISK}
+\column{0.5\textwidth}
+\includegraphics[width=33ex]{Ch1Figs/Disk2}
+\end{columns}
+
+{\scriptsize Seek Time: head to reach right track, latency: time to reach the first record on track, both depend on rotation speed \& independent on block size}.
+
+\end{frame}
+
+\subsection{Interconnect}
+\begin{frame}[fragile,t]
+\frametitle{Interconnection Networks}
+
+Present at many layers:
+\begin{itemize}
+            \item \emp{On-Chip Interconnects:} forward values between pipeline stages, AND between execution units AND connect cores to shared cache banks. \smallskip
+
+            \item \emp{System Interconnects:} connect processors (CMPs) to memory and IO
+
+            \item \emp{I/O Interconnects}, usually bus e.g., PCI, connect various 
+                    devices to the System Bus
+            \item \emp{Inter-Systems Interconnects:} connect separate systems (chassis or boxes) \& include
+                \begin{itemize}
+                    \item \emph{SANs:} connect systems at very short distance
+                    \item LANs, WANs (not interesting for us).
+                \end  {itemize}
+
+            \item Internet: global world-wide interconnect (not interesting for us).
+\end  {itemize}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Technology Challenges/Constraints}
+
+\begin{frame}[fragile]
+	\tableofcontents[currentsection]
+\end{frame}
+
+\subsection{Power and Energy}
+
+\begin{frame}[fragile,t]
+\frametitle{Power}
+
+\begin{itemize}
+            \item \emp{\tt Total Power = Dynamic + Static (Leakage)}\\
+                        $P_{dynamic} = \alpha C V^2 f$ \\
+                        $P_{static}  = V I_{sub} \sim V e^{-k V_T / T}$
+
+            \item Dynamic power favors parallel processing over higher clock rate
+            \begin{itemize}
+                \item $P_{dynamic} \sim F^3$
+                \item replicate a uniprocessor 4 time $\Rightarrow$ 
+                        $4\times$ speedup @ $4\times$ power
+                \item increase clock 4 times $\Rightarrow$ 
+                        $4\times$ speedup @ $64\times$ dynamic power!
+            \end  {itemize}
+
+            \item Static Power: because circuit leak whatever the frequency is, 
+                    e.g., caches. It recently overtook dynamic power as major 
+                    source of dissipation
+
+            \item \emp{Power/Energy are Critical Problems}
+            \begin{itemize}
+                \item Power must be dissipated otherwise temperature
+                        goes up \& affects performance, correctness and
+                        may possibly destroy the circuit, short or long term. 
+                \item Energy depends on power and speed. Costly \& 
+                        many devices are battery-operated devices.
+
+            \end  {itemize}
+
+\end  {itemize}
+
+
+\end{frame}
+
+
+\section{Parallelism In Architectures: Vector \& Array Processors}
+
+\begin{frame}[fragile]
+	\tableofcontents[currentsection]
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+\frametitle{Scalar Multiprocessors}
+
+\begin{itemize}
+            \item Most Successful Architectures: Scalar Processor
+                \begin{itemize}
+                    \item instruction operates on scalar operands, 
+                            e.g., {\tt ADD R1, R2, R3 $\Rightarrow$ R1 := R2 + R3}
+                    \item execute multiple scalar instructions at a time:
+                    \begin{itemize}
+                        \item pipelining, 
+                        \item superscalar
+                        \item superpipelining
+                        \item take advantage of instruction-level (intra-thread) 
+                                parallelism (ILP).
+                    \end  {itemize}
+                \end  {itemize}
+
+            \item Chip Multiprocessors (CMPs) exploits inter-thread parallelism:
+                    \begin{itemize}
+                        \item i.e., different threads running in parallel. 
+                        \item multiple scalar processors running in parallel
+                    \end  {itemize}
+\end  {itemize}
+
+%\begin{columns}
+%\column{0.5\textwidth}
+%\includegraphics[width=33ex]{Ch1Figs/DISK}
+%\column{0.5\textwidth}
+%\includegraphics[width=33ex]{Ch1Figs/Disk2}
+%\end{columns}
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Vector and Array Processors}
+
+\begin{itemize}
+            \item A typical vector instruction executes directly on vector operands,
+                    e.g., {\tt VADD VR1,VR2,VR3 $\Rightarrow$ VR1[i]:=VR2[i]+VR3[i] 
+                            $\forall$ i$\in\{1..N\}$}\bigskip
+
+            \item Vector instructions are executed by pipelines or parallel arrays:
+\end  {itemize}
+
+\begin{columns}
+\column{0.9\textwidth}
+\includegraphics[width=65ex]{Ch1Figs/VectorMachine}
+\column{0.1\textwidth}
+\end{columns}
+
+\end{frame}
+
+\end{document}
