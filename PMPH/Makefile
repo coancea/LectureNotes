@@ -1,5 +1,7 @@
 
 default:
+	pdflatex Intro.tex
+	pdflatex Intro.tex
 	pdflatex Processor.tex
 	pdflatex Processor.tex
 	pdflatex VLIW.tex
@@ -10,6 +12,11 @@ default:
 	pdflatex Interconnect.tex
 	pdflatex MemSeqCons.tex
 	pdflatex MemSeqCons.tex
+	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
+
+intro:
+	pdflatex Intro.tex
+	pdflatex Intro.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
 processor:
