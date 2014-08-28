@@ -359,20 +359,18 @@ exponentially (1990-2004).
 \includegraphics[width=40ex]{Ch1Figs/FreqGraph}
 \column{0.57\textwidth}
         \begin{itemize}
-            \item \emph{Technology} (process shrinkage):\smallskip
-                \begin{itemize}
-                    \item every generation 
-                            transistors' \emph{switching speed increases $41\%$}.
+            \item \emph{Technology} (process shrinkage): every generation 
+                    transistors' \emph{switching speed increases $41\%$}.\medskip
 
-                    \item Impact blunted in the future due to \emp{wire delays}
-                                (do not scale)
+%                    \item Impact blunted in the future due to \emp{wire delays}
+%                                (do not scale)
 %                            because speed of wire transmission grows much slower than
 %                            switching speed.
-                \end  {itemize}\medskip
-            \item \emph{Pipeline Depth:} more stages $\Rightarrow$\smallskip 
-                            less complex $\Rightarrow$ less gates 
+%                \end  {itemize}\medskip
+            \item \emph{Pipeline Depth:} more stages $\Rightarrow$
+                            less complex $\Rightarrow$ less gates/stage
                 \begin{itemize}
-                    \item \# of gate(s delays) dropped by $25\%$ every process generation.
+                    \item \# of gates delays dropped by $25\%$ every process generation.
                 \end  {itemize}\medskip
 
                 \item \emph{Improved Circuit Design} 
@@ -432,7 +430,7 @@ Each process generation offers new resources.
     \item Want Big, Fast \& Chip Memory System\smallskip
     \begin{itemize}
         \item access time 
-                increases with size as it is dominated by 
+                increases with memory size as it is dominated by 
                 wire delays$\Rightarrow$ this will not change in future technologies\smallskip
 %(address decoding, address line propagation, bit-line propagation) 
         \item multi-level hierarchies (relies on principle of locality)\smallskip
@@ -551,11 +549,11 @@ Present at many layers:
 \frametitle{Technological Contraints}
 
 \begin{itemize}
-    \item In the Past: design was a tradeoff 
-            between cost (area) and time (performance).\bigskip
+    \item In the Past: tradeoff between cost (area) and time (performance).\bigskip
+
     \item Today: design is challenged by several technological limits\smallskip
         \begin{itemize} 
-            \item Major new contraint is Power\smallskip
+            \item \alert{Major new contraint is Power}\smallskip
             \item wire delays\smallskip
             \item reliability\smallskip
             \item complexity of design
@@ -847,15 +845,16 @@ Enhancement accelerates a fraction $F$ of the task by a factor $S$:\bigskip
                 that cannot be optimized:
                 $Speedup(E) < \frac{1}{1-F}$\medskip
 
-    \item[2] Low of diminishing returns\smallskip
+    \item[2] Optimize the common case \& execute the rare case in software.
 
-    \item[3] Optimize the common case \& execute the rare case in software.
+    \item[3] Low of diminishing returns\smallskip
+
 \end{itemize}
 
 \vspace{-4ex}
 \begin{columns}
 \column{0.7\textwidth}
-\includegraphics[width=55ex]{Ch1Figs/AmdhalDimRet}
+\includegraphics[width=55ex]{Ch1Figs/AmdhalDimRet}\pause
 \column{0.5\textwidth}\vspace{-3ex}
 \begin{itemize}
     \item every increment of $S$ consumes new resources \& becomes less rewarding: 
@@ -939,13 +938,6 @@ Redefines Speedup. Rationale:
                     \end  {itemize}
 \end  {itemize}
 
-%\begin{columns}
-%\column{0.5\textwidth}
-%\includegraphics[width=33ex]{Ch1Figs/DISK}
-%\column{0.5\textwidth}
-%\includegraphics[width=33ex]{Ch1Figs/Disk2}
-%\end{columns}
-
 \end{frame}
 
 \begin{frame}[fragile,t]
@@ -968,8 +960,8 @@ Redefines Speedup. Rationale:
             Required a vectorizing compiler to extract vector parallelism.\medskip 
 %predate superscalar processors.\medskip
 
-    \item \alert{Reappearing in commodity markets because of 
-                    multimedia applications (DSP)} 
+    \item \alert{Reappearing in commodity markets --
+                    multimedia applic (DSP).} 
 \end  {itemize}
 
 % Vector instructions executed by pipelines or parallel arrays
@@ -978,6 +970,20 @@ Redefines Speedup. Rationale:
 %\includegraphics[width=65ex]{Ch1Figs/VectorMachine}
 %\column{0.1\textwidth}
 %\end{columns}
+\vspace{-1ex}
+
+\begin{columns}
+\column{0.5\textwidth}
+\includegraphics[width=55ex]{Ch1Figs/MatrixStrides}\pause
+\column{0.5\textwidth}
+\vspace{-15ex}
+
+{\tt N$\times$N} matrix\\
+row: stride {\tt 1}\\
+column: stride {\tt N}\\
+diagonal: stride {\tt N-1} or {\tt N+1} 
+\end{columns}
+
 
 \end{frame}
 
@@ -986,20 +992,23 @@ Redefines Speedup. Rationale:
 \frametitle{Vector and Array Processors}
 
 \begin{columns}
-\column{0.7\textwidth}
-\includegraphics[width=59ex]{Ch1Figs/VectorMachine}
 \column{0.35\textwidth}
+\vspace{-13ex}
+
 If ADD has 10 stages.\\
 Total Execution Time:\\
-$T_{exe} = 10 + 63 = 9 + 64$\\
+$T_{exe} = 10 + 63 = 9 + 64$\\\medskip
+
 In general: $T_{exe} = T_{start}+N$,\\
-where $N$ is the vector's length.
+where $N$ is vector's length.
+\column{0.7\textwidth}
+\includegraphics[width=53ex]{Ch1Figs/VectorMachine}
 \end{columns}
 \vspace{-10ex}
 After vector's startup time, i.e., the time to get the first result,
 scalar results are computed one per clock:\\
 
-\centering{\tt T$_{vector}$ = Vector Length + Startup Time}
+\centering{\emp{\tt T$_{vector}$ = Vector Length + Startup Time}}
 
 \end{frame}
 
@@ -1094,10 +1103,10 @@ LOOP:
 
 {\tt T$_{load}$ = Vector Length + Startup Time (TimeToGet x$_0$ - 1)}.\medskip
 
-Memory is heavily interleaved: hundreds of memory modules.
-Example:
+Memory is heavily interleaved: hundreds of memory modules:
+%Example:
 
-\includegraphics[width=59ex]{Ch1Figs/VectorMachine}
+\includegraphics[width=53ex]{Ch1Figs/VectorMemBanksPipe}
 
 \end{frame}
 
@@ -1118,7 +1127,7 @@ Example:
             {\tt startup(load) + startup(addv) + startup(store) + N} 
 \end  {itemize}
 
-\includegraphics[width=59ex]{Ch1Figs/VectorMachine}
+\includegraphics[width=59ex]{Ch1Figs/VectChaining}
 
 \end{frame}
 
@@ -1187,7 +1196,7 @@ SI.V  Vb,0(R2),Vk  //scatter: stores A(K(i))
 \end{colorcode}
 
 
-\includegraphics[width=59ex]{Ch1Figs/VectorMachine}
+\includegraphics[width=49ex]{Ch1Figs/VectScatterGather}
 
 \end{frame}
 
