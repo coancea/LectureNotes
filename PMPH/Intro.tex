@@ -540,50 +540,372 @@ Present at many layers:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Technology Challenges/Constraints}
+\section{Technological Challenges/Constraints}
 
 \begin{frame}[fragile]
 	\tableofcontents[currentsection]
 \end{frame}
 
-\subsection{Power and Energy}
+
+\begin{frame}[fragile,t]
+\frametitle{Technological Contraints}
+
+\begin{itemize}
+    \item In the Past: design was a tradeoff 
+            between cost (area) and time (performance).\bigskip
+    \item Today: design is challenged by several technological limits\smallskip
+        \begin{itemize} 
+            \item Major new contraint is Power\smallskip
+            \item wire delays\smallskip
+            \item reliability\smallskip
+            \item complexity of design
+        \end  {itemize}\bigskip
+
+    \item Architecture can play a significant role to maintain viability
+            of CMOS technology for years to come
+\end{itemize}
+\end{frame}
+
+\subsection{Power}
 
 \begin{frame}[fragile,t]
 \frametitle{Power}
 
 \begin{itemize}
-            \item \emp{\tt Total Power = Dynamic + Static (Leakage)}\\
-                        $P_{dynamic} = \alpha C V^2 f$ \\
-                        $P_{static}  = V I_{sub} \sim V e^{-k V_T / T}$
+    \item \emp{\tt Total Power = Dynamic + Static (Leakage)}\\
+                        $P_{dynamic} = \alpha C V^2 f$ 
+                        consumed by a gate when it switches state\\
+                        $P_{static}  = V I_{sub} \sim V e^{-k V_T / T}$ 
+                        (caches)\medskip
 
-            \item Dynamic power favors parallel processing over higher clock rate
+    \item Dynamic power 
+            favors parallel processing over higher clock rate
             \begin{itemize}
-                \item $P_{dynamic} \sim F^3$
+                \item $P_{dynamic} \sim F^3$ mostly dissipated in processor
                 \item replicate a uniprocessor 4 time $\Rightarrow$ 
                         $4\times$ speedup @ $4\times$ power
                 \item increase clock 4 times $\Rightarrow$ 
                         $4\times$ speedup @ $64\times$ dynamic power!
-            \end  {itemize}
+            \end  {itemize}\medskip
 
-            \item Static Power: because circuit leak whatever the frequency is, 
-                    e.g., caches. It recently overtook dynamic power as major 
-                    source of dissipation
-
-            \item \emp{Power/Energy are Critical Problems}
+    \item Static Power: dissipated in all circuits,  
+                at all time, nomatter of frequency and whether
+                it switches or not.
             \begin{itemize}
-                \item Power must be dissipated otherwise temperature
-                        goes up \& affects performance, correctness and
-                        may possibly destroy the circuit, short or long term. 
-                \item Energy depends on power and speed. Costly \& 
-                        many devices are battery-operated devices.
+                \item negligible 15 years ago, but as feature size 
+                        decreased so did the threshold voltage $V_T$ 
+                        every generation
+                \item \alert{Recently overtook dynamic power as major 
+                        source of dissipation!}
+            \end{itemize}\medskip
 
-            \end  {itemize}
-
+    \item \emp{Power/Energy are Critical Problems}\\ 
+                e.g., costly \& many battery operated devices.
+%            \begin{itemize}
+%                \item Power must be dissipated otherwise temperature
+%                        goes up \& affects performance, correctness and
+%                        may possibly destroy the circuit, short or long term. 
+%                \item Energy depends on power and speed. Costly \& 
+%                        many devices are battery-operated devices.
+%
+%            \end  {itemize}
 \end  {itemize}
 
 
 \end{frame}
 
+
+\subsection{Reliability}
+
+\begin{frame}[fragile,t]
+\frametitle{Reliability}
+
+\begin{itemize}
+    \item \emp{Transient Failures (Soft Errors):}
+        \begin{itemize}
+            \item Charge stored in a transistor \emp{\tt Q = C V}
+            \item Supply voltage $V$ decreases every generation\\
+                    (consequence of features-size shrinking)
+            \item As Q decreases, it is easier to flip bits
+            \item Corruption Sources: cosmic rays, alpha particles
+                    radiating from the packaging material, electrical noise
+            \item Device operational but values have been corrupted
+            \item DRAM/SRAM error detection and correction capability
+        \end  {itemize}\medskip
+
+    \item \emp{Intermittent/Temporary Failures:}
+            \begin{itemize}
+                \item last longer, should try to continue execution
+                \item aging or temporary environmental variation, e.g., temperature
+            \end  {itemize}\medskip
+
+    \item \emp{Permanent Failures:} device will never function again,
+                must be isolated \& replaced by spare\medskip
+
+    \item \emph{Chip Mutiprocessors: promote better reliability}
+            \begin{itemize}
+                \item using threads for redundant execution, 
+                \item faulty cores can be disabled $\Rightarrow$ 
+                        natural failsafe degradation
+            \end  {itemize}
+\end  {itemize}
+\end{frame}
+
+\subsection{Wire Delays}
+\begin{frame}[fragile,t]
+\frametitle{Wire Delays}
+
+\begin{itemize}
+    \item Miniaturization $\Rightarrow$ transistors switch faster,
+            but the propagation delay of signals on wire does not 
+            scale as well.\medskip
+
+    \item Wire Delay Propagation $\sim R C$. $R \sim L / CS_{area}$.
+            Miniaturization $\Rightarrow$ cross-section area keeps shrinking
+                each generation, annuls the benefit of length shrinking. \medskip
+
+    \item Wires can be pipelined like logic.\medskip
+
+    \item Deeper pipelines are better because communication
+            limited to only few stages.\medskip
+
+    \item \emph{Impact of wire delays also favors multiprocessors,
+            since communication traffic is hierarchical:}
+            \begin{itemize}
+                \item most communication is local 
+                \item inter-core communication is occasional
+            \end  {itemize}
+
+\end  {itemize}
+\end{frame}
+
+\subsection{Design Complexity}
+\begin{frame}[fragile,t]
+\frametitle{Design Complexity}
+
+\begin{itemize}
+    \item Design Verification has become the dominant cost of chip
+            development today, major design constraint.\medskip
+
+    \item \emp{Chip density increases much faster than the productivity 
+                of verification engineers} (new tools and speed of systems):
+            \begin{itemize}
+            \item register-transfer language level, i.e., logic is correct 
+            \item core level, i.e., correctness of forwarding, memory disambiguation,
+            \item multi-core level, e.g., cache coherence, memory consistency.
+            \end  {itemize}\medskip
+
+    \item Vast majority of chip resources dedicated to storage
+            also due to verification complexity:
+            \begin{itemize}
+            \item trivial to increase the size of: 
+                caches, store buffers, load/store/ fetch queues, reorder buffers,
+                    directory for cache coherence, etc.
+            \end  {itemize}\medskip
+
+    \item \emph{Design Trend Favors Multiprocessors:}
+            easier to replicate the same structure multiple times
+            than to design a large, complex one.
+\end  {itemize}
+\end{frame}
+
+\subsection{CMOS Endpoint}
+\begin{frame}[fragile,t]
+\frametitle{CMOS (Endpoint) Meets Quantum Physics}
+
+\begin{itemize}
+    \item CMOS is rapidly reaching the limits of miniaturization,\medskip
+
+    \item Feature size: half pitch distance (half the distance between
+            two metal wires). Gate length $\sim 1/2$ feature size.\medskip
+
+    \item If present trends continues feature size $< 10 nm$ by 2020\medskip
+
+    \item Radius of atom: $0.1 \sim 0.2 nm$ $\Rightarrow$ gate length quickly
+            reaches atomic distances that are governed by quantum physics,
+            i.e., binary logics replaced with probabilistic states.\medskip
+
+    \item Not clear what will follow (?)
+\end  {itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Performance}
+
+\begin{frame}[fragile]
+	\tableofcontents[currentsection]
+\end{frame}
+
+\subsection{Metrics}
+
+\begin{frame}[fragile,t]
+\frametitle{Performance Metrics \& Benchmarking}
+
+Performance Metrics:
+\begin{itemize}
+    \item[1] \emp{Execution Time or Latency or Response Time}: 
+            time to complete a task $T_{exec}$.
+            Is the ultimate measure of performance\medskip
+
+    \item[2] \emp{Throughput}: number of tasks per day, hour, sec
+        \begin{itemize}
+            \item not the same as, e.g, dual-core vs doubled-frequency uniprocessor.
+        \end  {itemize}\medskip
+\end{itemize}
+
+Benchmarking:\smallskip
+\begin{itemize}
+    \item Source Code: because some machines are designed with
+            a compiler in mind and are easier to optimize code for.\smallskip
+
+    \item Benchmark Suites: many \& large programs to avoid fine tuning
+        \begin{itemize}
+            \item[SPEC] Standard Performance Evaluation Corporation:
+                \begin{itemize}
+                    \item scientific/engineering/general purpose
+                    \item integer and floating point
+                    \item new datasets and applications so 
+                            many years,e.g, 98/2000/2006
+                \end  {itemize}
+            \item[TPC] Transactional Processing Council:
+            \item Embedded Benchmarks
+            \item Media Benchmarks
+        \end  {itemize}
+\end  {itemize}
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+\frametitle{Reporting Performance of a Set of Programs}
+
+Let $T_i$ be the execution time of program $i$:
+\begin{itemize}
+    \item[1] Weighted Arithmetic or Harmonic Mean:\\
+            $\sum_i T_i/N$ or $\sum_i T_i \times W_i$ or $N / (\sum_i )$\\
+            \alert{Program with longest execution dominates the rest}\medskip
+
+    \item[2] Speedup against a reference machine $R$:\\
+                $S_i = T_{R,i} / T_i$\medskip
+
+    \item[3] Arithmetic and harmonic ($N/(\sum_i 1/S_i)$) means of speedups: 
+                \alert{Problem: the comparison
+                of two different machines yields a different conclusion
+                with a different reference machine.}\medskip
+    \item[4] \emph{Geometric Mean, i.e., $S_g = \sqrt[N]{\prod_{i=1}^N S_i}$:}
+                \begin{itemize}
+                    \item does not have the above problem, and
+                    \item are composable, i.e., $S_{g_{I\cup II}} = S_{g_I} S_{g_{II}}$
+                \end  {itemize}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Fundamental Performance Equations for CPU}
+
+\centering{$T_{exe} = IC \times CPI \times T_c$}
+\begin{itemize}
+    \item[IC] instruction count: depends on compiler and ISA
+    \item[CPI] clock per instruction: depends on 
+                instruction mix, ISA, and implementation
+    \item[Tc] cycle time: depends on implementation complexity and technology.
+\end{itemize}\bigskip
+
+\emp{CPI impossible to estimate directly with complex OoO and cache hierarchies.}
+\emph{Often used instead of execution time}, i.e., $CPI = T_{exe} / (IC \times T_c)$
+\bigskip
+
+
+When processor executes more than one instructions per clock
+use IPC (instructions per clock): $T_{exe} = (IC \times T_c) / IPC$
+
+\end{frame}
+
+\subsection{Amdhal and Gustafson's Laws}
+
+\begin{frame}[fragile,t]
+\frametitle{Amdahl's Law}
+\vspace{-5ex}
+\includegraphics[width=47ex]{Ch1Figs/Amdhal}
+\vspace{-7ex}
+
+Enhancement accelerates a fraction $F$ of the task by a factor $S$:\bigskip
+
+\centering{$T_{exe}(with E) = T_{exe}(without E)\times[(1-F) + \frac{F}{S}]$}\bigskip
+
+\centering{$Speedup(E) = \frac{T_{exe}(without E)}{T_{exe}(with E)} = \frac{1}{(1-F)+\frac{F}{S}}$}
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Amdahl's Law}
+
+\begin{itemize}
+    \item[1] Improvement is limited by the $1-F$ part of the execution 
+                that cannot be optimized:
+                $Speedup(E) < \frac{1}{1-F}$\medskip
+
+    \item[2] Low of diminishing returns\smallskip
+
+    \item[3] Optimize the common case \& execute the rare case in software.
+\end{itemize}
+
+\vspace{-4ex}
+\begin{columns}
+\column{0.7\textwidth}
+\includegraphics[width=55ex]{Ch1Figs/AmdhalDimRet}
+\column{0.5\textwidth}\vspace{-3ex}
+\begin{itemize}
+    \item every increment of $S$ consumes new resources \& becomes less rewarding: 
+    \item $S = 2 \Rightarrow 33\%$ speedup,
+    \item $S = 5 \Rightarrow 6.67\%$ speedup.
+\end{itemize}
+\end{columns}
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+\frametitle{Amdahl's Law: Parallel Speedup}
+
+\centering{$S_P = \frac{T_1}{T_P} = \frac{P}{F+P(1-F)} < \frac{1}{1-F}$}\medskip
+
+\includegraphics[width=44ex]{Ch1Figs/ParSpeedup}
+\vspace{-5ex}
+
+Typically: speedup is sublinear, e.g., due to inter-thread communic.\medskip 
+
+Sometimes speedup can be superlinear due to cache effects.\medskip
+ 
+\alert{Unforgiving Law: even if $99\%$ can be parallelized, speedup cannot be $> 100$. Overall not very hopeful!}
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Gustafson's Law}
+
+Redefines Speedup. Rationale:
+\begin{itemize}
+    \item workloads go up with the number of cores
+    \item execution time on parallel machine with P processors: $T_p = s + p$
+    \item where $s$ and $p$ are the times of the serial and parallel code.
+    \item Hence execution time on one processor is $T_1 = s + pP$.
+    \item Now let $F = p/(s+p)$ $\Rightarrow$ 
+            \emp{$S_p = \frac{s+pP}{s+p} = 1 + F(P-1)$}
+\end  {itemize}
+\vspace{2ex}
+
+\includegraphics[width=59ex]{Ch1Figs/AmdhalGustaff}
+
+
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Parallelism In Architectures: Vector \& Array Processors}
 
@@ -630,19 +952,244 @@ Present at many layers:
 \frametitle{Vector and Array Processors}
 
 \begin{itemize}
-            \item A typical vector instruction executes directly on vector operands,
-                    e.g., {\tt VADD VR1,VR2,VR3 $\Rightarrow$ VR1[i]:=VR2[i]+VR3[i] 
-                            $\forall$ i$\in\{1..N\}$}\bigskip
+    \item Able to execute instructions on entire vectors rather than scalars\medskip
+    \begin{itemize}
+        \item {\tt ADDV V1,V2,V3} has semantics: 
+                {\tt V1[i] := V2[i] + V3[i] $\forall i$}\smallskip
+        \item {\tt V1}, {\tt V2}, and  {\tt V3} denote vectors of same 
+                length and scalar type, that can be specified either 
+                as vector registers or\smallskip
+        \item by a \emp{\bf base address}, a vector \emp{\bf length} 
+                and a \emp{\bf stride} operand,\smallskip
+        \item where length and address can be held in special control registers.
+    \end{itemize}\medskip
 
-            \item Vector instructions are executed by pipelines or parallel arrays:
+    \item Very old architecture, 1960s, CDC Star, Cray, IBM 3033.\\
+            Required a vectorizing compiler to extract vector parallelism.\medskip 
+%predate superscalar processors.\medskip
+
+    \item \alert{Reappearing in commodity markets because of 
+                    multimedia applications (DSP)} 
 \end  {itemize}
 
-\begin{columns}
-\column{0.9\textwidth}
-\includegraphics[width=65ex]{Ch1Figs/VectorMachine}
-\column{0.1\textwidth}
-\end{columns}
+% Vector instructions executed by pipelines or parallel arrays
+%\begin{columns}
+%\column{0.9\textwidth}
+%\includegraphics[width=65ex]{Ch1Figs/VectorMachine}
+%\column{0.1\textwidth}
+%\end{columns}
 
 \end{frame}
+
+
+\begin{frame}[fragile,t]
+\frametitle{Vector and Array Processors}
+
+\begin{columns}
+\column{0.7\textwidth}
+\includegraphics[width=59ex]{Ch1Figs/VectorMachine}
+\column{0.35\textwidth}
+If ADD has 10 stages.\\
+Total Execution Time:\\
+$T_{exe} = 10 + 63 = 9 + 64$\\
+In general: $T_{exe} = T_{start}+N$,\\
+where $N$ is the vector's length.
+\end{columns}
+\vspace{-10ex}
+After vector's startup time, i.e., the time to get the first result,
+scalar results are computed one per clock:\\
+
+\centering{\tt T$_{vector}$ = Vector Length + Startup Time}
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+\frametitle{Load/Store Vector Architecture}
+
+\begin{itemize}
+    \item vector registers + scalar registers
+    \begin{itemize}
+        \item each vector register can hold consec vector components
+                fetched from memory, 
+                e.g, 8 vector registers of 64 components each
+        \item 1 READ and 1 WRITE port per vector register, 
+                connected to function units via crossbar interconnect
+                (all registers to all units).
+    \end  {itemize}\medskip
+
+    \item Vector functional units are specialized and deeply pipelined, and
+            act on operands in vector registers
+\end  {itemize}
+
+\begin{block}{HL Code{\tt~~~~~~~~}Machine Code{\tt~~~~~~~~~}Comments}
+\begin{columns}
+\column{0.24\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+for(i=0; i<2048; i++)
+  Y[i] = a*X[i] + Y[i]
+\end{colorcode} 
+\column{0.24\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+    ADDI  R6,R0,#1
+LOOP:
+    L.V   V1,0(R1),R6
+    MUL.V V2,V1,F0
+    L.V   V3,0(R2),R6
+    ADD.V V4,V2,V3
+    S.V   V4,V2,R6
+    SUBBI R1,R1,\#512
+    SUBBI R2,R2,\#512
+    SUBBI R3,R3,2
+    BNEZ  R3,LOOP
+\end{colorcode} 
+\column{0.47\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+//sets R6 to 1 (the stride)
+//load slice of vector X of  
+//  base 0(R1) \& stride R6  
+//multiply X with scalar in F0 
+//load slice of vector Y
+//add vector slices 
+//store slice of Y in memory
+//jump to next slices, 
+//i.e., 8*64
+
+
+\end{colorcode} 
+\end{columns}
+\end{block}
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+\frametitle{Vector -- Memory System}
+
+\begin{itemize}
+    \item Memory Access Pattern known at decode time for entire vector\smallskip
+    \begin{itemize}
+        \item memory is interleaved, no need for caches,\smallskip
+        \item vector load/store units bring data from memory to registers.
+    \end  {itemize}\medskip
+
+    \item Load/Store Units can also be seen as pipelines\smallskip
+    \begin{itemize}
+        \item Startup time: is the time to bring the first component
+                (much longer than for functional units),\smallskip
+        \item banks are started one after another\smallskip
+        \item If the number of banks $>$ memory cycle time Then 
+                there can be no conflicts and results come 
+                out one per clock,\smallskip
+        \item vectors address with a stride are stored in consecutive
+                locations of vector register. 
+    \end  {itemize}
+
+\end  {itemize}
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+\frametitle{Vector -- Memory Organization}
+
+{\tt T$_{load}$ = Vector Length + Startup Time (TimeToGet x$_0$ - 1)}.\medskip
+
+Memory is heavily interleaved: hundreds of memory modules.
+Example:
+
+\includegraphics[width=59ex]{Ch1Figs/VectorMachine}
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Chaining and Parallel Execution}
+
+\begin{itemize}
+    \item Independent Vector Instructions can be executed in parallel
+            if functional units are available, but more important\smallskip
+    \item They can be chained when there are dependencies. 
+            Consider\\ {\tt Y = aX + Y}, where vector length is N:\smallskip
+
+    \item Execution Time (One Vector Op at a time):\\
+            {\tt 2*startup(load) + startup(multv) + startup(addv) + 
+                    startup(store) + 5*N}\smallskip
+
+    \item Execution Time (Chaining and Parallel):\\
+            {\tt startup(load) + startup(addv) + startup(store) + N} 
+\end  {itemize}
+
+\includegraphics[width=59ex]{Ch1Figs/VectorMachine}
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Control Flow \& Indirect Accesses}
+
+
+For conditional statement use Predicated Instructions
+\begin{block}{Fortran Code{\tt~~~~~~~~}Machine Code with Predicated Instructions}
+\begin{columns}
+\column{0.3\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+DO i = 1, 64, 1
+  IF (A(i) .NE. 0) THEN
+    A(i) = A(i) - B(i)
+  ENDIF
+ENDDO
+\end{colorcode} 
+\column{0.65\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+// Use a Bit-Vector Mask Register VM:
+// Assuming A is in V1 and 0 in F0
+SNEVS V1, F0   //sets VM(i) if V1(i) \mymath{\neq}F0
+SUB.V V1,V1,V2 //subtract under Vector Mask
+\end{colorcode}
+\end{columns}
+\end{block}
+\bigskip
+
+Scatter/Gather Operations:
+\begin{itemize}
+    \item Many scientific computations use sparse matrices\smallskip
+    \item Most components are zeros, but under irregular pattern\smallskip
+
+    \item Compress a sparse vector {\tt A} into vectors of non-zero elements:\\
+            {\tt A[1:1000] $\Rightarrow$ A$^*$[1:9], K[1:9]},
+            where {\tt A$^*$} are the non-zero elements of {\tt A}
+            and {\tt K} holds their original indexes. Code example:\smallskip
+
+    \item {\tt DO i = 1, N}\\
+            {\tt ~~A(K(i)) = A(K(i)) + C(M(i))}\\
+            {\tt ENDDO}
+\end  {itemize}
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Memory Scatter/Gather Operations}
+
+\begin{itemize}
+    \item Memory Locations of Vector Components are spread out in memory
+    \item $\Rightarrow$ use scatter and gather instructions\medskip 
+        \begin{itemize}
+            \item \emp{\bf Gather} is an instruction loading a set of
+                    indirect-indexed addresses into consecutive 
+                    vector-register locations\smallskip
+            \item \emp{\bf Scatter} is a store instruction from a vector
+                    register to indirectly indexed addresses.
+        \end  {itemize}
+\end  {itemize}
+
+\begin{colorcode}[fontsize=\scriptsize]
+L.V   Vk,0(R1),R6  //loads vector K in Register Vk
+LI.V  Va,Vk,0(R2)  //gather: loads A(K(i)) into Va
+SI.V  Vb,0(R2),Vk  //scatter: stores A(K(i))
+\end{colorcode}
+
+
+\includegraphics[width=59ex]{Ch1Figs/VectorMachine}
+
+\end{frame}
+
 
 \end{document}
