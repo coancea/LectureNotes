@@ -1,0 +1,36 @@
+#   STUDENT NAME                    KU ID / EMAIL
+-------------------------------------------------------
+1   Borgsmidt, Rasmus               qzp823@alumni.ku.dk
+2   Bramming, Mathias               grm609@alumni.ku.dk
+3   Dørge, Aske                     hnr137@alumni.ku.dk
+4   Egeberg, Daniel Hessellund      mzn808@alumni.ku.dk
+5   Espensen, Morten                dzr440@alumni.ku.dk
+6   Hansen, Rune Filtenborg         rpf828@alumni.ku.dk
+7   Holmgreen, Casper Mark Hagen    tcv380@alumni.ku.dk
+8   Høj, Niklas                     nwv762@alumni.ku.dk
+9   Justesen, Tor Heberg            lwj858@alumni.ku.dk
+10  Jøkladal, Ásbjørn Viderø        wvc561@alumni.ku.dk
+11  Kjær, Daniel                    lvb133@alumni.ku.dk
+12  Larsen, Mathias Normann         dlw426@alumni.ku.dk
+13  Linneberg, Simon Skjerning      vlh486@alumni.ku.dk
+14  Målsnes, Tarjei Sefland         tcd116@alumni.ku.dk
+15  Passov, Kasper                  pvx884@alumni.ku.dk
+16  Pedersen, Emil Heckermann       gvh799@alumni.ku.dk
+17  Podaras, Silvana                pqx917@alumni.ku.dk
+18  Ravn, Christian                 jkr893@alumni.ku.dk
+19  Serup, Niels G. W.              njf941@alumni.ku.dk
+20  Siozos-Drosos, Sokratis         dnb823@alumni.ku.dk
+21  Skaarup, Esben                  npl306@alumni.ku.dk
+22  Svensson, Mathias Bundgaard     tpx783@alumni.ku.dk
+23  Søgaard, Ulrik                  lfd450@alumni.ku.dk
+24  Tahirski, Ivaylo                jtp841@alumni.ku.dk
+25  Thegler, Asbjørn                rzw488@alumni.ku.dk
+26  Tørholm, Sebastian Paaske       bns895@alumni.ku.dk
+27  Urms, Henriks                   mgs837@alumni.ku.dk
+28  Wejendorp, Jacob                nrm891@alumni.ku.dk
+
+
+#   TEACHERS/ADMINISTRATORS         KU ID / EMAIL
+1   Fonseca, Rasmus                 vxb217  rfonseca@di.ku.dk
+2   Henriksen, Troels               mzd885  athas@di.ku.dk
+3   Oancea, Cosmin Eugen            xmf768  cosmin.oancea@di.ku.dk
