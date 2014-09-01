@@ -12,33 +12,47 @@ default:
 	pdflatex Interconnect.tex
 	pdflatex MemSeqCons.tex
 	pdflatex MemSeqCons.tex
+	pdflatex ListHom.tex
+	pdflatex ListHom.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
+# Lecture 1
 intro:
 	pdflatex Intro.tex
 	pdflatex Intro.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
+# Lecture 2
+listhom:
+	pdflatex ListHom.tex
+	pdflatex ListHom.tex
+	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
+
+# Lecture 3
 processor:
 	pdflatex Processor.tex
 	pdflatex Processor.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
+# Lecture 4
 vliw:
 	pdflatex VLIW.tex
 	pdflatex VLIW.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
+# Lecture 5
 mem:
 	pdflatex MemHierarchy.tex
 	pdflatex MemHierarchy.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
+# Lecture 7
 interconnect:
 	pdflatex Interconnect.tex
 	pdflatex Interconnect.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
+# Lecture 9
 seqcons:
 	pdflatex MemSeqCons.tex
 	pdflatex MemSeqCons.tex
