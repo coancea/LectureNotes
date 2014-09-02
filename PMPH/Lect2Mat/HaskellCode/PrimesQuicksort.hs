@@ -64,7 +64,7 @@ segmScanInc myop ne flags arr =
                         in  if f2 == 0 
                             then (f, v1 `myop` v2)
                             else (f, v2)
-                      ) (1,ne) fvs
+                      ) (0,ne) fvs
     in  tail a
 
 segmScanExc :: (a->a->a) -> a -> [Int] -> [a] -> [a]
@@ -157,7 +157,7 @@ primes n =
  
 primesOpt :: Int -> [Int]
 primesOpt n = 
-    if n == 2 then [2]
+    if n <= 2 then [2] 
     else let sqrtN = floor (sqrt (fromIntegral n))
              sqrt_primes = primesOpt sqrtN
              composite = map (\ p -> let m = (n `div` p) 
@@ -173,7 +173,7 @@ primesOpt n =
 
 primesFlat :: Int -> [Int]
 primesFlat n = 
-    if n == 2 then [2]
+    if n <= 2 then [2] 
     else let sqrtN = floor (sqrt (fromIntegral n))
              sqrt_primes = primesFlat sqrtN
              num_primes  = length sqrt_primes
@@ -185,7 +185,7 @@ primesFlat n =
              ps    = write mult_scan sqrt_primes              (replicate mult_tot_len 0)
              prime_vals= segmScanInc (+) 0 flags ps
              prime_inds= segmScanInc (+) 0 flags (replicate mult_tot_len 1)
-             not_primes= zipWith (\i v->(i+1)*v) prime_inds prime_vals   
+             not_primes= zipWith (\i v->(i+1)*v) prime_inds prime_vals
 
              zero_array = replicate (length not_primes) False 
              prime_flags= write not_primes zero_array (replicate (n+1) True)
@@ -267,7 +267,9 @@ main = do args <- getArgs
           putStrLn ("SegmFilterOdd(a/2):"++show (segmFilter (\x->odd (x `div` 2)) sizes inp))
           putStrLn ("Primes 32: " ++ show (primes 32))
           putStrLn ("PrimesOpt  49: " ++ show (primesOpt 49))
+          putStrLn ("PrimesOpt  9: " ++ show (primesOpt 9))
           putStrLn ("PrimesFlat 49: " ++ show (primesFlat 49))
+          putStrLn ("PrimesFlat 9: " ++ show (primesFlat 9))
           putStrLn ("NestQuicksort inp: " ++ show (nestedQuicksort inp))
           putStrLn ("FlatQuicksort inp: " ++ show (flatQuicksort 0 (8:(replicate 7 0)) inp))
 
