@@ -124,7 +124,8 @@
         \item computing power doubles every 19-24 months 
         \item \emph{system cost effectiveness = {\tt performance/cost} 
                 grows exp}.
-        \item \alert{CMOS endpoint is near}: miniaturization reaches its limits.   
+        \item \alert{CMOS endpoint is near}: miniaturization reaches its limits
+                (complementary metal-oxide semiconductor).
     \end  {itemize}\bigskip
 
     \item Improved Chip Design:
@@ -292,7 +293,7 @@
     \item \emp{MT Cores} multiple threads, each 
             running in its thread context.\smallskip
 
-    \item \emp{Multiprocessor:} set of cores connected to execute a workload
+    \item \emp{Multiprocessor:} set of processors connected to execute a workload
         \begin{itemize}
             \item mass produced, off-the-shelf, each several cores \& levels of cache
             \item trend towards migrating system functions on the chip:\\
@@ -322,7 +323,7 @@ exponentially (1990-2004).
 
 \begin{columns}
 \column{0.65\textwidth}
-\hspace{-5ex}\includegraphics[width=52ex]{Ch1Figs/FreqGraph}
+\hspace{-5ex}\includegraphics[width=52ex]{Ch1Figs/FreqGraph}\pause
 \column{0.48\textwidth}\vspace{-3ex}
 \begin{scriptsize}
         \begin{itemize}
@@ -376,6 +377,7 @@ exponentially (1990-2004).
                 \item \emph{Improved Circuit Design} 
         \end  {itemize}\bigskip
 \end{columns}
+\pause
 
 Clock Rate Increase is Not Sustainable:
 \begin{itemize}
@@ -579,7 +581,7 @@ Present at many layers:
     \item Dynamic power 
             favors parallel processing over higher clock rate
             \begin{itemize}
-                \item $P_{dynamic} \sim F^3$ mostly dissipated in processor
+                \item $P_{dynamic} \sim F^3$ mostly dissipated in processor\pause
                 \item replicate a uniprocessor 4 time $\Rightarrow$ 
                         $4\times$ speedup @ $4\times$ power
                 \item increase clock 4 times $\Rightarrow$ 
@@ -755,10 +757,10 @@ Performance Metrics:
 
 Benchmarking:\smallskip
 \begin{itemize}
-    \item Source Code: because some machines are designed with
+    \item Source Code:\pause because some machines are designed with
             a compiler in mind and are easier to optimize code for.\smallskip
 
-    \item Benchmark Suites: many \& large programs to avoid fine tuning
+    \item Benchmark Suites:\pause many \& large programs to avoid fine tuning
         \begin{itemize}
             \item[SPEC] Standard Performance Evaluation Corporation:
                 \begin{itemize}
