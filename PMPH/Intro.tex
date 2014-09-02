@@ -995,9 +995,10 @@ diagonal: stride {\tt N-1} or {\tt N+1}
 
 \begin{columns}
 \column{0.35\textwidth}
-\vspace{-13ex}
+\vspace{-10ex}
 
-If ADD has 10 stages.\\
+Assume vectors of 64 words,
+and that ADD has 10 stages.\\
 Total Execution Time:\\
 $T_{exe} = 10 + 63 = 9 + 64$\\\medskip
 
@@ -1051,7 +1052,7 @@ LOOP:
     S.V   V4,V2,R6
     SUBBI R1,R1,\#512
     SUBBI R2,R2,\#512
-    SUBBI R3,R3,2
+    SUBBI R3,R3,\#64
     BNEZ  R3,LOOP
 \end{colorcode} 
 \column{0.47\textwidth}
