@@ -9,8 +9,8 @@
 {
   \usetheme{Diku}
 % set this to your preferences:
-%  \setbeamercovered{invisible}
-  \setbeamercovered{transparent}
+  \setbeamercovered{invisible}
+%  \setbeamercovered{transparent}
 }
 
 \usepackage{graphicx}
@@ -317,7 +317,7 @@ main = do args <- getArgs
 
 \begin{mytheo}[1st List Homomorphism Theorem (Meertens)]\label{LHomTh1}
 Any homomorphism \emp{$h = hom \ (\odot) \ f \ e$} can be written 
-as the composition of a reduce and a map: \\
+as the functional composition of a reduce and a map: \\
 \emp{$\ \ \ \ \ \ \ \ \ h = hom \ (\odot) \ f \ e_{\odot} \ = \ (reduce \ (\odot) \ e_{\odot}) \ . \ (map \ f)$} \\
 Conversely, each such composition is a homomorphism. \\
 \end{mytheo}
@@ -477,7 +477,7 @@ To construct a homomorphism we need to compute extra information:\pause
 \begin{itemize}
     \item maximum concluding segment: {\tt mcs x = mcs [1,-2,3,4] = 7}
     \item maximum initial segment: {\tt mis y = mis [-1,5,-6,1] = 4}
-    \item total segment sum: {\tt ts [1,-2,3,4] = 6}
+    \item total segment sum: {\tt ts [1,-2,3,4] = 6}\pause
     \item {\tt mis (x++y) = (mis x) $\uparrow$ ((ts x)+(mis y))}, similar for {\tt mcs}    
     \item {\tt mss (x++y) = (mss x) $\uparrow$ (mss y) $\uparrow$ ((mcs x) + (mis y))}
 \end{itemize}
@@ -804,13 +804,13 @@ operators  $\oplus$ and $\otimes$.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Nested Data Parallelism}
+\section{Implementation of Flat Bulk Operators}
 
 \begin{frame}[fragile]
 	\tableofcontents[currentsection]
 \end{frame}
 
-\subsection{Implementation of Reduce and Scan Bulk Operations}
+\subsection{Implementation of Reduce and Scan}
 
 \begin{frame}[fragile,t]
   \frametitle{Parallel Random Access Machine (PRAM)}
@@ -1118,7 +1118,7 @@ Result = [4, 2, 8, 5, 3, 7]
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Nested Data Parallelism}
+\section{Nested Data Parallelism and Flattening}
 
 \begin{frame}[fragile]
 	\tableofcontents[currentsection]
@@ -1158,7 +1158,7 @@ Can be obtained by replacing the following operator:
 sgmScanInc :: (a->a->a) -> a -> [Int] -> [a] -> [a]
 sgmScanInc \mymath{\odot} ne flags data = 
   let fds = zip flags data
-      (_,r) = unzip $ 
+      (_,r) = unzip \$ 
               scan\mymath{\myindu{inc}} (\mymath{\backslash}(f1,v1) (f2,v2) -> 
                         let f = f1 .|. f2  -- bitwise or
                         in  if f2 == 0
@@ -1302,11 +1302,6 @@ result: [0,0,\emp{1},\emp{1},0,\emp{1},0,\emp{1},0,\emp{0}]
 \begin{frame}[fragile,t]
   \frametitle{Computing Prime Numbers: Nested Parallelism}
 
-If we have all primes from $2$ to $\sqrt{n}$ we could
-generate all multiples of these primes at once:
-\emp{\tt \{[2*p:n:p]: p in sqr\_primes\}} in NESL.
-\blue{Also call algorithm recursively on $\sqrt{n}$ $\Rightarrow$ Depth: $O(lg \ lg \ n)$!}
-
 \begin{columns}
 \column{0.59\textwidth}
 \begin{colorcode}[fontsize=\scriptsize]
@@ -1329,7 +1324,7 @@ primesOpt n =
                     $ (zip [0..n] prime_flags)
    in drop 2 primes
 \end{colorcode}
-\column{0.4\textwidth}
+\column{0.4\textwidth}\pause
 \begin{colorcode}[fontsize=\scriptsize]
 Assume n = 9, sqrtN = 3 
 
@@ -1353,59 +1348,70 @@ returns [2,3,5,7]
 \end{columns}
 \medskip
 
+If we have all primes from $2$ to $\sqrt{n}$ we could
+generate all multiples of these primes at once:
+\emp{\tt \{[2*p:n:p]: p in sqr\_primes\}} in NESL.
+\blue{Also call algorithm recursively on $\sqrt{n}$ $\Rightarrow$ Depth: $O(lg \ lg \ n)$!}
+
+
 \end{frame}
 
 \begin{frame}[fragile,t]
   \frametitle{How to Flatten? A Simple Case First}
+\vspace{-2ex}
+\alert{\tt~~~~flatten \$ map ($\backslash$i -> map (+1) [0..i]) [0..n-1]}
 
-\begin{itemize}
-%    \item How do I compute [0..n-1]?\\ \pause
-%            {\tt~~~~scan$^exc$ (+) 0 (replicate n 1)}
-    \item What does this code do ?\\
-            \alert{\tt~~~~flatten \$ map ($\backslash$i -> map (+1) [0..i]) [0..n-1]} ?
-          And how can one ``flatten'' it, i.e., write code as flat bulk ops?\medskip
-        \begin{itemize}
-        \item \emp{What is the size of the one-dim inner array?}
-                 \pause  It is {\tt i+1}.
-        \item \emp{What is the total size of the result array?}
-                \pause It is $ts = \sum_{i=0}^{n-1} (i+1)$, i.e., 
-                    {\tt reduce (+) 0 [1..n]}
-        \item Create a value array of size $ts$, initially populated
-                by ones, and a flag array of size $ts$ initially
-                populated by zeros:\\
-             {\tt vals = replicate ts 1} and {\tt flags = replicate ts 0}
-
-        \item Create an array containing the size of each row: 
-                    {\tt shape = [0..n-1]}, and by scanning 
-                    we will find the start index of each segment 
-                    in the big array:
-                         {\tt sgms\_inds = scan$^{exc}$ + 0 shape} 
-        \item Now write the {\tt sgms\_inds} to ones in the {\tt flags}
-                array, i.e.,\\
-                {\tt flags' = write sgms\_inds (replicate n 1) flags}
-        \item Finally, we apply segmented scan on the value array
-                of ones to create the [0..i] values, i.e.,
-                {\tt vals' = segmScan$^{exc}$ (+) 0 flags vals} and
-                add one to all the elements of the {\tt vals'} array,
-                i.e., {\tt vals'' = map (+1) vals}
-        \item The {\tt flatten} operation simply gets rid of the
-                flags array!
-        \end  {itemize}
-
-\end{itemize}
 
 \begin{columns}
-\column{0.59\textwidth}
+\column{0.5\textwidth}
 \begin{colorcode}[fontsize=\scriptsize]
-       nested = \emp{map} (\mymath{\backslash}\emp{p}->let m = (n `div` p) 
-                         in  \emp{map} (\mymath{\backslash}j-> j*p)
-                                 [2..m]
-                    ) \emp{sqrt_primes}
-       not_primes  = \emph{reduce} (++) [] nested
-\end{colorcode}
-\column{0.4\textwidth}
-\begin{colorcode}[fontsize=\scriptsize]
+Assume N = 4. Expected Result:
+[[1],[1,2],[1,2,3],[1,2,3,4]]
 
+1. Inner array size is {\tt 1}.
+2. Result Array \# of all elements:
+    flat\_size = \mymath{\sum\myindx{i=0}\myindu{n-1}(i+1)} = 10!
+3. flags0= [0,0,0,0,0,0,0,0,0,0]
+4. the size of each row:
+   shape0  = [1,2,3,4 ]
+5. start index of each segment:
+   segm_beg=scan\mymath{\myindu{exc}} (+) 0 shape0
+           = [0,1,3,6]
+   ones    = [1,1,1,1 ]
+6. write above ind-val pairs:
+   flags = [1,1,0,1,0,0,1,0,0,0]
+7. who is [0..i] in parallel?
+   [0..i] = scan\mymath{\myindu{exc}} (+) 0 [1..1] \mymath{\Rightarrow}
+   \emp{vals0=segmScan\mymath{\myindu{exc}} (+)}
+           [1,1,0,1,0,0,1,0,0,0]
+           [1,1,1,1,1,1,1,1,1,1]
+         -----------------------------
+        =  [0,0,1,0,1,2,0,1,2,3]
+\end{colorcode}
+\column{0.5\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+8. \emp{add 1 to all elements:}
+   vals = map (+1) vals0
+        = zipWith (+)
+           [1,1,1,1,1,1,1,1,1,1]
+           [0,0,1,0,1,2,0,1,2,3]
+         ----------------------------
+        =  [1,1,2,1,2,3,1,2,3,4]\pause
+9. \alert{What if I want to add i?} 
+   iis = write
+           [0,1,3,6] [0,1,2,3]
+           [0,0,0,0,0,0,0,0,0,0]
+         ------------------------------
+           [0,1,0,2,0,0,3,0,0,0]
+   \emp{diis= scanInc (+) 0 flags iis}
+         [1,1,0,1,0,0,1,0,0,0]
+         [0,1,0,2,0,0,3,0,0,0]
+        -------------------------------
+       = [0,1,1,2,2,2,3,3,3,3]
+   \emp{vals = map (+i) vals0}
+        \emp{= zipWith (+) diis vals0}
+        = [0,1,2,2,3,4,3,4,5,6]
+10. \emp{Flaten op gets rid of the flags}
 \end{colorcode}
 \end{columns}
 
@@ -1413,7 +1419,48 @@ returns [2,3,5,7]
 
 
 \begin{frame}[fragile,t]
-  \frametitle{Prime Numbers: Flatenning Nested Parallelism}
+  \frametitle{How Does One Flattens Prime Numbers?}
+
+\begin{columns}
+\column{0.52\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+nested = \emp{map} (\mymath{\backslash}\emp{p}->let m = (9 `div` p) 
+                  in  \emp{map} (\mymath{\backslash}j-> j*p)
+                          [2..m]
+             ) \emp{[2,3]}
+not_primes  = \emph{reduce} (++) [] nested
+\end{colorcode}
+\column{0.48\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+n = 9, sqrtN = 3.
+mult_lens denotes \# of multi-
+  ples of a given prime upto n.
+mult_lens = [4-1,3-1]=[3,2] i.e., 
+            excludes the prime*1
+mult_scan = [0,3] via scan\mymath{\myindu{exc}} 
+mult_tot_len = 5, total \# of multiples 
+flags     = [1, 0, 0, 1, 0],
+  the segments of the array
+        of prime multiples
+ps        = [2, 0, 0, 3, 0]
+  each segments has its prime
+p_vals    = [2, 2, 2, 3, 3]
+             *  *  *  *  *
+p_inds    = [2, 3, 4, 2, 3]
+             =  =  =  =  =
+not_primes= [4, 6, 8, 6, 9]
+zeroes    = [F, F, F, F, F]
+prime_flg=[T,T,T,T,F,T,F,T,F,F]
+  transformed to prime indexes
+primes   =[0,1,2,3,  5,  7    ]
+\alert{Result is:[    2,3,  5,  7]}
+\end{colorcode}
+\end{columns}
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+  \frametitle{Prime Numbers: Flattening Nested Parallelism}
 \vspace{-2ex}
 \begin{columns}
 \column{0.63\textwidth}
@@ -1433,14 +1480,14 @@ primesFlat n = if n <= 2 then [2] else
      ps    = write mult_scan sqrt_primes              
                   (replicate mult_tot_len 0)
      p_vals= segmScanInc (+) 0 flags ps
-     p_inds= map (+1) $ segmScanInc (+) 0 flags 
+     p_inds= map (+1) \$ segmScanInc (+) 0 flags 
                   (replicate mult_tot_len 1)
      not_primes= zipWith (*) p_inds p_vals
      zeros = replicate (length p_inds) False 
      prime_flg  = write not_primes zeros 
                   (replicate (n+1) True)
-     (primes,_) = unzip $ filter (\mymath{\backslash}(i,f)->f)) 
-                    $ zip [0..n] prime_flags
+     (primes,_) = unzip \$ filter (\mymath{\backslash}(i,f)->f)) 
+                    \$ zip [0..n] prime_flags
  in drop 2 primes
 \end{colorcode}
 \column{0.37\textwidth}
@@ -1475,7 +1522,119 @@ primes   =[0,1,2,3,  5,  7    ]
 
 \end{frame}
 
+\subsection{Quicksort}
 
+\begin{frame}[fragile,t]
+  \frametitle{Quicksort with Nested Parallelism}
+
+\begin{columns}
+\column{0.59\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+nestedQuicksort :: [a] -> [a]
+nestedQuicksort arr = 
+  if (length arr) <= 1 then arr else 
+  let i = getRand (0, (length arr) - 1)
+      a = arr !! i
+      s1 = filter (\mymath{\backslash}x -> (x <  a)) arr
+      s2 = filter (\mymath{\backslash}x -> (x >= a)) arr
+      rs = map nestedQuicksort [s1, s2]
+  in  (rs !! 0) ++ (rs !! 1)
+
+-- \alert{Average Depth and Work ?}
+\end{colorcode}
+\column{0.4\textwidth}\pause
+\begin{colorcode}[fontsize=\scriptsize]
+Assume input array [3,2,4,1]
+Assume random i = 0 \mymath{\Rightarrow} a = 3
+
+s1 = [2,1]
+s2 = [3,4]
+
+\emp{nestedQuicksort [2,1]}:
+i = 0, a = 2
+s1 = [1]
+s2 = [2]
+results in [1]++[2]==[1,2]
+
+\emp{nestedQuicksort [3,4]}: ...
+results in [3,4]
+
+\emp{After recursion concat:}
+[1,2] ++ [3,4] = [1,2,3,4]
+\end{colorcode}
+\end{columns}
+\medskip
+
+Denoting by $n$ the size of the input array: Average Work is $O(n \ lg \ N)$.\\
+\medskip
+
+If filter would have depth $1$, then Average Depth: $O(lg \ n)$.
+\medskip
+
+In practice we have depth: $O(lg^2 \ n)$.
+
+\end{frame}
+
+
+
+\begin{frame}[fragile,t]
+  \frametitle{Quicksort: Flattened Nested Parallelism}
+
+\begin{columns}
+\column{0.59\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+flatQuicksort :: a -> [Int] -> [a] -> [a]
+flatQuicksort \alert{ne sizes} arr = 
+  if reduce (\&\&) True \$ 
+         map (\mymath{\backslash}s->(s<2)) sizes 
+  then arr else 
+  let si = scanInc (+) 0 sizes
+      r_inds= 
+        map (\mymath{\backslash}(l,u,s)-> 
+                if s<1 then ne else 
+                     arr !! (getRand (l,u-1))
+            )  (zip3 (0:si) si sizes)
+      rands = segmScan\mymath{\myindu{inc}} (+) ne sizes r_inds
+
+      (sizes',arr_rands) = segmSpecialFilter 
+                  (\mymath{\backslash}(r,x)->(x < r)) 
+                  sizes (zip rands arr)
+      (_,arr') = unzip arr_rands
+  in  flatQuicksort ne sizes' arr'
+\end{colorcode}
+\column{0.4\textwidth}\pause
+\begin{colorcode}[fontsize=\scriptsize]
+Key idea: use a 2D array:
+Input: ne = 0, sizes = [4,0,0,0], 
+               arr   = [3,2,4,1]
+Condition does not hold 
+since one size is 4 > 2
+si = [4,4,4,4] distrib inner sizes
+\emp{Compute the indexes of random}
+\emp{   nums, one for each segment}
+r_sparse= [a!!0,0,0,0]=[3,0,0,0]
+\emp{\& distrib it across each segm}
+rands   = [3,3,3,3] 
+\emp{For 1D case this is \mymath{\equiv}}
+\emp{ with our parFilter.} \alert{Generalize it!}
+[4,0,0,0], [(3,3),(3,2),(3,4),(3,1)] \mymath{\Rightarrow}
+sizes' =   [2,    0,    2,    0], 
+arr_rands= [(3,2),(3,1),(3,3),(3,4)]
+arr'     = [   2,    1,    3,    4 ]
+\emp{Recursively with the new array \& sizes}
+\end{colorcode}
+\end{columns}
+\medskip
+
+{\tt segmSpecialFilter::(a->Bool)->[Int]->[a]->([Int],[a])}\\
+\alert{Intuitive Semantics:} 
+\alert{\tt segmSpecialFilter odd [2,0,2,0] [4,1,3,3] $\Rightarrow$ ([1,1,2,0],[1,4,3,3])}
+
+\end{frame}
+
+\begin{frame}[fragile]
+	\tableofcontents
+\end{frame}
 
 %\begin{frame}[fragile,t]
 %  \frametitle{Bird-Meertens Formalism (BMF)}

@@ -98,8 +98,8 @@ parFilter cond arr =
         flags = write [0,i] [i,n-i] (replicate n 0)
     in  (permute inds arr, flags)
 
-segmFilter :: (a->Bool) -> [Int] -> [a] -> ([a],[Int])
-segmFilter cond sizes arr = 
+segmSpecialFilter :: (a->Bool) -> [Int] -> [a] -> ([a],[Int])
+segmSpecialFilter cond sizes arr = 
     let n   = length arr
         cs  = map cond arr
         ssi = segmScanInc (+) 0 sizes sizes
@@ -237,7 +237,7 @@ flatQuicksort ne sizes arr =
              
              rands = segmScanInc (+) ne sizes r_inds
 
-             (arr_rands, sizes') = segmFilter (\(r,x) -> (x <  r)) sizes (zip rands arr)
+             (arr_rands, sizes') = segmSpecialFilter (\(r,x) -> (x <  r)) sizes (zip rands arr)
              (_,arr') = unzip arr_rands
 
 --             arr'' = trace (show arr ++ " " ++ show sizes ++ " " ++ " " ++ show rands ++ " " ++ show arr' ++ " " ++ show sizes') arr'
@@ -264,7 +264,7 @@ main = do args <- getArgs
           putStrLn ("Permuted list: "++show pinp)
           putStrLn ("Written list: " ++show winp)
           putStrLn (" ParFilterOdd(a/2):"++show ( parFilter (\x->odd (x `div` 2)) inp))
-          putStrLn ("SegmFilterOdd(a/2):"++show (segmFilter (\x->odd (x `div` 2)) sizes inp))
+          putStrLn ("SegmFilterOdd(a/2):"++show (segmSpecialFilter (\x->odd (x `div` 2)) sizes inp))
           putStrLn ("Primes 32: " ++ show (primes 32))
           putStrLn ("PrimesOpt  49: " ++ show (primesOpt 49))
           putStrLn ("PrimesOpt  9: " ++ show (primesOpt 9))
