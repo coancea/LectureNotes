@@ -98,7 +98,7 @@ parFilter cond arr =
         flags = write [0,i] [i,n-i] (replicate n 0)
     in  (permute inds arr, flags)
 
-segmSpecialFilter :: (a->Bool) -> [Int] -> [a] -> ([a],[Int])
+segmSpecialFilter :: (a->Bool) -> [Int] -> [a] -> ([Int],[a])
 segmSpecialFilter cond sizes arr = 
     let n   = length arr
         cs  = map cond arr
@@ -128,7 +128,7 @@ segmSpecialFilter cond sizes arr =
                                    then s - li else 0
                          ) sizes iotas ssi lis
 --        inds' = trace (show inds ++ " cs:" ++ show cs ++ " isT: " ++ show isT ++ " isF" ++ show isF ++ "difs: " ++ show diff ++ " lis: "++show lis) inds
-    in  (permute inds arr, sizes')
+    in  (sizes', permute inds arr)
 
 -----------------------------------
 --- Computing the prime numbers ---
@@ -223,7 +223,6 @@ nestedQuicksort arr =
 ---    the fourth row has 1 element : [9]
 -------------------------------------------------------
 
-
 flatQuicksort :: (Ord a, Show a, Num a) => a -> [Int] -> [a] -> [a]
 flatQuicksort ne sizes arr = 
     if reduce (&&) True $ map (\s->(s<2)) sizes then arr
@@ -237,12 +236,59 @@ flatQuicksort ne sizes arr =
              
              rands = segmScanInc (+) ne sizes r_inds
 
-             (arr_rands, sizes') = segmSpecialFilter (\(r,x) -> (x <  r)) sizes (zip rands arr)
+             (sizes', arr_rands) = segmSpecialFilter (\(r,x) -> (x <  r)) sizes (zip rands arr)
              (_,arr') = unzip arr_rands
 
 --             arr'' = trace (show arr ++ " " ++ show sizes ++ " " ++ " " ++ show rands ++ " " ++ show arr' ++ " " ++ show sizes') arr'
 
          in  flatQuicksort ne sizes' arr'
+
+
+-----------------------------------------------------
+--- ASSIGNMENT 1: implement sparse matrix-vector  ---
+---    TASK 4a.   multiplication with nested      ---
+---               parallelism \& test it!         ---
+---               Matrix:                         ---
+---              [ 2.0, -1.0,  0.0, 0.0]          ---
+---              [-1.0,  2.0, -1.0, 0.0]          ---
+---              [ 0.0, -1.0,  2.0,-1.0]          ---
+---              [ 0.0,  0.0, -1.0, 2.0]          ---
+---                                               ---
+---              IS REPRESENTED AS a list of lists---
+---              [ [(0,2.0),  (1,-1.0)],          ---
+---                [(0,-1.0), (1, 2.0), (2,-1.0)],---
+---                [(1,-1.0), (2, 2.0), (3,-1.0)],---
+---                [(2,-1.0), (3, 2.0)]           ---
+---              ]                                ---
+---
+---               The vector is full and matches  ---
+---               the matrix number of columns,   ---
+---               e.g., x = [2.0, 1.0, 0.0, 3.0]  ---
+---                     transposed!               ---
+-----------------------------------------------------
+
+nestSparseMatVctMult :: [[(Int,Double)]] -> [Double] -> [Double]
+nestSparseMatVctMult mat x = 
+    map (\row -> let (inds,vals) = unzip row
+                     yi = reduce (+) 0.0 $
+                            zipWith (\i v -> v * (x !! i)) inds vals
+                 in  yi 
+        ) mat
+
+flatSparseMatVctMult :: [Int] -> [(Int,Double)] -> [Double] -> [Double]
+flatSparseMatVctMult flags mat x = 
+    let tot_num_elems = length flags
+        vct_len       = length x
+        v_mul_xis = map (\(i,v) -> v * (x !! i)) mat
+        segm_mat  = segmScanInc (+) 0.0 flags v_mul_xis
+        flagsshift= (tail flags) ++ [1]
+        new_inds  = scanInc (+) 0 flags
+
+        wrt_indval= zipWith3 (\f i v -> if f==1 then (i,v) else (0,v)) 
+                             flagsshift new_inds segm_mat
+        (wrt_inds, wrt_vals) = unzip wrt_indval
+    in  tail $ write wrt_inds wrt_vals (replicate (vct_len+1) 0.0)
+
 
 ----------------------------------------
 --- MAIN                             ---
@@ -257,6 +303,14 @@ main = do args <- getArgs
               vals = [33,33,33,33]
               inds = [0,2,4,6]
               winp = write inds vals inp
+              matrix_nest = [ [(0,2.0),  (1,-1.0)],          
+                              [(0,-1.0), (1, 2.0), (2,-1.0)],
+                              [(1,-1.0), (2, 2.0), (3,-1.0)],
+                              [(2,-1.0), (3, 2.0)]           
+                            ]
+              matrix_flag = [1,       0,        1,        0,        0,        1,        0,        0,        1,         0      ]
+              matrix_flat = [(0,2.0), (1,-1.0), (0,-1.0), (1, 2.0), (2,-1.0), (1,-1.0), (2, 2.0), (3,-1.0), (2,-1.0), (3, 2.0)] 
+              x_vector    = [2.0, 1.0, 0.0, 3.0]
           putStrLn ("Input list: "++show inp)
           putStrLn ("Input flags:"++show sizes)
           putStrLn ("SegmScanIncl: "++ show (segmScanInc (+) 0 sizes inp))
@@ -272,5 +326,8 @@ main = do args <- getArgs
           putStrLn ("PrimesFlat 9: " ++ show (primesFlat 9))
           putStrLn ("NestQuicksort inp: " ++ show (nestedQuicksort inp))
           putStrLn ("FlatQuicksort inp: " ++ show (flatQuicksort 0 (8:(replicate 7 0)) inp))
+          
+          putStrLn ("Nested SparseMatrixMult: " ++ show (nestSparseMatVctMult matrix_nest x_vector))
+          putStrLn ("Flat   SparseMatrixMult: " ++ show (flatSparseMatVctMult matrix_flag matrix_flat x_vector))
 
 

@@ -4,7 +4,7 @@ import Data.Bits -- bit twiddling with shift and xor
 
 -- log2
 log2 1 = 0
-log2 n = 1 + log2 (n `div` 2) -- the "`" make div into infix notation
+log2 n = 1 + log2 (n `div` 2) -- the "`" makes div into infix notation
 
 -------------------------------
 -- helpers to simulate (x++y) --
@@ -69,14 +69,14 @@ distr_hyper plus mul k xs =
 
 distrib_scan :: Num a => (a->a->a) -> [a] -> [a]
 distrib_scan op =   
-        let scan_pl  (s1, r1) (s2, r2) = (s1,    r1+r2) -- ... (fill in)
-            scan_mul (s1, r1) (s2, r2) = (s2+r1, r1+r2) -- ... (fill in)
+        let scan_pl  (s1, r1) (s2, r2) = (s1,    r1+r2) 
+            scan_mul (s1, r1) (s2, r2) = (s2+r1, r1+r2) 
         in  (map (\(x,y) -> x)) . (distr_hom scan_pl scan_mul) . (map (\x -> (x,x))) 
 
 hyper_scan :: Num a => (a->a->a) -> [a] -> [a]
 hyper_scan op xs = 
-        let scan_pl  (s1, r1) (s2, r2) = (s1,    r1+r2) -- same as scan_pl above
-            scan_mul (s1, r1) (s2, r2) = (s2+r1, r1+r2) -- same as scan_mul above
+        let scan_pl  (s1, r1) (s2, r2) = (s1,    r1+r2) 
+            scan_mul (s1, r1) (s2, r2) = (s2+r1, r1+r2) 
             scan_hlp = (map (\(x,y) -> x)) . (distr_hyper scan_pl scan_mul k) . (map (\x -> (x,x)))
             k = log2 (length xs) 
         in  scan_hlp xs
