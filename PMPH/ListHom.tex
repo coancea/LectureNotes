@@ -1184,7 +1184,7 @@ sgmScanInc \mymath{\odot} ne flags data =
 
 
 \begin{frame}[fragile,t]
-  \frametitle{Parallel Exclusive Scan Algorithm And Complexity}
+  \frametitle{Segmented Exclusive Scan Alg And Complexity}
 \vspace{-2ex}
 \begin{columns}
 \column{0.6\textwidth}
@@ -1193,7 +1193,6 @@ Input:  flag array F of n=2\mymath{\myindu{k}} of ints
         data array A of n=2\mymath{\myindu{k}} elems of type T
         \mymath{\oplus::T\times T\rightarrow T} associative
 Output: B = segmented scan of 2-dim array A
-
 1.  \emph{FORALL i = 0 to n-1 do} B[i] \mymath{\leftarrow} A[i] \emph{ENDDO}
 2.  \emp{FOR d = 0 to k-1 DO} \emph{// up-sweep}
 3.    \emph{FORALL i = 0 to n-1 by 2\mymath{\myindu{d+1}} DO} 
@@ -1295,7 +1294,7 @@ result: [0,0,\emp{1},\emp{1},0,\emp{1},0,\emp{1},0,\emp{0}]
 \end{columns}
 \medskip
 
-\emph{Work: $O(n \ lg \ lg \ n)$} but \emp{Depth: $O(\sqrt{n})$ (Not Goofd Enough!)}
+\emph{Work: $O(n \ lg \ lg \ n)$} but \emp{Depth: $O(\sqrt{n})$ (Not Good Enough!)}
 
 \end{frame}
 
@@ -1350,6 +1349,126 @@ mm=5;zeroes= [F,F,F,F,F]
 prime_flags= [T,T,T,T,\emp{F},T,\emp{F},T,\emp{F},\emp{F}]
 primes = [0,1,2,3,5,7]
 returns [2,3,5,7]
+\end{colorcode}
+\end{columns}
+\medskip
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+  \frametitle{How to Flatten? A Simple Case First}
+
+\begin{itemize}
+%    \item How do I compute [0..n-1]?\\ \pause
+%            {\tt~~~~scan$^exc$ (+) 0 (replicate n 1)}
+    \item What does this code do ?\\
+            \alert{\tt~~~~flatten \$ map ($\backslash$i -> map (+1) [0..i]) [0..n-1]} ?
+          And how can one ``flatten'' it, i.e., write code as flat bulk ops?\medskip
+        \begin{itemize}
+        \item \emp{What is the size of the one-dim inner array?}
+                 \pause  It is {\tt i+1}.
+        \item \emp{What is the total size of the result array?}
+                \pause It is $ts = \sum_{i=0}^{n-1} (i+1)$, i.e., 
+                    {\tt reduce (+) 0 [1..n]}
+        \item Create a value array of size $ts$, initially populated
+                by ones, and a flag array of size $ts$ initially
+                populated by zeros:\\
+             {\tt vals = replicate ts 1} and {\tt flags = replicate ts 0}
+
+        \item Create an array containing the size of each row: 
+                    {\tt shape = [0..n-1]}, and by scanning 
+                    we will find the start index of each segment 
+                    in the big array:
+                         {\tt sgms\_inds = scan$^{exc}$ + 0 shape} 
+        \item Now write the {\tt sgms\_inds} to ones in the {\tt flags}
+                array, i.e.,\\
+                {\tt flags' = write sgms\_inds (replicate n 1) flags}
+        \item Finally, we apply segmented scan on the value array
+                of ones to create the [0..i] values, i.e.,
+                {\tt vals' = segmScan$^{exc}$ (+) 0 flags vals} and
+                add one to all the elements of the {\tt vals'} array,
+                i.e., {\tt vals'' = map (+1) vals}
+        \item The {\tt flatten} operation simply gets rid of the
+                flags array!
+        \end  {itemize}
+
+\end{itemize}
+
+\begin{columns}
+\column{0.59\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+       nested = \emp{map} (\mymath{\backslash}\emp{p}->let m = (n `div` p) 
+                         in  \emp{map} (\mymath{\backslash}j-> j*p)
+                                 [2..m]
+                    ) \emp{sqrt_primes}
+       not_primes  = \emph{reduce} (++) [] nested
+\end{colorcode}
+\column{0.4\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+
+\end{colorcode}
+\end{columns}
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+  \frametitle{Prime Numbers: Flatenning Nested Parallelism}
+\vspace{-2ex}
+\begin{columns}
+\column{0.63\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+primesFlat :: Int -> [Int]
+primesFlat n = if n <= 2 then [2] else 
+ let sqrtN = floor (sqrt (fromIntegral n))
+     sqrt_primes = primesFlat sqrtN
+     mult_lens   = map (\mymath{\backslash}p->(n `div` p)-1) 
+                   sqrt_primes
+     mult_scan   = scanExc (+) 0 mult_lens 
+     mult_tot_len= (last mult_scan) + 
+                   (last mult_lens)
+     flags = write mult_scan 
+          (replicate (length sqrt_primes) 1) 
+          (replicate mult_tot_len 0)
+     ps    = write mult_scan sqrt_primes              
+                  (replicate mult_tot_len 0)
+     p_vals= segmScanInc (+) 0 flags ps
+     p_inds= map (+1) $ segmScanInc (+) 0 flags 
+                  (replicate mult_tot_len 1)
+     not_primes= zipWith (*) p_inds p_vals
+     zeros = replicate (length p_inds) False 
+     prime_flg  = write not_primes zeros 
+                  (replicate (n+1) True)
+     (primes,_) = unzip $ filter (\mymath{\backslash}(i,f)->f)) 
+                    $ zip [0..n] prime_flags
+ in drop 2 primes
+\end{colorcode}
+\column{0.37\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+Assume n = 9, sqrtN = 3, and 
+that (primesOpt 3) results in 
+sqrt_primes = [2,3].
+mult_lens denotes \# of multi-
+  ples of a given prime upto n.
+mult_lens = [3,2]
+mult_scan = [0,3] start indices.
+mult_tot_len = 5, total \# of 
+  prime multiples.
+flags      = [1, 0, 0, 1, 0],
+  the segments of the array
+        of prime multiples
+ps         = [2, 0, 0, 3, 0]
+  each segments has its prime
+p_vals     = [2, 2, 2, 3, 3]
+              *  *  *  *  *
+p_inds     = [2, 3, 4, 2, 3]
+              =  =  =  =  =
+not_primes = [4, 6, 8, 6, 9]
+zeroes     = [F, F, F, F, F]
+prime_flg=[T,T,T,T,F,T,F,T,F,F]
+  transformed to prime indexes
+primes   =[0,1,2,3,  5,  7    ]
+\alert{Result is: [2, 3, 5, 7]}
 \end{colorcode}
 \end{columns}
 \medskip
