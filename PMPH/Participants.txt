@@ -34,3 +34,9 @@
 1   Fonseca, Rasmus                 vxb217  rfonseca@di.ku.dk
 2   Henriksen, Troels               mzd885  athas@di.ku.dk
 3   Oancea, Cosmin Eugen            xmf768  cosmin.oancea@di.ku.dk
+
+
+# Additional Students on Napoleon
+29 Kozakovic, Michal                dpw616@alumni.ku.dk
+30 Rønning, Ola                     vdl761@alumni.ku.dk   (focus)
+
