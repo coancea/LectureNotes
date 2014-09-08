@@ -1352,66 +1352,141 @@ If we have all primes from $2$ to $\sqrt{n}$ we could
 generate all multiples of these primes at once:
 \emp{\tt \{[2*p:n:p]: p in sqr\_primes\}} in NESL.
 \blue{Also call algorithm recursively on $\sqrt{n}$ $\Rightarrow$ Depth: $O(lg \ lg \ n)$!}
+\end{frame}
 
+
+
+\begin{frame}[fragile,t]
+  \frametitle{Nested {\it vs} Flattened Parallelism}
+
+\begin{block}{Nested Arrays/Parallelism{\tt~~~~~~~~~}Flat Arrays/Parallelism}
+\begin{columns}
+\column{0.47\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+\alert{-- scan nested inside a map:}
+map (\mymath{\backslash}row->scan\mymath{\myindu{inc}} (+) 0 row) 
+    \emp{[[1,3], [2,4,6]]} \mymath{\equiv}
+[ scan\mymath{\myindu{inc}} (+) 0 [1,3],
+  scan\mymath{\myindu{inc}} (+) 0 [2,4,6] ] \mymath{\equiv}
+
+\emp{[ [ 1, 4], [2, 6, 12] ]}
+
+\alert{-- map nested inside a map:}
+map ((\mymath{\backslash}row->map f row)) 
+    \emp{[[1,3], [2,4,6]]} \mymath{\equiv}
+[ map f [1, 3],  map f [2, 4, 6] ] \mymath{\equiv}
+\emp{[ [f(1),f(3)], [f(2),f(4),f(6)] ]}
+
+--\alert{Distribute segment size to each elem}
+--E.g., flags = [2, 0, 3, 0, 0]
+\end{colorcode}
+\column{0.47\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+-- \emph{becomes a segmented scan}
+sgmScan\mymath{\myindu{inc}} (+) 0
+-- flags: \mymath{\neq}0 starts a new segment
+    \emph{[2, 0, 3, 0, 0]} 
+    \emph{[1, 3, 2, 4, 6]} \mymath{\equiv}
+--  \emph{[ 2, 0, 3, 0, 0  ]} 
+    \emph{[ 1, 4, 2, 6, 12 ]}
+
+-- \emph{becomes a map on the flat array}
+map f \emph{[1, 3, 2, 4, 6]} \mymath{\equiv}
+\emph{[ f(1), f(3), f(2), f(4), f(6) ]}
+-- \& the flag array is preserved: 
+-- [2, 0, 3, 0, 0]
+
+\emph{[2, 2, 3, 3, 3] \mymath{\equiv}}\pause
+    scan\mymath{\myindu{inc}} (+) 0 flags flags
+\end{colorcode}
+\end{columns}
+\end{block}
+
+\begin{itemize}
+    \item a filter nested inside a map $\Rightarrow$
+            write a filter in terms of map and scan and 
+            distribute the outer map against each operation.
+\end  {itemize}
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+  \frametitle{How to Flatten? A Relatively Simple Case}
+\bigskip
+\begin{colorcode}
+\alert{map (\mymath{\backslash}i -> map (+1) [0..i]) [0..n-1]}
+\end{colorcode}
+\bigskip
+
+Any difference between \emph{[0..n-1]} and \emp{[0..i]}?
+How does one write the latter?
+\pause\bigskip
+
+\begin{colorcode}
+\emp{map} (\mymath{\backslash}i -> let tmp1 = \alert{replicate (i+1) 1}
+               tmp2 = \alert{scan\mymath{\myindu{exc}} (+) 0 tmp1}
+           in         \alert{map (+1) tmp2}     )
+    [0..n-1]
+\end{colorcode}
 
 \end{frame}
 
 \begin{frame}[fragile,t]
-  \frametitle{How to Flatten? A Simple Case First}
+  \frametitle{How to Flatten? A Relatively Simple Case}
 \vspace{-2ex}
-\alert{\tt~~~~flatten \$ map ($\backslash$i -> map (+1) [0..i]) [0..n-1]}
-
-
+\begin{colorcode}
+\emph{map} (\mymath{\backslash}i -> let tmp1 = \alert{replicate (i+1) 1}
+               tmp2 = \alert{scan\mymath{\myindu{exc}} (+) 0 tmp1}
+           in         \alert{map (+1) tmp2}     ) [0..n-1]
+\end{colorcode}
 \begin{columns}
 \column{0.5\textwidth}
 \begin{colorcode}[fontsize=\scriptsize]
 Assume N = 4. Expected Result:
-[[1],[1,2],[1,2,3],[1,2,3,4]]
+\emph{[[1],[1,2],[1,2,3],[1,2,3,4]]}
 
-1. Inner array size is {\tt 1}.
+1. Inner array size is {\tt i+1}.
 2. Result Array \# of all elements:
     flat\_size = \mymath{\sum\myindx{i=0}\myindu{n-1}(i+1)} = 10!
 3. flags0= [0,0,0,0,0,0,0,0,0,0]
 4. the size of each row:
-   shape0  = [1,2,3,4 ]
+   shape0  = [1,2,3,4]
 5. start index of each segment:
    segm_beg=scan\mymath{\myindu{exc}} (+) 0 shape0
            = [0,1,3,6]
-   ones    = [1,1,1,1 ]
+   shape0  = [1,2,3,4]
 6. write above ind-val pairs:
-   flags = [1,1,0,1,0,0,1,0,0,0]
-7. who is [0..i] in parallel?
-   [0..i] = scan\mymath{\myindu{exc}} (+) 0 [1..1] \mymath{\Rightarrow}
-   \emp{vals0=segmScan\mymath{\myindu{exc}} (+)}
-           [1,1,0,1,0,0,1,0,0,0]
-           [1,1,1,1,1,1,1,1,1,1]
-         -----------------------------
-        =  [0,0,1,0,1,2,0,1,2,3]
+   flags = [1,2,0,3,0,0,4,0,0,0]
+7. \emph{Distributing map across each stmt:}
+8. tmp1\mymath{\myindu{flat}} = map (replicate (i+1) 1) = 
+          segmScan\mymath{\myindu{inc}} (+) 0 flags flags
+   = [1,1,1,1,1,1,1,1,1,1]
+9. tmp2\mymath{\myindu{flat}} = sgmScan\mymath{\myindu{exc}} (+) 0 flags tmp1\mymath{\myindu{flat}}
+   = [0,0,1,0,1,2,0,1,2,3]
 \end{colorcode}
 \column{0.5\textwidth}
 \begin{colorcode}[fontsize=\scriptsize]
-8. \emp{add 1 to all elements:}
-   vals = map (+1) vals0
-        = zipWith (+)
-           [1,1,1,1,1,1,1,1,1,1]
-           [0,0,1,0,1,2,0,1,2,3]
-         ----------------------------
-        =  [1,1,2,1,2,3,1,2,3,4]\pause
-9. \alert{What if I want to add i?} 
-   iis = write
+10. \emp{add 1 to all elements:}
+   vals = map (+1) tmp2\mymath{\myindu{flat}}
+        =  \emph{[1,1,2,1,2,3,1,2,3,4]}
+   \& flags \emph{[1,2,0,3,0,0,4,0,0,0]}
+
+9. \alert{What if I want to add i instead of 1?}\pause
+   \emp{iis = write segm_beg [0..n-1] zeros}
            [0,1,3,6] [0,1,2,3]
            [0,0,0,0,0,0,0,0,0,0]
          ------------------------------
            [0,1,0,2,0,0,3,0,0,0]
    \emp{diis= scanInc (+) 0 flags iis}
-         [1,1,0,1,0,0,1,0,0,0]
+         [1,2,0,3,0,0,4,0,0,0]
          [0,1,0,2,0,0,3,0,0,0]
         -------------------------------
        = [0,1,1,2,2,2,3,3,3,3]
    \emp{vals = map (+i) vals0}
         \emp{= zipWith (+) diis vals0}
         = [0,1,2,2,3,4,3,4,5,6]
-10. \emp{Flaten op gets rid of the flags}
+10. \emp{Flaten op would get rid of the flags}
 \end{colorcode}
 \end{columns}
 
@@ -1576,6 +1651,37 @@ In practice we have depth: $O(lg^2 \ n)$.
 \end{frame}
 
 
+\begin{frame}[fragile,t]
+  \frametitle{How to Flatten Quicksort}
+
+\begin{colorcode}[fontsize=\scriptsize]
+nestedQuicksort :: [a] -> [a]
+nestedQuicksort arr = 
+  if (length arr) <= 1 then arr else 
+  let i = getRand (0, (length arr) - 1)
+      a = arr !! i
+      s1 = filter (\mymath{\backslash}x -> (x <  a)) arr
+      s2 = filter (\mymath{\backslash}x -> (x >= a)) arr
+      rs = map nestedQuicksort [s1, s2]
+  in  (rs !! 0) ++ (rs !! 1)
+\end{colorcode}
+
+\alert{Key Idea} is to write a function that
+has the semantics of {\tt map nestedQuicksort}
+by distributing the map against the statements 
+$\Rightarrow$ it operates on arrays of arrays!
+\medskip
+
+{\tt quicksort$^{lift}$ :: [[a]] -> [[a]]} or flattened\\
+\medskip
+
+{\tt flatQuicksort$^{lift}$ :: [Int] -> [a] -> [a]},\\
+where the first arg are the flags and the second the flat data.
+\medskip
+
+\emp{For example, we will have an array of {\tt i}s, an array of {\tt a}s,
+of {\tt s1}s, etc.}
+\end{frame}
 
 \begin{frame}[fragile,t]
   \frametitle{Quicksort: Flattened Nested Parallelism}
