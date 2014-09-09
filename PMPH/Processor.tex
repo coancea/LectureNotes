@@ -80,7 +80,7 @@
 
 %%%%%%%%%%%%%%%%%%%%
 
-\title[Processor]{Mostly-Static Processor Architecture}
+\title[Processor]{Processor Architecture: In-Order Pipelines}
 
 \author[C.~Oancea]{Cosmin E. Oancea\\{\tt cosmin.oancea@diku.dk}}
 
@@ -100,7 +100,12 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+\begin{frame}
+\frametitle{Acknowledgments}
+This lecture presents selected Topics from Chapter 3 of the\\
+``Parallel Computer Organization and Design`` book,\\
+by Michel Dubois, Murali Annavaram and Per Stenstrom.
+\end{frame}
 
 \begin{frame}[fragile,t]
 \frametitle{Overview}
@@ -137,7 +142,7 @@
         \end  {itemize}\bigskip
 
     \item Complexity of OoO Processors prevents wide-superscalar
-            pipelines $\Rightarrow$ next lectures on software track study
+            pipelines $\Rightarrow$ next lectures on software track studies
             compiler optimizations to keep hwd simple \& clock rates high:
         \begin{itemize}
             \item VLIW: simple hardware allowing a large number of instrs to be     
@@ -397,7 +402,7 @@ JAL          & 1\%      & low  \\
 \begin{itemize}
 \item Pipeline improves instruction throughput. Think assembly line in 
         which every worker/robot works on and is specialized for one 
-        stage only. Have you ever switched apartments?\bigskip
+        stage only. Have you ever moved to another apartment?\bigskip
 
 \item Pipeline stages need to be very similar. Instruction execution good
         candidate because goes through same stages: fetch, decode, execute, 
@@ -664,7 +669,7 @@ I4 & ORI  R6,R1,\#9     &    &    &    & IF & \emph{ID} & EX & ME & WB &    \\
 I5 & SUBI R1,R1,R7      &    &    &    &    & IF & ID & EX & ME & WB \\\hline
 \end{tabular}
 \end{scriptsize} 
-
+\pause
 
 \begin{scriptsize}
 \begin{itemize}
@@ -951,9 +956,10 @@ I1 & ADD.D F2,F4,F2     & IF & ID & FP1 & FP2 & FP3 & FP4 & FP5 & ME & \alert{WB
 I2 & ADD.D F6,F4,F6     &    & IF & ID & FP1 & FP2 & FP3 & FP4 & FP5 & ME & WB   \\
 I3 & L.D   F8, 0(R1)    &    &    & IF & ID  & EX  & ME  & WB  &     &    &      \\
 I4 & L.D   F10,0(R2)    &    &    &    & IF  & ID  & EX  & ME  & WB  &    &      \\
-I4 & L.D   F14,0(R3)    &    &    &    &     & IF  & ID  & EX  & ME  & \alert{WB} &      \\\hline
+I5 & L.D   F14,0(R3)    &    &    &    &     & IF  & ID  & EX  & ME  & \alert{WB} &      \\\hline
 \end{tabular}
 \end{tiny}
+\pause
 \bigskip
 
 \begin{itemize}
@@ -1037,7 +1043,7 @@ I4 & L.D   F14,0(R3)    &    &    &    &     & IF  & ID  & EX  & ME  & \alert{WB
 \item works well on workloads with a good mix of integer and float operations.\smallskip
 
 \item \emph{With the above arch, up to two instrs (one int and one float) can proceed
-        to execution once they are free of hazards $\Rightarrow$ CPI < 1}\bigskip
+        to execution once they are free of hazards $\Rightarrow$ CPI $<$ 1}\bigskip
 
 \item \emp{Supporting precise exceptions is difficult}.
 \item \emp{Difficult to build static superscalars wider than 2 ways (int-float)},
