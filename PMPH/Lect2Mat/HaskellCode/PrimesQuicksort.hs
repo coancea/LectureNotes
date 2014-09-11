@@ -28,9 +28,12 @@ write :: [Int] -> [a] -> [a] -> [a]
 write [] _ a        = a
 write _ [] a        = a
 write (i:is) (v:vs) a =
+  if i >= length a 
+  then write is vs a
+  else
     let prol = take (i)   a
         epil = drop (i+1) a
-    in  write is vs (prol ++ [v] ++ epil) 
+    in  write is vs (prol ++ [v] ++ epil)
     
 permute :: [Int] -> [a] -> [a]
 permute inds vals = 
@@ -318,6 +321,7 @@ main = do args <- getArgs
           putStrLn ("Permuted list: "++show pinp)
           putStrLn ("Written list: " ++show winp)
           putStrLn (" ParFilterOdd(a/2):"++show ( parFilter (\x->odd (x `div` 2)) inp))
+          putStrLn (" ParFilterEven:"++show ( parFilter even inp))
           putStrLn ("SegmFilterOdd(a/2):"++show (segmSpecialFilter (\x->odd (x `div` 2)) sizes inp))
           putStrLn ("Primes 32: " ++ show (primes 32))
           putStrLn ("PrimesOpt  49: " ++ show (primesOpt 49))
