@@ -560,10 +560,10 @@ What hazards can occur in the 5-Stage Pipeline?
 \begin{tabular}{lllllllllll}
 \hline
    & Clock$\Rightarrow$ & C1 & C2 & C3 & C4 & C5 & C6 & C7 & C8 & C9 \\\hline
-I1 & ADD  R1,R2,R3      & IF & ID & EX & ME & WB &    &    &    &    \\
-I2 & ADDI R3,R1,\#4     &    & IF & ID & EX & ME & WB &    &    &    \\
-I3 & LW   R5,0(R1)      &    &    & IF & ID & EX & ME & WB &    &    \\
-I4 & ORI  R6,R1,\#9     &    &    &    & IF & ID & EX & ME & WB &    \\
+I1 & ADD  R1,R2,R3      & IF & ID & EX & ME & \emp{WB} &    &    &    &    \\
+I2 & ADDI R3,R1,\#4     &    & IF & \alert{ID} & EX & ME & WB &    &    &    \\
+I3 & LW   R5,0(R1)      &    &    & IF & \alert{ID} & EX & ME & WB &    &    \\
+I4 & ORI  R6,R1,\#9     &    &    &    & IF & \alert{ID} & EX & ME & WB &    \\
 I5 & SUBI R1,R1,R7      &    &    &    &    & IF & ID & EX & ME & WB \\\hline
 \end{tabular}
 \end{scriptsize} 
@@ -580,10 +580,10 @@ I5 & SUBI R1,R1,R7      &    &    &    &    & IF & ID & EX & ME & WB \\\hline
 \begin{tabular}{lllllllllll}
 \hline
    & Clock$\Rightarrow$ & C1 & C2 & C3 & C4 & C5 & C6 & C7 & C8 & C9 \\\hline
-I1 & ADD  R1,R2,R3      & IF & ID & EX & ME & WB &    &    &    &    \\
-I2 & ADDI R3,R1,\#4     &    & IF & ID & EX & ME & WB &    &    &    \\
-I3 & LW   R5,0(R1)      &    &    & IF & ID & EX & ME & WB &    &    \\
-I4 & ORI  R6,R1,\#9     &    &    &    & IF & ID & EX & ME & WB &    \\
+I1 & ADD  R1,R2,R3      & IF & ID & EX & \emph{ME} & \emp{WB} &    &    &    &    \\
+I2 & ADDI R3,R1,\#4     &    & IF & \alert{ID} & \emph{EX} & ME & WB &    &    &    \\
+I3 & LW   R5,0(R1)      &    &    & IF & \alert{ID} & \emph{EX} & ME & WB &    &    \\
+I4 & ORI  R6,R1,\#9     &    &    &    & IF & \alert{ID} & \emph{EX} & ME & WB &    \\
 I5 & SUBI R1,R1,R7      &    &    &    &    & IF & ID & EX & ME & WB \\\hline
 \end{tabular}
 \end{scriptsize} 
@@ -618,7 +618,7 @@ What hazards can occur in the 5-Stage Pipeline?
 I1 & ADD  R1,R2,R3      & IF & ID & EX & \emp{ME} & WB &    &    &    &    \\
 I2 & ADDI R3,R1,\#4     &    & IF & ID & \emph{EX} & ME & WB &    &    &    \\
 I3 & LW   R5,0(R1)      &    &    & IF & ID & \emph{EX} & ME & WB &    &    \\
-I4 & ORI  R6,R1,\#9     &    &    &    & IF & ID & EX & ME & WB &    \\
+I4 & ORI  R6,R1,\#9     &    &    &    & IF & ID & \emph{EX} & ME & WB &    \\
 I5 & SUBI R1,R1,R7      &    &    &    &    & IF & ID & EX & ME & WB \\\hline
 \end{tabular}
 \end{scriptsize} 
@@ -665,7 +665,7 @@ I5 & SUBI R1,R1,R7      &    &    &    &    & IF & ID & EX & ME & WB \\\hline
 I1 & LW   R1,0(R3)      & IF & ID & EX & ME & \emp{WB}&    &    &    &    \\
 I2 & ADDI R3,R1,\#4     &    & IF & ID & \alert{EX} & ME & WB &    &    &    \\
 I3 & LW   R5,0(R1)      &    &    & IF & ID & \emph{EX} & ME & WB &    &    \\
-I4 & ORI  R6,R1,\#9     &    &    &    & IF & \emph{ID} & EX & ME & WB &    \\
+I4 & ORI  R6,R1,\#9     &    &    &    & IF & ID & \emph{EX} & ME & WB &    \\
 I5 & SUBI R1,R1,R7      &    &    &    &    & IF & ID & EX & ME & WB \\\hline
 \end{tabular}
 \end{scriptsize} 
@@ -904,8 +904,8 @@ but also \emp{less efficient, since one clock is lost.}
 \item \emp{Latency of Operation} of an instruction is the max \# of clocks 
         that the next instruction has to wait (in ID) to avoid a data hazard 
         ({\sc raw}/{\sc waw}).\smallskip
-\item For the pipeline above: it is 1 for Load, and for the rest it is 
-        (\# of clocks of EX - 1) because closest fwd is at the end of EX. 
+\item \alert{For the pipeline above: it is 1 for Load, and for the rest it is 
+        (\# of clocks of EX - 1) because closest fwd is at the end of EX.} 
 
 \item Latency of FP unit is large (4) $\Rightarrow$ stalls are more frequent than in 5-stage pipeline:
 \end{itemize}
@@ -1003,7 +1003,7 @@ I5 & L.D   F14,0(R3)    &    &    &    &     & IF  & ID  & EX  & ME  & \alert{WB
 
 \includegraphics[width=59ex]{Figures/SuperPipeline}
 
-\bigskip
+\pause\bigskip
 
 \begin{scriptsize}
 \begin{itemize}
@@ -1034,7 +1034,7 @@ I5 & L.D   F14,0(R3)    &    &    &    &     & IF  & ID  & EX  & ME  & \alert{WB
 
 \includegraphics[width=59ex]{Figures/SuperScalar}
 
-\bigskip
+\pause\bigskip
 
 \begin{scriptsize}
 \begin{itemize}
@@ -1061,7 +1061,7 @@ In practice superscalars may be superpipelined as well!
 \begin{frame}[fragile,t]
 \frametitle{Branch Prediction}
 
-\emp{Hardwired Prediction} is the most static algorithm and out of compiler's control.
+\emp{Hardwired Prediction} is the most static algorithm and out of compiler's control.\pause
 \begin{scriptsize}
 \begin{itemize}
 \item always predict branch untaken $\Rightarrow$ no penalty when branch is untaken,
@@ -1078,7 +1078,7 @@ In practice superscalars may be superpipelined as well!
 
 \bigskip
 
-\emp{Compiler-Guided Prediction}
+\emp{Compiler-Guided Prediction}\pause
 \begin{scriptsize}
 \begin{itemize}
 \item Uses code profiling to determine the best prediction
@@ -1100,7 +1100,7 @@ prediction is correct!
 \subsection{Strength \& Weaknesses of Static Pipelining}
 
 \begin{frame}[fragile,t]
-\frametitle{Strength \& Weaknesses of Static Pipelining}
+\frametitle{Strength \& Weaknesses of Static Pipelines}
 
 
 \begin{scriptsize}
@@ -1125,7 +1125,7 @@ to optimize delays/stalls). {\bf Static Pipelines:}
 \item[-] \emp{The design of static pipelines might not scale well}, 
             i.e., as pipelines becoming deeper
             and wider (instr issuing), latencies $\uparrow$ and the
-            compiler might solve them efficiently.  
+            compiler might not solve them efficiently.  
 \end{itemize}
 
 \bigskip
@@ -1202,7 +1202,7 @@ No Two Instrs of the Same Thread Are In The Pipeline in the Same Time.}
 \begin{scriptsize}
 \begin{columns}
 \column{0.66\textwidth}
-\includegraphics[width=59ex]{Figures/Barrel}
+\includegraphics[width=59ex]{Figures/Barrel}\pause
 \column{0.31\textwidth}
 Figure shows a 5-stage pipeline which 128 {\sc htc}s, which can
         hide long mem-access latencies using no or very large 

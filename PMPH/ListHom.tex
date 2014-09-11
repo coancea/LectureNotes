@@ -1253,8 +1253,11 @@ of numbers up to $\sqrt{n}$.
 \begin{colorcode}
 int res[n] = \{0, 0, 1, 1, 1, ..., 1\}
 for(i = 2; i < sqrt(n); i++) \{  \alert{//sequential}
-    \emph{forall m \mymath{\in multiples of i \leq n} do}
-         res[i] = 0;
+    if ( res[i] != 0 ) \{
+        \emph{forall m \mymath{\in multiples of i \leq n} do} \{
+             res[m] = 0;
+        \}
+    \}
 \}
 \end{colorcode}
 \bigskip
