@@ -5,11 +5,64 @@
 
 #include <cuda_runtime.h>
 
-__global__ void 
-squareKernel(float* d_in, float* d_out) {
-    const unsigned int tid = threadIdx.x;
-    d_out[tid] = d_in[tid] * d_in[tid];
+typedef float T;
+
+template<class T>
+class Add {
+  public:
+    static __device__ T identity()        { return 0.0;     }
+    static __device__ T apply(T t1, T t2) { return t1 + t2; }
+};
+
+template<class OP, class T>
+__device__ T 
+scan_warp(volatile T* ptr, const unsigned int idx) {
+    const unsigned int lane = idx & 31;
+
+    if (lane >= 1)  ptr[idx] = OP::apply(ptr[idx-1],  ptr[idx]);
+    if (lane >= 2)  ptr[idx] = OP::apply(ptr[idx-1],  ptr[idx]);
+    if (lane >= 4)  ptr[idx] = OP::apply(ptr[idx-1],  ptr[idx]);
+    if (lane >= 8)  ptr[idx] = OP::apply(ptr[idx-1],  ptr[idx]);
+    if (lane >= 16) ptr[idx] = OP::apply(ptr[idx-1],  ptr[idx]);
+
+    return (lane > 0) ? ptr[idx-1] : OP::identity();
 }
+
+template<class OP, class T>
+__device__ T 
+scan_block(volatile T* ptr, const unsigned int idx) {
+    const unsigned int lane   = idx &  31;
+    const unsigned int warpid = idx >> 5;
+
+    T val = scan_warp<OP,T>(ptr,idx);
+
+    ptr[idx] = OP::identity();
+    __syncthreads();
+
+    if (lane == 31) ptr[warpid] = val; //ptr[idx];
+    __syncthreads();
+
+    if (warpid == 0) scan_warp<OP,T>(ptr, idx);
+    __syncthreads();
+
+    if (warpid > 0) {
+        val = OP::apply(ptr[warpid-1], val);
+    }
+
+    return val; //ptr[idx];
+}
+
+__global__ void 
+scanKernel(float* d_in, float* d_out) {
+    __shared__ float sh_mem[512];
+    const unsigned int tid = threadIdx.x;
+    const unsigned int gid = blockIdx.x*blockDim.x + tid;
+    float el    = d_in[gid];
+    sh_mem[tid] = el;
+    float res   = scan_block < Add<T>, T >(sh_mem, tid);
+    d_out[gid]  = res; 
+}
+
 
 int main(int argc, char** argv) {
     unsigned int num_threads = 32;
@@ -32,7 +85,7 @@ int main(int argc, char** argv) {
     cudaMemcpy(d_in, h_in, mem_size, cudaMemcpyHostToDevice);
 
     // execute kernel
-    squareKernel<<< 1, num_threads >>>(d_in, d_out);
+    scanKernel<<< 1, num_threads >>>(d_in, d_out);
 
     // copy host memory to device
     cudaMemcpy(h_out, d_out, mem_size, cudaMemcpyDeviceToHost);
