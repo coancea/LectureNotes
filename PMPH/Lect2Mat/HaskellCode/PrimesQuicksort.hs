@@ -287,10 +287,10 @@ flatSparseMatVctMult flags mat x =
         flagsshift= (tail flags) ++ [1]
         new_inds  = scanInc (+) 0 flags
 
-        wrt_indval= zipWith3 (\f i v -> if f==1 then (i,v) else (0,v)) 
+        wrt_indval= zipWith3 (\f i v -> if f==1 then (i-1,v) else (vct_len,v)) 
                              flagsshift new_inds segm_mat
         (wrt_inds, wrt_vals) = unzip wrt_indval
-    in  tail $ write wrt_inds wrt_vals (replicate (vct_len+1) 0.0)
+    in  write wrt_inds wrt_vals (replicate (vct_len) 0.0)
 
 
 ----------------------------------------

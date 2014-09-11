@@ -28,9 +28,12 @@ write :: [Int] -> [a] -> [a] -> [a]
 write [] _ a        = a
 write _ [] a        = a
 write (i:is) (v:vs) a =
-    let prol = take (i)   a
-        epil = drop (i+1) a
-    in  write is vs (prol ++ [v] ++ epil) 
+    if i >= length a 
+    then write is vs a
+    else
+        let prol = take (i)   a
+            epil = drop (i+1) a
+        in  write is vs (prol ++ [v] ++ epil) 
     
 permute :: [Int] -> [a] -> [a]
 permute inds vals = 
