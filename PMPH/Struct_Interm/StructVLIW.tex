@@ -1,22 +1,37 @@
 \begin{frame}
-\frametitle{Structure of a Compiler}
+\frametitle{Course Organization}
 
-\begin{tabular}{ccc}
-Program text&&\\
-$\downarrow$ &&\\
-\framebox{Lexical analysis} && Binary machine code\\
-$\downarrow$ && $\uparrow$ \\
-Symbol sequence && \textcolor{gray}{\framebox{Assembly and linking}} \\
-$\downarrow$ && $\uparrow$ \\
-\framebox{Syntax analysis} && Ditto with named registers\\
-$\downarrow$ && $\uparrow$ \\
-\red{Syntax tree $\rightarrow$ \framebox{Intepretation}} && \framebox{Register allocation} \\
-$\downarrow$ && $\uparrow$ \\
-\framebox{Typecheck} && Symbolic machine code\\
-$\downarrow$ &&  $\uparrow$ \\
-Syntax tree  && \framebox{Machine code generation} \\
-$\downarrow$ && $\uparrow$ \\
-\framebox{Intermediate code generation} &$\longrightarrow$ & Intermediate code
+\begin{tabular}{lccccc}
+W  & HARDWARE  & & SOFTWARE     & & LAB/CUDA \\\hline\hline
+1 & Trends         &                         & List HOM     & & Intro \& Simple\\
+  & Vector Machine & $\longleftarrow$ & (Map-Reduce) & & Map Programming\\\hline
+%
+2 & \emp{In Order} & $\longrightarrow$ & \emph{VLIW Instr}   & & Scan \&\\
+  & \emp{Processor}& $\longleftarrow$ & \emph{Scheduling}   & & Reduce \\\hline
+%
+3 & Cache     & & Reasoning About     & & Sparse Vect\\
+  & Coherence & & Parallelism   & & Matrix Mult\\\hline
+%
+4 & Interconnection & & Case Studies \&   & & Transpose \& Matrix\\
+  & Networks        & & Optimizations   & & Matrix Mult\\\hline
+%
+5 & Memory      & & Optimising   & & Sorting \& Profiling \& \\
+  & Consistency & & Locality     & & Mem Optimizations \\\hline
+%
+6 & OoO, Spec   & & Thread-Level   & & Project \\
+  & Processor   & & Speculation    & & Work    \\\hline
+
+%\framebox{Processor}       & & \framebox{Low-Level\\Optimizations}        & & \framebox{CUDA: Scan\\Reduce}\\
+%$\downarrow$ && $\uparrow$ \\
+%\framebox{\red Intermediate code generation} &$\longrightarrow$ & Intermediate code
 \end{tabular}
+\medskip
+%\alert{Keywords: Reasoning, Tradeoffs, Common Case, }
 
+Three narative threads: the path to complex \& good design: 
+\begin{itemize}
+    \item \emp{Design Space} tradeoffs, constraints, common case, trends.
+    \item \emp{Reasoning}: from simple to complex, \emp{Applying Concepts}.
+\end  {itemize}
 \end{frame}
+

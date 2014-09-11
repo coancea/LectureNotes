@@ -96,6 +96,14 @@
 
 \input{Struct_Interm/StructVLIW}
 
+\begin{frame}
+\frametitle{Acknowledgments}
+This lecture presents selected Topics from Chapter 3 of the\\
+``Parallel Computer Organization and Design`` book,\\
+by Michel Dubois, Murali Annavaram and Per Stenstrom.
+\end{frame}
+
+
 \begin{frame}[fragile]
 	\tableofcontents
 \end{frame}
@@ -828,7 +836,7 @@ Clock   & MemOp1         & MemOp2         & FOp1            & FOp2             &
     \item Initiation Interval = 1 resolves all dependencies, according to schedule: 
         \begin{itemize}
             \begin{scriptsize}
-            \item the STORE of each VLIW instr is 5 instrs (iters) behind the ADD,
+            \item the STORE of each VLIW instr is 3 instrs (iters) behind the ADD,
             \item the ADD   of each VLIW instr in 2 instrs (iters) behind the LOAD.
             \end{scriptsize}
         \end{itemize}
@@ -1069,7 +1077,7 @@ SW     R6, 0(R1)
 
 \begin{scriptsize}
 \begin{itemize}
-    \item \emp{{\tt BEQ} and {\tt LW}} translated as a \emph{predicated load, i.e., {\tt SUB} and {\tt CLWNZ}}.
+    \item \emp{{\tt BEQ} and {\tt LW}} translated as a \emph{predicated load, i.e., {\tt SUB} and {\tt CLWNZ}}.\pause
     \item Since {\tt R6} is overwritten when the conditional load holds, {\tt ADDI}
             is translated to its predicated form \emph{CADDIZ} which holds
             exactly when {\tt CLWNZ} does not.
@@ -1126,7 +1134,7 @@ I2
 \begin{scriptsize}
 \begin{itemize}
     \item The hoisted {\em load} is marked speculative via instruction \emph{{\tt LW.a}}, and
-    \item a \emp{guardian} is inserted at the position from where it was moved.\smallskip
+    \item a \emp{guardian} is inserted at the position from where it was moved.\pause\smallskip
  
     \item \emph{{\tt LW.a}} records its address in a small, fully associative table;
     \item Every store looks up and removes its address from this table;
@@ -1134,9 +1142,9 @@ I2
             the table then a violation has occurred and a repair handle is launched. 
           In our case the latter re-executes the speculatively-hoisted instructions,
             i.e., {\tt LW} and {\tt ADD}.  
-    \item Note that a {\em store} cannot be moved across a {\em load} because
+    \item \alert{Note that a {\em store} cannot be moved across a {\em load} because
             this miss-speculation cannot be easily repaired (memory is written). 
-          Rather move the {\em store} downwards.
+          Rather move the {\em store} downwards.}
 \end  {itemize}
 \end{scriptsize}
 \end{frame}
@@ -1196,7 +1204,7 @@ Deferred Exceptions via Poisoning:
 
 \smallskip
 
-\begin{block}{Orignal{\tt~~~}Trace Scheduled{\tt~~~~~}Deferred Exception}\vspace{-1ex}
+\begin{block}{Orignal{\tt~~~~~~}Trace Scheduled{\tt~~~~~~~~}Deferred Exception}\vspace{-1ex}
 \begin{columns}
 \column{0.31\textwidth}
 \begin{colorcode}[fontsize=\tiny]
@@ -1222,7 +1230,7 @@ LABCC:ADDI R6, R4, 1
 \begin{colorcode}[fontsize=\tiny]
       LW   R4, 0(R1)
       ADDI R6,R4,1
-      \emp{sLW   R6, 0(R2)}
+      \emp{sLW  R6, 0(R2)}
       BEQ  R5,R4,LABCC
 LAB:  \emph{SW   R6, 0(R2)} 
 ...
@@ -1232,6 +1240,7 @@ LAB:  \emph{SW   R6, 0(R2)}
 \end{colorcode}
 \end{columns}
 \end{block}
+\pause
 
 \begin{scriptsize}
 \begin{itemize}
