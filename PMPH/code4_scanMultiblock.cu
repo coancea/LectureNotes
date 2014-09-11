@@ -57,7 +57,7 @@ __global__ void sum_map(float *d_in, float *d_mapVals)
 /** Perform a parallel exclusive scan on inArr and store the result in outArr. */
 void excl_sum_scan(float* inArr, float* outArr, int sz, float neutral)
 {
-    unsigned int num_threads = 8;
+    unsigned int num_threads = THREADS_PER_BLOCK;
     unsigned int num_blocks  = max(sz/num_threads,1);
     unsigned int global_mem_size = sizeof(float) * sz;
     unsigned int shared_mem_size = sizeof(float) * num_threads;
