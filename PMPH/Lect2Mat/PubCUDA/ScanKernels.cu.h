@@ -7,58 +7,13 @@ class Add {
     static __device__ T apply(T t1, T t2) { return t1 + t2; }
 };
 
+template<class T>
+class Mul {
+  public:
+    static __device__ T identity()        { return (T)1;    }
+    static __device__ T apply(T t1, T t2) { return t1 * t2; }
+};
 
-/****************************************/
-/*** Scan Exclusive Helpers & Kernel  ***/
-/****************************************/
-
-template<class OP, class T>
-__device__ T 
-scanExcWarp(volatile T* ptr, const unsigned int idx) {
-    const unsigned int lane = idx & 31;
-
-    if (lane >= 1)  ptr[idx] = OP::apply(ptr[idx-1],  ptr[idx]);
-    if (lane >= 2)  ptr[idx] = OP::apply(ptr[idx-2],  ptr[idx]);
-    if (lane >= 4)  ptr[idx] = OP::apply(ptr[idx-4],  ptr[idx]);
-    if (lane >= 8)  ptr[idx] = OP::apply(ptr[idx-8],  ptr[idx]);
-    if (lane >= 16) ptr[idx] = OP::apply(ptr[idx-16], ptr[idx]);
-
-    return (lane > 0) ? ptr[idx-1] : OP::identity();
-}
-
-template<class OP, class T>
-__device__ T 
-scanExcBlock(volatile T* ptr, const unsigned int idx) {
-    const unsigned int lane   = idx &  31;
-    const unsigned int warpid = idx >> 5;
-
-    T val = scanExcWarp<OP,T>(ptr,idx);
-    __syncthreads();
-
-    if (lane == 31) ptr[warpid] = ptr[idx]; 
-    __syncthreads();
-
-    if (warpid == 0) scanExcWarp<OP,T>(ptr, idx);
-    __syncthreads();
-
-    if (warpid > 0) {
-        val = OP::apply(ptr[warpid-1], val);
-    }
-
-    return val;
-}
-
-__global__ void 
-scanExcKernel(float* d_in, float* d_out, unsigned int d_size) {
-    extern __shared__ float sh_mem[];
-    const unsigned int tid = threadIdx.x;
-    const unsigned int gid = blockIdx.x*blockDim.x + tid;
-    float el    = (gid < d_size) ? d_in[gid] : 0.0;
-    sh_mem[tid] = el;
-    __syncthreads();
-    float res   = scanExcBlock < Add<float>, float >(sh_mem, tid);
-    if (gid < d_size) d_out [gid] = res; 
-}
 
 /***************************************/
 /*** Scan Inclusive Helpers & Kernel ***/
@@ -68,6 +23,8 @@ __device__ T
 scanIncWarp(volatile T* ptr, const unsigned int idx) {
     const unsigned int lane = idx & 31;
 
+    // no synchronization needed inside a WARP,
+    //   i.e., SIMD execution
     if (lane >= 1)  ptr[idx] = OP::apply(ptr[idx-1],  ptr[idx]);
     if (lane >= 2)  ptr[idx] = OP::apply(ptr[idx-2],  ptr[idx]);
     if (lane >= 4)  ptr[idx] = OP::apply(ptr[idx-4],  ptr[idx]);
@@ -86,9 +43,14 @@ scanIncBlock(volatile T* ptr, const unsigned int idx) {
     T val = scanIncWarp<OP,T>(ptr,idx);
     __syncthreads();
 
+    // place the end-of-warp results in
+    //   the first warp. This works because
+    //   warp size = 32, and 
+    //   max block size = 32^2 = 1024
     if (lane == 31) ptr[warpid] = ptr[idx]; 
     __syncthreads();
 
+    //
     if (warpid == 0) scanIncWarp<OP,T>(ptr, idx);
     __syncthreads();
 
@@ -99,27 +61,16 @@ scanIncBlock(volatile T* ptr, const unsigned int idx) {
     return val;
 }
 
+template<class OP, class T>
 __global__ void 
-scanIncKernel(float* d_in, float* d_out, unsigned int d_size) {
-    extern __shared__ float sh_mem[];
+scanIncKernel(T* d_in, T* d_out, unsigned int d_size) {
+    extern __shared__ T sh_mem1[];
     const unsigned int tid = threadIdx.x;
     const unsigned int gid = blockIdx.x*blockDim.x + tid;
-    float el    = (gid < d_size) ? d_in[gid] : 0.0;
-    sh_mem[tid] = el;
-    __syncthreads();
-    float res   = scanIncBlock < Add<float>, float >(sh_mem, tid);
-    if (gid < d_size) d_out [gid] = res; 
-}
-
-__global__ void 
-scanIncKernelAddInt(int* d_in, int* d_out, unsigned int d_size) {
-    extern __shared__ int sh_mem1[];
-    const unsigned int tid = threadIdx.x;
-    const unsigned int gid = blockIdx.x*blockDim.x + tid;
-    int el    = (gid < d_size) ? d_in[gid] : 0.0;
+    T el    = (gid < d_size) ? d_in[gid] : OP::identity();
     sh_mem1[tid] = el;
     __syncthreads();
-    int res   = scanIncBlock < Add<int>, int >(sh_mem1, tid);
+    T res   = scanIncBlock < Add<T>, T >(sh_mem1, tid);
     if (gid < d_size) d_out [gid] = res; 
 }
 
@@ -128,39 +79,45 @@ scanIncKernelAddInt(int* d_in, int* d_out, unsigned int d_size) {
 /*** Kernels to copy/distribute the end of block results ***/
 /***********************************************************/
 
+template<class T>
 __global__ void 
-copyEndOfBlockKernel(float* d_in, float* d_out, unsigned int d_out_size) {
+copyEndOfBlockKernel(T* d_in, T* d_out, unsigned int d_out_size) {
     const unsigned int gid = blockIdx.x*blockDim.x + threadIdx.x;
     
     if(gid < d_out_size)
         d_out[gid] = d_in[ blockDim.x*(gid+1) - 1];
 }
 
+template<class T>
 __global__ void 
-distributeEndBlock(float* d_in, float* d_out, unsigned int d_size) {
+distributeEndBlock(T* d_in, T* d_out, unsigned int d_size) {
     const unsigned int gid = blockIdx.x*blockDim.x + threadIdx.x;
     
     if(gid < d_size && blockIdx.x > 0)
         d_out[gid] += d_in[blockIdx.x-1];
 }
 
+template<class T>
 __global__ void 
-shiftRightByOne(float* d_in, float* d_out, float ne, unsigned int d_size) {
+shiftRightByOne(T* d_in, T* d_out, float ne, unsigned int d_size) {
     const unsigned int gid = blockIdx.x*blockDim.x + threadIdx.x;
     
     if      (gid == 0)      d_out[gid] = ne;
     else if (gid < d_size)  d_out[gid] = d_in[gid-1];
 }
 
-
+/*************************************************/
 /*************************************************/
 /*** Segmented Inclusive Scan Helpers & Kernel ***/
+/*************************************************/
 /*************************************************/
 template<class OP, class T, class F>
 __device__ T 
 sgmScanIncWarp(volatile T* ptr, volatile F* flg, const unsigned int idx) {
     const unsigned int lane = idx & 31;
 
+    // no synchronization needed inside a WARP,
+    //   i.e., SIMD execution
     if (lane >= 1)  {
         ptr[idx] = (flg[idx] != 0) ? ptr[idx] : OP::apply(ptr[idx-1],  ptr[idx]);
         flg[idx] = flg[idx-1] | flg[idx];
@@ -211,12 +168,15 @@ sgmScanIncBlock(volatile T* ptr, volatile F* flg, const unsigned int idx) {
     __syncthreads();
 
     // 2c: the last thread in a warp writes partial results
+    //     in the first warp. Note that all fit in the first
+    //     warp because warp = 32 and max block size is 32^2
     if (lane == 31) {
         ptr[warpid] = warp_total; //ptr[idx]; 
         flg[warpid] = warp_flag;
     }
     __syncthreads();
 
+    // 
     if (warpid == 0) sgmScanIncWarp<OP,T>(ptr, flg, idx);
     __syncthreads();
 
@@ -226,23 +186,22 @@ sgmScanIncBlock(volatile T* ptr, volatile F* flg, const unsigned int idx) {
     return val;
 }
 
-
+template<class OP, class T>
 __global__ void 
 sgmScanIncKernel(float* d_in, int* flags, float* d_out, 
                               int* f_rec, float* d_rec, unsigned int d_size) {
-    extern __shared__ float sh_mem[];
-    volatile float* vals_sh = sh_mem;
-    volatile int*   flag_sh = (int*) (sh_mem + blockDim.x);
-    //__shared__ float sh_mem[256];
+    extern __shared__ T sh_mem[];
+    volatile T*   vals_sh = sh_mem;
+    volatile int* flag_sh = (int*) (sh_mem + blockDim.x);
     const unsigned int tid = threadIdx.x;
     const unsigned int gid = blockIdx.x*blockDim.x + tid;
-    float el;
-    int   fl;    
+    T   el;
+    int fl;    
     if (gid < d_size) { el = d_in[gid]; fl = flags[gid]; }
     else              { el = 0.0;       fl = 0;          }
     vals_sh[tid] = el; flag_sh[tid] = fl;
     __syncthreads();
-    float res   = sgmScanIncBlock < Add<float>, float >(vals_sh, flag_sh, tid);
+    T res = sgmScanIncBlock <OP, T>(vals_sh, flag_sh, tid);
     if (gid < d_size) d_out [gid] = res; 
 
     // set the flags and data for the recursive step!
@@ -252,9 +211,9 @@ sgmScanIncKernel(float* d_in, int* flags, float* d_out,
     if(tid == (blockDim.x - 1)) { d_rec[blockIdx.x] = res; }
 }
 
-
+template<class T>
 __global__ void 
-sgmDistributeEndBlock(float* d_rec_in, float* d_out, int* f_inds, unsigned int d_size) {
+sgmDistributeEndBlock(T* d_rec_in, T* d_out, int* f_inds, unsigned int d_size) {
     const unsigned int gid = blockIdx.x*blockDim.x + threadIdx.x;
     
     if(gid < d_size && blockIdx.x > 0) {
