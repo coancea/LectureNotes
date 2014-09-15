@@ -1,0 +1,154 @@
+\documentclass{beamer}
+
+%% \documentclass[handout]{beamer}
+%% % use this with the [handout] option to create handouts for the audience
+%% \usepackage{pgfpages}
+%% \pgfpagesuselayout{2 on 1}[a4paper,border shrink=5mm]
+
+\mode<presentation>
+{
+  \usetheme{Diku}
+% set this to your preferences:
+  \setbeamercovered{invisible}
+%  \setbeamercovered{transparent}
+}
+
+\usepackage{graphicx}
+\usepackage{epic}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+\newcommand{\basetop}[1]{\vtop{\vskip-1ex\hbox{#1}}}
+\newcommand{\source}[1]{\let\thefootnote\relax\footnotetext{\scriptsize\textcolor{kugray1}{Source: #1}}}
+
+% for coloured code citation in text:
+\usepackage{fancyvrb}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%    code sections   %%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% code highlighting commands in own block
+\DefineVerbatimEnvironment{code}{Verbatim}{fontsize=\scriptsize}
+\DefineVerbatimEnvironment{icode}{Verbatim}{fontsize=\scriptsize}
+
+% Fancy code with color commands:
+\DefineVerbatimEnvironment{colorcode}%
+        {Verbatim}{fontsize=\scriptsize,commandchars=\\\{\}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%    some coloring    %%%%%%%%
+
+\definecolor{Red}{RGB}{220,50,10}
+\definecolor{Blue}{RGB}{0,51,102}
+\definecolor{Yellow}{RGB}{102,51,0}
+\definecolor{Orange}{RGB}{178,36,36}
+\definecolor{Grey}{RGB}{180,180,180}
+\definecolor{Green}{RGB}{20,120,20}
+\definecolor{Purple}{RGB}{160,50,100}
+\newcommand{\red}[1]{\textcolor{Red}{{#1}}}
+\newcommand{\blue}[1]{\textcolor{Blue}{{#1}}}
+\newcommand{\yellow}[1]{\textcolor{Yellow}{{#1}}}
+\newcommand{\orange}[1]{\textcolor{Orange}{{#1}}}
+\newcommand{\grey}[1]{\textcolor{Grey}{{#1}}}
+\newcommand{\green}[1]{\textcolor{Green}{{#1}}}
+\newcommand{\purple}[1]{\textcolor{Purple}{{#1}}}
+
+
+
+
+% use "DIKU green" from our color theme for \emph
+\renewcommand{\emph}[1]{\textcolor{structure}{#1}}
+% use some not-too-bright red for an \emp command
+\definecolor{DikuRed}{RGB}{130,50,32}
+\newcommand{\emp}[1]{\textcolor{DikuRed}{ #1}}
+\definecolor{CosGreen}{RGB}{10,100,70}
+\newcommand{\emphh}[1]{\textcolor{CosGreen}{ #1}}
+\definecolor{CosBlue}{RGB}{55,111,122}
+\newcommand{\emphb}[1]{\textcolor{CosBlue}{ #1}}
+\definecolor{CosRed}{RGB}{253,1,1}
+\newcommand{\empr}[1]{\textcolor{CosRed}{ #1}}
+
+\newcommand{\mymath}[1]{$ #1 $}
+\newcommand{\myindx}[1]{_{#1}}
+\newcommand{\myindu}[1]{^{#1}}
+
+\newcommand{\Fasto}{\textsc{Fasto}\xspace}
+
+
+%%%%%%%%%%%%%%%%%%%%
+
+\title[Assignments]{First and Second Assignments Discussion}
+
+\author[C.~Oancea]{Cosmin E. Oancea {\tt cosmin.oancea@diku.dk}}
+
+\institute{Department of Computer Science (DIKU)\\University of Copenhagen}
+
+
+\date[Sept 2014]{September 2014 PMPH Lecture Notes}
+
+
+\begin{document}
+
+\titleslide
+
+\begin{frame}[fragile,t]
+\frametitle{Common Missunderstandings}
+
+\begin{itemize}
+    \item ``Task 4 from Assignment 1 is not well specified!''\\\pause
+        \begin{itemize}
+            \item It is intentionally underspecified because of the
+            \item Context: Programming Models to Exploit Hardware Parallelism. 
+            \item expecting \emp{best Work and Depth asymptotic AND flat parallelism.}  
+        \end  {itemize}\medskip
+    \item I apologize to the students whose code I am going to show,
+    \item I only show it for didactic purposes, so that we all learn,
+    \item I actually picked the ones that were close(r) to a correct solution,
+    \item and I am sure that most of them were thought as a partial implementation...\medskip
+
+    \item \alert{Do I have your permission to show some of them in didactic purposes?}
+
+\end  {itemize}
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{But ... my Haskell Program Works (?)}
+
+Haskell used just as a vehicle to reason about ``parallelism''
+in terms of bulk, parallel primitive operators: 
+map, reduce, scan, permute, write.\medskip
+
+\begin{colorcode}[fontsize=\scriptsize]
+ flatSparseMatVctMult flags mat x = 
+    let vec_os  = \emph{map (\mymath{\backslash}n -> n-1) \$ scanInc (+) 0 flags}
+        tmp_mat = \emph{segmScanInc (+) 0 flags \$ map (\mymath{\backslash}(col,val) -> x!!col * val) mat}
+    in \alert{extract_result vec_os tmp_mat}
+extract_result :: [Int] -> [a] -> [a]
+extract_result flags mat = let 
+    extract_result_inner [] [] _ = []
+    extract_result_inner [x] [z] tmpres = tmpres++[z]
+    extract_result_inner (x:y:xs) (z:zs) tmpres = 
+        if x /= y
+        then extract_result_inner (y:xs) zs (tmpres++[z])
+        else extract_result_inner (y:xs) zs tmpres
+    extract_result_inner _ _ _ = []
+  in extract_result_inner flags mat []
+\end{colorcode}
+\pause
+
+\alert{Remember: Amdhal's low is unforgiving}: if  
+{\tt extract\_results} takes a third of sequential 
+exec time, what is the maximal speedup?
+\medskip
+
+You might get partial marks, but little performance gain!
+
+
+\end{frame}
+
+
+
+\end{document}
