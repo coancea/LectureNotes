@@ -1,0 +1,175 @@
+#   STUDENT NAME                    KU ID / EMAIL
+-------------------------------------------------------
+1   Borgsmidt, Rasmus               qzp823@alumni.ku.dk
+        Assignment 1: NOT SUBMITTED
+
+2   Bramming, Mathias               grm609@alumni.ku.dk
+        Assignment 1:  FAIL
+            -- task 1 was completely incorrect
+            -- task 2 was solved correctly (but not really tested)
+            -- tasks 3-5 were not submitted
+
+3   Dørge, Aske                     hnr137@alumni.ku.dk
+        Assignment 1:   7/10
+            -- task 1: almost correct, has confused `map (map f)' 
+                                              with `(map . map f)'
+            -- task 2: perfect but no tests
+            -- task 3: flat parallelism, but merge operator uses concatenation.
+                       flag array is not correct, value array seems correct.
+            -- task 4: (a) is morally the flat version, OK, (b) is incorrect,
+                        as it uses a segmented scan with non-associative operator:
+                        (id1,v1) `myop` (id2,v2) = 
+                            ((-1), let lres = if id1 == (-1) then v1 else v1*(x !! id1)
+                                       rres = if id2 == (-1) then v2 else v2*(x !! id2)
+                                   in lres+rres))
+            -- task 5: ok.
+
+4   Egeberg, Daniel Hessellund      mzn808@alumni.ku.dk
+        Assignment 1:   9/10
+            -- Task 1, 2, 3, 4a -- perfect
+            -- Task 4b: is ``cheating'': he creates a list of list, some empty and flatten 
+                                         that at the end. (instead of shifting the flags and
+                                         using a filter or a write).
+            -- Task 5: ok (bypasses the copying of the array by using the index space!)
+
+5   Espensen, Morten                dzr440@alumni.ku.dk
+        Assignment 1:   7/10
+            -- Task 1: perfect.
+            -- Task 2: not touched (?)
+            -- Task 3: nested parallelism: mapping over parFilter, but using
+                        a recursive (seq) function with cons and ++ to build the flags.
+            -- Task 4a: ok
+            -- Task 4b: right idea: flat map followed by segmented scan,
+                        but then uses again a recursive function of depth O(n)
+                        that uses concatenation (instead of shifting the flags
+                        by one and selecting the end of the segment, which is
+                        now directly under a flag != 0)
+            -- Task 5: seems ok.
+
+6   Garnæs, Peter Alexander          tbr439@alumni.ku.dk
+        Assignment 1:   6/10
+            -- Task 1: perfect
+            -- Task 2: perfect
+            -- Task 3: not submitted (?)
+            -- Task 4: not submitted (?): Please, come talk to me!
+            -- Task 5: seems ok.
+
+7   Hansen, Rune Filtenborg         rpf828@alumni.ku.dk
+        Assignment 1:   7/10
+            -- Task 1: perfect
+            -- Task 2: perfect
+            -- Task 3: not submitted, some pseudocode shown  (?)
+            -- Task 4a: ok; 4b not submitted, some pseudocode shown  (?): Please, come talk to me!
+            -- Task 5: seems ok.
+
+8   Holmgreen, Casper Mark Hagen    tcv380@alumni.ku.dk
+        Assignment 1:  8/10
+            -- Task 1: perfect,
+            -- Task 2: newok = okx && oky   (missing a && connect)
+            -- Task 3: recursion of extra depth O(# of segments)
+            -- Task 4a: ok, 
+            -- Task 4b: almost ok, but not quite, i.e., works
+                        because of serial execution.
+                      
+                    write (scanInc (+) (-1) flags) 
+                          (segmScanInc (+) 0 flags vals) 
+                          (replicate vct_len 0)
+            -- Task 5: seems ok.
+
+9   Høj, Niklas                     nwv762@alumni.ku.dk
+        Assignment 1: 6/10
+            -- Task 1: perfect
+            -- Task 2: almost ok, but
+                        newlss = reduce max 0 [lssx, lssy, newlis, newlcs]
+                       is not correct.
+            -- Task 3: no parallel operator, all recrusion, missed the point.
+            -- Task 4a: ok
+            -- Task 4b: flat map -> ok, but the rest is recursion again.
+
+10  Justesen, Tor Heberg            lwj858@alumni.ku.dk
+        Assignment 1: 10/10
+            -- Task 1: perfect
+            -- Task 2: almost ok, but
+                        newok   = okx && oky
+                       forgot && connect
+            -- Task 3: PERFECT!
+            -- Task 4a:PERFECT!
+            -- Task 4b:PERFECT!
+            -- Task 5: ok
+
+11  Jøkladal, Ásbjørn Viderø        wvc561@alumni.ku.dk
+        Assignment 1:  7/10
+            -- Task 1: perfect.
+            -- Task 2: perfect.
+            -- Task 3: pretty good until you used the `segmScanIncSeq'
+                        with non-associative operator to compute the
+                        new flags. 
+            -- Task 4a): incorrect use of reduce with non-associative operator.
+            -- Task 4b:  not submitted.
+            -- Task 5: ok 
+
+12  Kjær, Daniel                    lvb133@alumni.ku.dk
+        Assignment 1: NOT SUBMITTED
+
+13  Kozakovic, Michal               dpw616@alumni.ku.dk
+        Assignment 1: FAIL
+            -- Task 1: nothing
+            -- Task 2: many mistakes
+            -- Task 3: not submitted
+            -- Task 4a: ok, but with list comprehension and sum
+            -- Task 4b: not submitted
+            -- Task 5: ok.
+
+14  Larsen, Mathias Normann         dlw426@alumni.ku.dk
+        Assignment 1: 6/10
+            -- Task 1: perfect
+            -- Task 2: wrong newlis and newlcs
+                        newlis = if okx && connect then lssx + lisy else lssx
+            -- Task 3: uses nested parallelism, i.e., map parFilter 
+                        and concatenation in foldl operator.
+            -- Task 4a: ok
+            -- Task 4b: morally correct but (i) uses
+                            scanl(\(c1,v1) (c2,v2) ->
+                                    (c2,x!!c2 * v2)) (0,0.0) mat
+                            INSTEAD OF A MAP:
+                        and (ii) uses lists of (empty) lists to get
+                        rid of undesired elements. 
+            -- Task 5: ok.
+
+15  Linneberg, Simon Skjerning      vlh486@alumni.ku.dk
+        Assignment 1:  9/10
+            -- Task 1: perfect
+            -- Task 2: small mistake:
+                        newlss  = if connect then lcsx + lisy else lssx `max` lssy
+            -- Task 3: morally ok, but uses some reduction with ++ to flatten.
+            -- Task 4a: ok
+            -- Task 4b: morally correct but again maps to empty lists and flattens
+                            get rid of undesired elements.
+            -- Task 5: ok.
+
+15  Målsnes, Tarjei Sefland         tcd116@alumni.ku.dk
+16  Passov, Kasper                  pvx884@alumni.ku.dk
+17  Pedersen, Emil Heckermann       gvh799@alumni.ku.dk
+18  Podaras, Silvana                pqx917@alumni.ku.dk
+19  Ravn, Christian                 jkr893@alumni.ku.dk
+20  Serup, Niels G. W.              njf941@alumni.ku.dk
+21  Siozos-Drosos, Sokratis         dnb823@alumni.ku.dk
+22  Skaarup, Esben                  npl306@alumni.ku.dk
+23  Svensson, Mathias Bundgaard     tpx783@alumni.ku.dk
+24  Søgaard, Ulrik                  lfd450@alumni.ku.dk
+25  Tahirski, Ivaylo                jtp841@alumni.ku.dk
+26  Thegler, Asbjørn                rzw488@alumni.ku.dk
+27  Tørholm, Sebastian Paaske       bns895@alumni.ku.dk
+28  Urms, Henriks                   mgs837@alumni.ku.dk
+29  Wejendorp, Jacob                nrm891@alumni.ku.dk
+31  Rønning, Ola                    vdl761@alumni.ku.dk   (focus)
+
+
+#   TEACHERS/ADMINISTRATORS         KU ID / EMAIL
+1   Fonseca, Rasmus                 vxb217  rfonseca@di.ku.dk
+2   Henriksen, Troels               mzd885  athas@di.ku.dk
+3   Oancea, Cosmin Eugen            xmf768  cosmin.oancea@di.ku.dk
+
+
+# Additional Students on Napoleon
+
