@@ -14,6 +14,8 @@ default:
 	pdflatex MemSeqCons.tex
 	pdflatex ListHom.tex
 	pdflatex ListHom.tex
+	pdflatex Assignm1and2.tex
+	pdflatex Assignm1and2.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
 # Lecture 1
@@ -40,6 +42,10 @@ vliw:
 	pdflatex VLIW.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
+assignm:
+	pdflatex Assignm1and2.tex
+	pdflatex Assignm1and2.tex
+	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 # Lecture 5
 mem:
 	pdflatex MemHierarchy.tex
