@@ -147,22 +147,96 @@
                             get rid of undesired elements.
             -- Task 5: ok.
 
-15  Målsnes, Tarjei Sefland         tcd116@alumni.ku.dk
-16  Passov, Kasper                  pvx884@alumni.ku.dk
-17  Pedersen, Emil Heckermann       gvh799@alumni.ku.dk
-18  Podaras, Silvana                pqx917@alumni.ku.dk
-19  Ravn, Christian                 jkr893@alumni.ku.dk
-20  Serup, Niels G. W.              njf941@alumni.ku.dk
-21  Siozos-Drosos, Sokratis         dnb823@alumni.ku.dk
-22  Skaarup, Esben                  npl306@alumni.ku.dk
-23  Svensson, Mathias Bundgaard     tpx783@alumni.ku.dk
-24  Søgaard, Ulrik                  lfd450@alumni.ku.dk
-25  Tahirski, Ivaylo                jtp841@alumni.ku.dk
-26  Thegler, Asbjørn                rzw488@alumni.ku.dk
-27  Tørholm, Sebastian Paaske       bns895@alumni.ku.dk
-28  Urms, Henriks                   mgs837@alumni.ku.dk
-29  Wejendorp, Jacob                nrm891@alumni.ku.dk
-31  Rønning, Ola                    vdl761@alumni.ku.dk   (focus)
+16  Målsnes, Tarjei Sefland         tcd116@alumni.ku.dk
+        Assignment 1: NOT IN THE COURSE ANYMORE
+
+17  Passov, Kasper                  pvx884@alumni.ku.dk
+        Assignment 1: NOT SUBMITTED
+
+18  Pedersen, Emil Heckermann       gvh799@alumni.ku.dk
+        Assignment 1: FAIL
+            -- Task 1:  perfect
+            -- Task 2:  almost correct, but for ``newok = okx && oky''
+            -- Task 3:  not submitted
+            -- Task 4a: recursion, missed the point
+            -- Task 4b: not submitted
+            -- Task 5: loop inside the kernel, missed the point.
+
+19  Podaras, Silvana                pqx917@alumni.ku.dk
+        Assignment 1:  8/10
+            -- Task 1: perfect
+            -- Task 2: 
+            -- Task 3: morally ok, but uses some reduction with ++ to flatten.
+            -- Task 4a: ok
+            -- Task 4b: morally correct but again maps to empty lists and flattens
+                            get rid of undesired elements.
+            -- Task 5: ok.
+
+20  Ravn, Christian                 jkr893@alumni.ku.dk
+        Assignment 1:  7/10
+            -- Task 1: not done!
+            -- Task 2: perfect!
+            -- Task 3: not submitted
+            -- Task 4a: ok!
+            -- Task 4b: perfect!
+            -- Task 5: looks good to me.
+
+21  Rønning, Ola                    vdl761@alumni.ku.dk   (focus)
+        Assignment 1:  8/10
+            -- Task 1: perfect!
+            -- Task 2: small mistake: forgot to && with connect!
+            -- Task 3: does not do much ...
+            -- Task 4a: ok!
+            -- Task 4b: perfect!
+            -- Task 5: looks good to me.
+
+22  Serup, Niels G. W.              njf941@alumni.ku.dk
+        Assignment 1: 10/10
+            -- ALL PERFECT.
+
+23  Siozos-Drosos, Sokratis         dnb823@alumni.ku.dk
+        NOT ENROLLED ANYMORE ON ABSALON!
+
+24  Skaarup, Esben                  npl306@alumni.ku.dk
+        Assignment 1:  10/10
+            -- Perfect Solution!
+            
+25  Svensson, Mathias Bundgaard     tpx783@alumni.ku.dk
+        Assignment 1:  10/10
+            -- Perfect Solution!
+
+26  Søgaard, Ulrik                  lfd450@alumni.ku.dk
+        Assignment 1:  10/10
+            -- Perfect Solution!   forgot only about ``&& connect''
+
+27  Tahirski, Ivaylo                jtp841@alumni.ku.dk
+        NOT ENROLLED ANYMORE!
+
+28  Thegler, Asbjørn                rzw488@alumni.ku.dk
+        Assignment 1:  FAIL
+            -- Task 1: perfect
+            -- Task 2: partially implemented
+            -- Tasks 3 and 4: not submitted.
+            -- Task 5: something, but a strange 
+                       sequential loop there...
+            
+29  Tørholm, Sebastian Paaske       bns895@alumni.ku.dk
+        Assignment 1:  9/10
+            -- Almost perfect, but for Task 4b which is not executed
+               properly, i.e., uses nested parallelism and scanl with 
+               neutral element -1?
+
+30  Urms, Henriks                   mgs837@alumni.ku.dk
+        Assignment 1:  FAIL
+            -- Task 1: perfect
+            -- Task 2: partially implemented
+            -- Tasks 3 and 4: not submitted.
+            -- Task 5: something, but a strange 
+                       sequential loop there...
+
+31  Wejendorp, Jacob                nrm891@alumni.ku.dk
+        Assignment 1: NOT SUBMITTED
+
 
 
 #   TEACHERS/ADMINISTRATORS         KU ID / EMAIL
