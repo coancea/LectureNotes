@@ -141,7 +141,8 @@ ENDDO                   ENDDO ENDDO                 ENDDO
 \end{block} 
 
 Iterations are ordered {\em lexicographically}, i.e., in the order
-they occur in the sequential execution, e.g., {\tt(i=2,j=4) < (i=3,j=3)}.
+they occur in the sequential execution, e.g., 
+{\tt$\vec{k}=$(i=2,j=4) < $\vec{l}=$(i=3,j=3)}.
 
 \bigskip
 
@@ -170,12 +171,12 @@ S2    .. = X             S2    X  = ..            S2    X = ...
 \smallskip
 
 {\bf Th. Loop Dependence:} There is a dependence from statement $S1$ to $S2$
-in a loop nest {\em iff} $\exists$ iterations $i$, $j$ such that:
+in a loop nest {\em iff} $\exists$ iterations $\vec{k}$, $\vec{l}$ such that:
 \begin{description}
-    \item[1.] $\vec{k_1} < \vec{k_2}$ or $\vec{k_1} = \vec{k_2}$ and $\exists$ 
+    \item[1.] $\vec{k} < \vec{l}$ or $\vec{k} = \vec{l}$ and $\exists$ 
                 an execution path from statement $S1$ to statement $S2$ \emp{such that:}
-    \item[2.] $S1$ accesses memory location $M$ on iteration $\vec{k_1}$, and
-    \item[3.] $S2$ accesses memory location $M$ on iteration $\vec{k_2}$, and
+    \item[2.] $S1$ accesses memory location $M$ on iteration $\vec{k}$, and
+    \item[3.] $S2$ accesses memory location $M$ on iteration $\vec{l}$, and
     \item[4.] one of these accesses is a write.
 \end{description}
 \medskip
@@ -184,8 +185,8 @@ in a loop nest {\em iff} $\exists$ iterations $i$, $j$ such that:
 because $S1$ executes before $S2$ in the sequential program execution.
 
 \medskip
-We are most interested in cross iteration dependencies, i.e., $i < j$.\\\smallskip
-Intra iteration dependencies, i.e., $i = j$ are analysed for ILP. 
+We are most interested in cross iteration dependencies, i.e., $\vec{k} < \vec{l}$.\\\smallskip
+Intra iteration dependencies, i.e., $\vec{k} = \vec{l}$ are analysed for ILP. 
 
 \end{frame}
 
@@ -193,8 +194,8 @@ Intra iteration dependencies, i.e., $i = j$ are analysed for ILP.
 \begin{frame}[fragile,t]
   \frametitle{Loop-Nest Dependencies} % of CPU, Multicores, GPGPU
 
-{\em Lexicographic} (sequential execution) ordering of iterations, 
-e.g., {\tt$\vec{k_1}=$(i=2,j=4) < $\vec{k_2}=$(i=3,j=3)}.
+{\em Lexicographic ordering}, 
+e.g., {\tt$\vec{k}=$(i=2,j=4) < $\vec{l}=$(i=3,j=3)}.
 
 %[fontsize=\small]
 \begin{block}{Three Loop Examples}
@@ -210,6 +211,8 @@ ENDDO                   ENDDO ENDDO                 ENDDO
 
 \hspace{-3ex}\includegraphics[height=23ex]{ParTeaserFigs/LoopDeps}  
 
+\alert{How can I summarize this information?} %Do I have to consider all cases?
+
 \end{frame}
 
 
@@ -217,9 +220,9 @@ ENDDO                   ENDDO ENDDO                 ENDDO
 
 
 \begin{frame}[fragile,t]
-  \frametitle{Direction Vectors} % of CPU, Multicores, GPGPU
+  \frametitle{Aggregate Dependencies via Direction Vectors} % of CPU, Multicores, GPGPU
 
-\begin{block}{Three Loop Examples}
+\begin{block}{Write the Direction Vectors for Each Loop:}
 \begin{colorcode}
   DO i = 1, N            DO i = 2, N               DO i = 2, N
     DO j = 1, N            DO j = 2, N               DO j = 1, N 
@@ -238,16 +241,17 @@ in the loop nest, i.e., {\em the source}, {\em to} the one that executes later, 
 
 \smallskip
 
-{\bf Def. Dependence Direction:} Assume $\exists$ a dependence from $S1$ in iteration $q$
-to $S2$ in $t$ ($q<t$). \emp{\em Dependence-direction vector $D(q,t)$}:
+{\bf Def. Dependence Direction:} Assume $\exists$ a dependence from $S1$ in iteration $\vec{k}$
+to $S2$ in $\vec{l}$ ($\vec{k}\leq\vec{l}$). 
+\emp{\em Dependence-direction vector $\vec{D}(\vec{k},\vec{l})$}:
 \begin{description}
-    \item[1.] $D(q,t)_k = $~``{\tt{}<}'' if $t_k - q_k > 0$,
-    \item[2.] $D(q,t)_k = $~``{\tt{}=}'' if $t_k - q_k = 0$,
-    \item[3.] $D(q,t)_k = $~``{\tt{}>}'' if $t_k - q_k < 0$.
+    \item[1.] $\vec{D}(\vec{k},\vec{l})_m = $~``{\tt{}<}'' if $\vec{k}_m < \vec{l}_m$,
+    \item[2.] $\vec{D}(\vec{k},\vec{l})_m = $~``{\tt{}=}'' if $\vec{k}_m = \vec{l}_m$,
+    \item[3.] $\vec{D}(\vec{k},\vec{l})_m = $~``{\tt{}>}'' if $\vec{k}_m > \vec{l}_m$.
 \end{description}
 
-\bigskip
-\alert{Let's write the direction vectors for the three loop nests.}
+\medskip
+If the source is a write and the sink a read then {\sc raw} dependency,\\iIf the source is a read then {\sc war}, if both are writes then {\sc waw}.  
 \end{frame}
 
 
@@ -255,20 +259,51 @@ to $S2$ in $t$ ($q<t$). \emp{\em Dependence-direction vector $D(q,t)$}:
   \frametitle{Parallelism and Loop Interchange} % of CPU, Multicores, GPGPU
 
 \begin{block}{Direction Vectors/Matrix for Three Loops }
+\begin{columns}
+\column{0.27\textwidth}
 \begin{colorcode}
-  DO i = 1, N            DO i = 2, N               DO i = 2, N
-    DO j = 1, N            DO j = 2, N               DO j = 1, N 
-S1    A[j,i]=A[j,i]..  S1   A[j,i]=A[j-1,i]...   S1    A[i,j]=A[i-1,j+1]...
-    ENDDO              S2   B[j,i]=B[j-1,i-1]...     ENDDO
-  ENDDO                  ENDDO ENDDO               ENDDO
+  DO i = 1, N
+    DO j = 1, N
+S1    A[j,i]=A[j,i]..
+    ENDDO
+  ENDDO
+For S1\mymath{\rightarrow}S1: 
+    (j1,i1)=(j2,i2) 
+    i1 \emp{=} i2 \& j1 \emp{=} j2
 
-For S1\mymath{\rightarrow}S1: j1 = j2    For S1\mymath{\rightarrow}S1: j1 = j2-1          For S1\mymath{\rightarrow}S1: i1 = i2-1
-            i1 = i2                i1 = i2                        j1 = j2+1
-(i2,j2)-(i1,j1)=         (i2,j2)-(i1,j1)=\emp{[=,<]}        (i2,j2)-(i1,j1)=\emp{[<,>]}
-\emp{[=,=]}                  For S2\mymath{\rightarrow}S2: j1 = j2-1
-                                   i1 = i2-1
-                         (i2,j2)-(i1,j1)=\emp{[<,<]}
+Direction matrix:
+S1\mymath{\rightarrow}S1: \emp{[=,=]}
 \end{colorcode}
+\column{0.32\textwidth}
+\begin{colorcode}
+  DO i = 2, N
+    DO j = 2, N
+S1    A[j,i]=A[j-1,i]...
+S2    B[j,i]=B[j-1,i-1]...
+    ENDDO
+  ENDDO
+S1\mymath{\rightarrow}S1: (j1,i1)=(j2-1,i2)
+        i1 \emp{=} i2 \& j1 \emp{<} j2
+S2\mymath{\rightarrow}S2: (j1,i1)=(j2-1,i2-1)
+        i1 \emp{<} i2 \& j1 \emp{<} j2
+S1\mymath{\rightarrow}S1: \emp{[=,<]}
+S2\mymath{\rightarrow}S2: \emp{[<,<]}
+\end{colorcode}
+\column{0.32\textwidth}
+\begin{colorcode}
+  DO i = 2, N
+    DO j = 1, N
+S1    A[i,j]=A[i-1,j+1]...
+    ENDDO
+  ENDDO
+For S1\mymath{\rightarrow}S1: 
+    (i1,j1) = (i1-1,j2+1)
+    i1 \emp{<} i2 \& j1 \emp{>} j2
+
+Direction matrix:
+S1\mymath{\rightarrow}S1: \emp{[<,>]}
+\end{colorcode}
+\end{columns}
 \end{block} 
 
 {\bf Th. Parallelism:} A loop in a loop nest is parallel {\em iff} all its directions
@@ -276,10 +311,64 @@ are either {\tt =} or there exists an outer loop whose corresp. direction is {\t
 
 \smallskip
 
+\alert{A direction vector cannot have $>$ as the first non-= symbol},\\
+as that would mean that I depend on something in the future. 
+\end{frame}
+
+\begin{frame}[fragile,t]
+  \frametitle{Parallelism and Loop Interchange} % of CPU, Multicores, GPGPU
+
+\begin{block}{Direction Vectors/Matrix for Three Loops }
+\begin{columns}
+\column{0.27\textwidth}
+\begin{colorcode}
+  DO i = 1, N
+    DO j = 1, N
+S1    A[j,i]=A[j,i]..
+    ENDDO
+  ENDDO
+For S1\mymath{\rightarrow}S1: 
+    (j1,i1)=(j2,i2) 
+    i1 \emp{=} i2 \& j1 \emp{=} j2
+
+Direction matrix:
+S1\mymath{\rightarrow}S1: \emp{[=,=]}
+\end{colorcode}
+\column{0.32\textwidth}
+\begin{colorcode}
+  DO i = 2, N
+    DO j = 2, N
+S1    A[j,i]=A[j-1,i]...
+S2    B[j,i]=B[j-1,i-1]...
+    ENDDO
+  ENDDO
+S1\mymath{\rightarrow}S1: (j1,i1)=(j2-1,i2)
+        i1 \emp{=} i2 \& j1 \emp{<} j2
+S2\mymath{\rightarrow}S2: (j1,i1)=(j2-1,i2-1)
+        i1 \emp{<} i2 \& j1 \emp{<} j2
+S1\mymath{\rightarrow}S1: \emp{[=,<]}
+S2\mymath{\rightarrow}S2: \emp{[<,<]}
+\end{colorcode}
+\column{0.32\textwidth}
+\begin{colorcode}
+  DO i = 2, N
+    DO j = 1, N
+S1    A[i,j]=A[i-1,j+1]...
+    ENDDO
+  ENDDO
+For S1\mymath{\rightarrow}S1: 
+    (i1,j1) = (i1-1,j2+1)
+    i1 \emp{<} i2 \& j1 \emp{>} j2
+
+Direction matrix:
+S1\mymath{\rightarrow}S1: \emp{[<,>]}
+\end{colorcode}
+\end{columns}
+\end{block} 
+
 {\bf Th. Loop Interchange:} A column permutation of the loops in a loop nest 
 is legal {\em iff} permuting the direction matrix in the same way {\em does NOT result}
 in a {\tt >} direction as the leftmost non-{\tt{}=} direction in a row. 
-
 
 \end{frame}
 
@@ -308,13 +397,13 @@ Interchange is safe for the first and second nests, but not for the third!\\
 e.g., \emp{\tt [=,<]}$~~~\rightarrow~~~$ \emph{\tt [<,=]}$~~~~~~~~~$(for the second loop nest)\\
 $~~~~~~$\emp{\tt [<,<]}$~~~~~~~~~~~~$\emph{\tt [<,<]}
 
-\smallskip
+\pause\smallskip
 
 After interchange, loop $j$ of the second loop nest is parallel.
 
 \bigskip
 
-{\bf Corollary:} A parallel loop can be always interchanged inwards.
+\emph{\bf Corollary: A parallel loop can be always interchanged inwards.}
 \end{frame}
 
 
@@ -353,10 +442,11 @@ S2  B[i] = B[i-1] ...
 {\bf Def. Dependency Graph:} edges from the source of the dependency, i.e., early iteration, 
 to the sink, i.e., later iteration. 
 
-\smallskip
+\pause\smallskip
 
-{\bf Th. Loop Distribution:} Statements that are in a dependence cycle remain in one (sequential) loop.
-The others are distributed to separate loops in graph order; if no cycle then parallel loops.
+{\bf Th. Loop Distribution:} Statements that are in a dependence cycle remain in one 
+(sequential) loop.   The others are distributed to separate loops in graph order; 
+if no cycle then parallel loops.
 
 \bigskip
 
