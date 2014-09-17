@@ -119,7 +119,7 @@
 \end{frame}
 
 
-\section{Imperative Context: Direction-Vector Analysis of Parallelism}
+\section{Direction-Vector Analysis}
 
 \begin{frame}[fragile]
 	\tableofcontents[currentsection]
@@ -129,10 +129,6 @@
 \begin{frame}[fragile,t]
   \frametitle{Problem Statement} % of CPU, Multicores, GPGPU
 
-Iterations are ordered {\em lexicographically}, w.r.t. how they 
-occur in the sequential execution, e.g., first loop next, 
-{\tt(j=1,i=4) < (j=2,i=3)}.
-
 %[fontsize=\small]
 \begin{block}{Three Loop Examples}
 \begin{colorcode}
@@ -143,44 +139,22 @@ DO i = 1, N             DO i = 2, N                 DO i = 2, N
 ENDDO                   ENDDO ENDDO                 ENDDO
 \end{colorcode}
 \end{block} 
+
+Iterations are ordered {\em lexicographically}, i.e., in the order
+they occur in the sequential execution, e.g., {\tt(i=2,j=4) < (i=3,j=3)}.
 
 \bigskip
 
 \begin{itemize}
-    \item Which of the three loop nests is amenable to parallelization?\smallskip
+    \item \emp{Which of the three loop nests is amenable to parallelization?}\smallskip
     \item Loop interchange is one of the most simple and useful code transformations,
             e.g., used to enhance locality of reference, parallel-loop granularity,
             and even to ``create'' parallelism.\smallskip
-    \item In which loop nest is it safe to interchange the loops?
+    \item \emp{In which loop nest is it safe to interchange the loops?}
 \end{itemize}
 
 
 \end{frame}
-
-
-\begin{frame}[fragile,t]
-  \frametitle{Loop-Nest Dependencies} % of CPU, Multicores, GPGPU
-
-Iterations are ordered {\em lexicographically}, w.r.t. how they 
-occur in the sequential execution, e.g., first loop next, 
-{\tt(j=1,i=4) < (j=2,i=3)}.
-
-%[fontsize=\small]
-\begin{block}{Three Loop Examples}
-\begin{colorcode}
-DO i = 1, N             DO i = 2, N                 DO i = 2, N
-  DO j = 1, N             DO j = 2, N                 DO j = 1, N 
-    A[j,i] = A[j,i] ..      A[j,i] = A[j-1,i-1]...        A[i,j] = A[i-1,j+1]...
-  ENDDO                     B[j,i] = B[j-1,i]...      ENDDO
-ENDDO                   ENDDO ENDDO                 ENDDO
-\end{colorcode}
-\end{block} 
-
-\hspace{-3ex}\includegraphics[height=23ex]{ParTeaserFigs/LoopDeps}  
-
-\end{frame}
-
-
 
 \begin{frame}[fragile,t]
   \frametitle{Definition of a Dependency} % of CPU, Multicores, GPGPU
@@ -198,20 +172,48 @@ S2    .. = X             S2    X  = ..            S2    X = ...
 {\bf Th. Loop Dependence:} There is a dependence from statement $S1$ to $S2$
 in a loop nest {\em iff} $\exists$ iterations $i$, $j$ such that:
 \begin{description}
-    \item[1.] $i < j$ or $i = j$ and $\exists$ a path from $S1$ to $S2$ such that
-    \item[2.] $S1$ accesses memory location $M$ on iteration $i$, and
-    \item[3.] $S2$ accesses memory location $M$ on iteration $j$, and
+    \item[1.] $\vec{k_1} < \vec{k_2}$ or $\vec{k_1} = \vec{k_2}$ and $\exists$ 
+                an execution path from statement $S1$ to statement $S2$ \emp{such that:}
+    \item[2.] $S1$ accesses memory location $M$ on iteration $\vec{k_1}$, and
+    \item[3.] $S2$ accesses memory location $M$ on iteration $\vec{k_2}$, and
     \item[4.] one of these accesses is a write.
 \end{description}
+\medskip
 
-\bigskip
+\emp{We say that $S1$ is the source and $S2$ is the sink of the dependence}, 
+because $S1$ executes before $S2$ in the sequential program execution.
 
+\medskip
 We are most interested in cross iteration dependencies, i.e., $i < j$.\\\smallskip
-If $i = j$ the dependency is within the same iteration, i.e., 
-does not affect parallelism, since an iteration is executed sequentially.
-
+Intra iteration dependencies, i.e., $i = j$ are analysed for ILP. 
 
 \end{frame}
+
+
+\begin{frame}[fragile,t]
+  \frametitle{Loop-Nest Dependencies} % of CPU, Multicores, GPGPU
+
+{\em Lexicographic} (sequential execution) ordering of iterations, 
+e.g., {\tt$\vec{k_1}=$(i=2,j=4) < $\vec{k_2}=$(i=3,j=3)}.
+
+%[fontsize=\small]
+\begin{block}{Three Loop Examples}
+\begin{colorcode}
+DO i = 1, N             DO i = 2, N                 DO i = 2, N
+  DO j = 1, N             DO j = 2, N                 DO j = 1, N 
+    A[j,i] = A[j,i] ..      A[j,i] = A[j-1,i-1]...        A[i,j] = A[i-1,j+1]...
+  ENDDO                     B[j,i] = B[j-1,i]...      ENDDO
+ENDDO                   ENDDO ENDDO                 ENDDO
+\end{colorcode}
+\end{block} 
+\pause
+
+\hspace{-3ex}\includegraphics[height=23ex]{ParTeaserFigs/LoopDeps}  
+
+\end{frame}
+
+
+
 
 
 \begin{frame}[fragile,t]
