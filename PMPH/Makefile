@@ -16,6 +16,8 @@ default:
 	pdflatex ListHom.tex
 	pdflatex Assignm1and2.tex
 	pdflatex Assignm1and2.tex
+	pdflatex LoopParI.tex
+	pdflatex LoopParI.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
 # Lecture 1
@@ -62,6 +64,11 @@ interconnect:
 seqcons:
 	pdflatex MemSeqCons.tex
 	pdflatex MemSeqCons.tex
+	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
+
+looppar:
+	pdflatex LoopParI.tex
+	pdflatex LoopParI.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
 clean:
