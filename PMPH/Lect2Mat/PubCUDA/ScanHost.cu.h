@@ -1,5 +1,16 @@
 #include "ScanKernels.cu.h"
 
+#include <sys/time.h>
+#include <time.h> 
+
+int timeval_subtract(struct timeval *result, struct timeval *t2, struct timeval *t1)
+{
+    unsigned int resolution=1000000;
+    long int diff = (t2->tv_usec + resolution * t2->tv_sec) - (t1->tv_usec + resolution * t1->tv_sec);
+    result->tv_sec = diff / resolution;
+    result->tv_usec = diff % resolution;
+    return (diff<0);
+}
 
 /**
  * block_size is the size of the cuda block (must be a multiple 
@@ -24,7 +35,7 @@ void scanInc(    unsigned int  block_size,
                  T*            d_out  // device
 ) {
     unsigned int num_blocks;
-    unsigned int sh_mem_size = block_size * sizeof(T);
+    unsigned int sh_mem_size = block_size * 32; //sizeof(T);
 
     num_blocks = ( (d_size % block_size) == 0) ?
                     d_size / block_size     :
@@ -58,7 +69,7 @@ void scanInc(    unsigned int  block_size,
     //   4. distribute the the corresponding element of the 
     //      recursively scanned data to all elements of the
     //      corresponding original block
-    distributeEndBlock<T><<< num_blocks, block_size >>>(d_rec_out, d_out, d_size);
+    distributeEndBlock<OP,T><<< num_blocks, block_size >>>(d_rec_out, d_out, d_size);
 
     //   5. clean up
     cudaFree(d_rec_in );
@@ -85,14 +96,14 @@ void scanInc(    unsigned int  block_size,
  *                e.g., float or int. 
  */
 template<class OP, class T>
-void sgmScanInc( unsigned int  block_size,
-                 unsigned long d_size, 
+void sgmScanInc( const unsigned int  block_size,
+                 const unsigned long d_size,
                  T*            d_in,  //device
                  int*          flags, //device
                  T*            d_out  //device
 ) {
     unsigned int num_blocks;
-    unsigned int val_sh_size = block_size * sizeof(T  );
+    //unsigned int val_sh_size = block_size * sizeof(T  );
     unsigned int flg_sh_size = block_size * sizeof(int);
 
     num_blocks = ( (d_size % block_size) == 0) ?
@@ -104,7 +115,7 @@ void sgmScanInc( unsigned int  block_size,
     cudaMalloc((void**)&d_rec_in, num_blocks*sizeof(T  ));
     cudaMalloc((void**)&f_rec_in, num_blocks*sizeof(int));
 
-    sgmScanIncKernel<OP,T> <<< num_blocks, block_size, val_sh_size+flg_sh_size >>>
+    sgmScanIncKernel<OP,T> <<< num_blocks, block_size, 32*block_size >>>
                     (d_in, flags, d_out, f_rec_in, d_rec_in, d_size);
     cudaThreadSynchronize();
     //cudaError_t err = cudaThreadSynchronize();
@@ -135,7 +146,7 @@ void sgmScanInc( unsigned int  block_size,
     //   4. finally, accumulate the recursive result of segmented scan
     //      to the elements from the first segment of each block (if 
     //      segment is open).
-    sgmDistributeEndBlock <T> <<< num_blocks, block_size >>>
+    sgmDistributeEndBlock <OP,T> <<< num_blocks, block_size >>>
                 ( d_rec_out, d_out, f_inds, d_size );
 
     //   5. clean up
