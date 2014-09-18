@@ -684,88 +684,87 @@ Compilers cannot recognize and parallelize even simple scans:
 \begin{frame}[fragile,t]
   \frametitle{Block Tiling via Loop Distribution and Interchange} % of CPU, Multicores, GPGPU
 \vspace{-2ex}
-\begin{block}{Matrix Multiplication Example: First Tile all Loops (Always Safe)}
+\begin{block}{Matrix Multiplication Example}
 \begin{columns}
-\column{0.3\textwidth}\vspace{-2ex}
+\column{0.47\textwidth}\vspace{-2ex}
 \begin{colorcode}[fontsize=\scriptsize]
-DO i = 1, N   \emphh{// Parallel}
-  DO j = 1, N  \emphh{// Parallel}
-    double tmp = 0.0
-    DO k = 1, N
+DOALL i = 1, N, 1   \emphh{// Parallel}
+  DOALL j = 1, N, 1  \emphh{// Parallel}
+    float tmp = 0.0
+    DO k = 1, N, 1
       tmp += A[i,k]*B[k,j]
     ENDDO
-    A[i,j] = tmp;
+    C[i,j] = tmp;
   ENDDO
 ENDDO
-\end{colorcode} 
-\column{0.05\textwidth}\vspace{-2ex}
-\begin{colorcode}[fontsize=\scriptsize]
-\emp{STRIP}
-\emp{------->}
-\emp{MINING}
-\emph{(always}
-\emph{safe)}
-\end{colorcode}
-\column{0.45\textwidth}\vspace{-2ex}
-\begin{colorcode}[fontsize=\scriptsize]
-DO ii = 1, N, L  
-  \emp{DO i = ii, ii+L-1} 
-    DO jj = 1, N, L
-      \emp{DO j = jj, jj+L-1}  
-        C[i,j] = 0.0
+// \mymath{\downarrow} Strip Mining \mymath{\downarrow}
+// \mymath{\downarrow} Always Safe  \mymath{\downarrow}
+\emp{DOALL ii = 1, N, L}
+  \emph{DOALL i = ii, ii+L-1, 1} //loop
+    \emp{DOALL jj = 1, N, L} //interchange
+      \emph{DOALL j = jj, jj+L-1, 1}
+        float tmp = 0.0
         DO kk = 1, N, L
-          \emp{DO k = kk, kk+L-1}
-            C[i,j] += A[k,j]*B[i,k]
-ENDDO ENDDO ENDDO ENDDO ENDDO ENDDO
-\end{colorcode}
-\end{columns}
-\end{block}
-\vspace{-2ex}
-\begin{block}{Loops {\tt i} and {\tt j} are parallel: Move Inside, Then Distribute}
-\begin{columns}
-\column{0.3\textwidth}\vspace{-2ex}
+          DO k = kk, kk+L-1, 1
+            tmp += A[i,k]*B[k,j]
+        ENDDO ENDDO
+        C[i,j] = tmp;
+ENDDO ENDDO ENDDO ENDDO
+\end{colorcode} 
+\column{0.47\textwidth}\vspace{-2ex}
 \begin{colorcode}[fontsize=\scriptsize]
-DO ii = 1, N, L  
-  DO jj = 1, N, L
-    \emp{DO i = ii, ii+L-1} 
-      \emp{DO j = jj, jj+L-1}  
-        C[i,j] = 0.0
+
+// \mymath{\downarrow} \emp{Cuda Grid} \mymath{\downarrow}
+// \mymath{\downarrow} \emph{Cuda Block}  \mymath{\downarrow}
+
+\emp{DOALL ii = 1, N, L}   // grid.y
+  \emp{DOALL jj = 1, N, L} // grid.x
+    \emph{DOALL i = ii, ii+L-1}   // block.y 
+      \emph{DOALL j = jj, jj+L-1} // block.x
+        float tmp = 0.0
         DO kk = 1, N, L
           DO k = kk, kk+L-1
-            C[i,j] += A[k,j]*B[i,k]
-ENDDO ENDDO ENDDO ENDDO ENDDO ENDDO
-\end{colorcode} 
-\column{0.1\textwidth}\vspace{-2ex}
-\begin{colorcode}[fontsize=\scriptsize]
-\emp{DISTRIBUTE}
-\emp{LOOPS i,j}
-\emp{--------->}
-\emp{AND MOVE}
-\emp{THEM}
-\emp{INSIDE kk}
-
-
-
-
-\end{colorcode}
-\column{0.45\textwidth}\vspace{-2ex}
-\begin{colorcode}[fontsize=\scriptsize]
-\emphh{DOALL} ii = 1, N, L  
-  \emphh{DOALL} jj = 1, N, L
-    \emp{DO i = ii, ii+L-1} 
-      \emp{DO j = jj, jj+L-1}  
-        C[i,j] = 0.0
-    ENDDO ENDDO
-    DO kk = 1, N, L
-      \emp{DO i = ii, ii+L-1} 
-        \emp{DO j = jj, jj+L-1}  
-          \emp{DO k = kk, kk+L-1}
-            C[i,j] += A[k,j]*B[i,k]
-ENDDO ENDDO ENDDO ENDDO ENDDO ENDDO
+\alert{S1}            tmp += A[i,k]*B[k,j]
+        ENDDO ENDDO 
+        C[i,j] = tmp;
+ENDDO ENDDO ENDDO ENDDO
+// \mymath{\downarrow} What are the indices touched by\mymath{\downarrow}
+// \mymath{\downarrow} a block at \alert{statement S1}?\mymath{\downarrow}
+// \mymath{\downarrow} A[ii:ii+L-1, kk:kk+L-1] ... \mymath{\downarrow}
 \end{colorcode}
 \end{columns}
 \end{block}
 
+\end{frame}
+
+\begin{frame}[fragile,t]
+  \frametitle{Block Tiled Matrix Multiplication CUDA Kernel} % of CPU, Multicores, GPGPU
+
+Finally we can build a GPU kernel out of it!
+
+\begin{block}{Matrix Multiplication Example}
+\begin{columns}
+\column{0.90\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+__global__ void matMultTiledKer(...) \{
+  \alert{__shared__ T Ash[L,L], Bsh[L,L];}
+  float tmp = 0.0
+  int gidy = blockIdx.y*blockDim.y + 
+             threadIdx.y // same for gidx
+  int gidx = blockIdx.x*blockDim.x + threadIdx.x 
+  DO kk = 1, N, L
+    \alert{Ash[threadIdx.y,threadIdx.x] = A[gidy,kk+threadIdx.x]}
+    \alert{Bsh[threadIdx.y,threadIdx.x] = B[threadIdx.y+kk,gidx]}
+    \alert{DO k = 1, L}
+       \alert{tmp += Ash[threadIdx.y][k] * Bsh[k][threadIdx.x]}
+    ENDDO ENDDO 
+    C[i,j] = tmp;
+\}
+\end{colorcode} 
+\end{columns}
+\end{block}
+
+A global memory access is amortized by (L-1) shared memory accesses.
 
 \end{frame}
 
