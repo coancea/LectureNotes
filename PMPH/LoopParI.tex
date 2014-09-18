@@ -374,7 +374,7 @@ in a {\tt >} direction as the leftmost non-{\tt{}=} direction in a row.
 
 
 \begin{frame}[fragile,t]
-  \frametitle{Parallelism and Loop Interchange} % of CPU, Multicores, GPGPU
+  \frametitle{Parallelism and Loop Interchange} 
 
 \begin{block}{Direction Vectors/Matrix for Three Loops }
 \begin{colorcode}
@@ -408,50 +408,276 @@ After interchange, loop $j$ of the second loop nest is parallel.
 
 
 \begin{frame}[fragile,t]
-  \frametitle{Dependency Graph and Loop Distribution} % of CPU, Multicores, GPGPU
+  \frametitle{Dependency Graph and Loop Distribution} 
 
-\begin{block}{Vectorization Example}
+{\bf Def. Dependency Graph:} edges from the source of the dependency, i.e., early iteration, 
+to the sink, i.e., later iteration. 
+
+\smallskip
+
+{\bf Th. Loop Distribution:} Statements that are in a dependence cycle remain in one 
+(sequential) loop.   The others are distributed to separate loops in graph order; 
+if no cycle then parallel loops.\smallskip
+
+\begin{block}{Vectorization Example: Remember Vector Machines?}
 \begin{columns}
 \column{0.34\textwidth}
 \begin{colorcode}[fontsize=\scriptsize]
-  DO i = 2, N
-\emp{S1  A[i] = B[i-1] ...}
+  DO i = 3, N
+\emp{S1  A[i] = B[i-2] ...}
 \alert{S2  B[i] = B[i-1] ...}
   ENDDO  
 
-For S2\mymath{\rightarrow}S1: i1 = i2-1, \emp{[<]}
+For S2\mymath{\rightarrow}S1: i1 = i2-2, \emp{[<]}
 For S2\mymath{\rightarrow}S2: i1 = i2-1, \emp{[<]}
-\end{colorcode} 
-\column{0.27\textwidth}
+\end{colorcode}
+\column{0.27\textwidth}\pause
 \includegraphics[height=12ex]{ParTeaserFigs/LoopDistr}  
 \column{0.30\textwidth}
 \begin{colorcode}[fontsize=\scriptsize]
-  \alert{DO} i = 2, N
+  \alert{DO} i = 3, N
 S2  B[i] = B[i-1] ...
   \alert{ENDDO}
 
-  \emphh{DOALL} i = 2, N
-\emp{S1  A[i] = B[i-1] ...}
+  \emphh{DOALL} i = 3, N
+\emp{S1  A[i] = B[i-2] ...}
   \emphh{ENDDOALL}
 \end{colorcode}
 \end{columns}
 \end{block}
 
-\smallskip
+\medskip
 
-{\bf Def. Dependency Graph:} edges from the source of the dependency, i.e., early iteration, 
-to the sink, i.e., later iteration. 
+{\bf Corollary:} It is always legal to distribute a parallel loop;\\
+\alert{but requires array expansion for local variables or if output
+dependencies are present.}
+\end{frame}
 
-\pause\smallskip
+\begin{frame}[fragile,t]
+  \frametitle{Loop Distribution May Require Array Expansion} 
 
-{\bf Th. Loop Distribution:} Statements that are in a dependence cycle remain in one 
-(sequential) loop.   The others are distributed to separate loops in graph order; 
-if no cycle then parallel loops.
 
+\begin{columns}
+\column{0.4\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+  float tmp;
+  for(i=2; i<N; i++) \{
+    \emp{tmp} = 2*B[i-2]; 
+    A[i] = tmp;
+    B[i] = tmp+B[i-1]
+  \}
+\end{colorcode}
+\column{0.53\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+  \emph{float tmp[N]};
+  for(int i=2; i<N; i++) \{
+    tmp[i] = 2*B[i-2]; 
+    B[i] = tmp[i]+B[i-1];
+  \}
+
+  \emph{forall(int i=2; i<N; i++)} \{
+    A[i] = tmp[i];
+  \}
+\end{colorcode}
+\end{columns}
 \bigskip
 
-{\bf Corollary:} It is always legal to distribute a parallel loop; potentially you need
-array expansion if output dependencies are present.
+No matter where {\tt tmp} is declared (inside or outside
+the loop) it needs to be expanded into an array in order
+to do loop distribution.\bigskip
+
+If {\tt tmp} is declared outside the loop then notice that
+its value is written before being used within the same iteration.
+Hence it is semantically equivalent to a locally declared variable,
+which will remove the output dependency.  
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+  \frametitle{False Dependencies (WAR/WAW)} 
+
+\begin{itemize}
+    \item \emp{Cross-Iteration Anti Dependencies (WAR)} 
+        correspond to a read from the array as it was 
+        before the loop $\Rightarrow$ can be eliminated
+        by reading from a copy of the array.\bigskip
+
+    \item \emp{Cross-Iteration WAW Dependencies (WAW)}
+        correspond to a re-writing the same array element
+        in different iterations $\Rightarrow$ can be eliminated
+        by semantically declaring the written array inside
+        the loop, i.e., privatization or renaming.\bigskip
+
+    \item Direction-vectors reasoning is limited to relatively
+        simple loop nests, e.g., difficult to reason about 
+        privatization in such a way.
+\end  {itemize}
+\end{frame}
+
+\begin{frame}[fragile,t]
+  \frametitle{False Dependencies (WAR/WAW)} 
+
+\begin{block}{Anti Dependency (WAR) {\tt~~} and {\tt~~}Output Dependency (WAW)}
+\begin{columns}
+\column{0.40\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+// \alert{OpenMP code:} 
+// \alert{compile with g++ -fopenmp ...}
+  float tmp = A[1];
+  \emp{for (i=0; i<N-1; i++)}
+\emp{S1  A[i] = A[i+1];} 
+  A[N-1] = tmp;
+//S1\mymath{\rightarrow}S1: i1+1=i2, \emp{[<]} WAR\pause
+
+// Solution: copy A into A'
+// and use A' for the reads!
+float Acopy[N];
+\#pragma omp parallel for
+  \emph{for(i=0; i<N; i++)} \{
+    Acopy[i] = A[i];
+  \}
+  tmp = A[1];
+\emph{\#pragma omp parallel for} \emp{private(i)}
+  for (i=0; i<N-1; i++) \{
+    \emph{A[i] = Acopy[i+1];}
+  \}
+  A[N-1] = tmp;
+\end{colorcode}
+
+\column{0.55\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+  int* A = malloc(M*sizeof(float));
+  for(i=0; i<N; i++)\{
+    for(int j=0, j<M; j++)
+        \emp{A[j]} = i \% (j+2);
+    for(int k=0; k<N; k++)
+        X[i,k] = X[i,k-1] * \emp{A[k\%M]};
+  \}
+  free(A);
+// \emp{The write to A[j] causes multiple WAWs},\pause
+// \emph{but A is fully written in the inner loop} 
+\emph{\#pragma omp parallel}\{
+  int* A = malloc(M*sizeof(float));
+\emph{\#pragma omp for}
+  for(int i=0; i<N; i++)\{
+    for(int j=0, j<M; j++)
+        \emp{A[j]} = i \% (j+2);
+    for(int k=0; k<N; k++)
+        X[i,k] += X[i,k-1] * \emp{A[k\% M]};
+  \}
+  free(A);
+\}
+\end{colorcode}
+\end{columns}
+\end{block}
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+  \frametitle{Reduction is Typically Easy To Recognize} 
+
+If all the statements in which a scalar variable {x} appears
+are of the form {\tt x $\oplus$ = $exp$}, where {\tt x} does 
+not appear in $\exp$ and $\oplus$ is associative 
+then the cross-iteration RAWs on {\tt x} can be resolved by:
+\begin{itemize}
+    \item privatizing {\tt x} initialized with the neutral element,
+    \item computing the per-processor partial values of {\tt x},
+    \item reducing the {\tt x}s across processors and with the initial value.
+\end  {itemize} 
+
+\begin{columns}
+\column{0.4\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+// compilation requires g++ -fopenmp ...
+  float x = 6.0;
+\#pragma omp parallel for reduction(+:x) private(i,j)
+  for(i=1; i<N; i++) \{
+    for(j=1; j<N; j++) \{
+      if ( A[i,j] >= 2.0 )    \emph{x += 2*A[i,j-1]};
+      else if( A[i,j] > 0.0 ) \emph{x += A[i-1,j+1];}
+    \}
+    if (i \% (j+1) == 3) \emph{x += A[i,i];}
+  \}
+\end{colorcode}
+\column{0.53\textwidth}
+
+%\begin{colorcode}[fontsize=\scriptsize]
+%// Semantically Equivalent to:
+%  float x = 6.0;
+%  float xs[NUM_THREADS];
+%\#pragma omp parallel private(th_id)\{
+%  th_id = omp_get_thread_num();
+%\#pragma omp parallel for private(i,j)
+%  for(i=0; i<N; i++) \{
+%    for(j=0; j<N; j++) 
+%      if ( A[i,j] >= 2.0 ) 
+%        \emph{xs[th_id] += 2*A[i,j-1]*x};
+%      else if( A[i,j] > 0.0 )
+%        \emph{xs[th_id] += A[i,j+1]/x;}
+%    if (i \% (j+1) == 3) 
+%        \emph{xs[th_id] += A[i,i]}
+%  \}
+%\}
+%x += reduce (+) 0.0 xs // Haskell-like code
+%\end{colorcode}
+\end{columns}
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+  \frametitle{Scan and Segmented Scan Are Difficult!} 
+
+Compilers cannot recognize and parallelize even simple scans:
+\begin{itemize}
+    \item they raise a cross-iteration true dependency (RAW),
+    \item they appear in a multitude of forms,
+    \item hence they are difficult to analyze.
+\end  {itemize} 
+
+\begin{columns}
+\column{0.4\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+// What kind of scans are these?
+1. A[0] = B[0];
+   for(i=1; i<N; i++) \{
+     A[i] = A[i-1] + B[i];
+   \}
+2. acc = 0;
+   for(i=0; i<N; i++)\{
+     acc = acc xor i;
+     A[i] = acc;
+   \}
+3. for(j=0; j<M; j++) 
+     A[0,j] = B[0,j];
+   for(i=1; i<N; i++) \{
+     for(j=0; j<M; j++)
+       A[i,j] = A[i-1,j] + B[i,j];
+   \}
+\end{colorcode}
+\column{0.53\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+1. let A = scanInc (+) 0 B
+
+2. let A = scanInc (xor) 0 [0..N-1]
+
+3. let A = scanInc (\mymath{\backslash} a b -> zipWith (+) a b) 
+                   (replicate M 0.0) B \mymath{\equiv}
+   let A = transpose \$ 
+           map (scanInc (+) 0.0) \$
+           transpose B 
+             
+\end{colorcode}
+\end{columns}
+\bigskip
+
+\end{frame}
+
+\section{Block Tiling: Matrix Multiplication Study Case}
+
+\begin{frame}[fragile]
+	\tableofcontents[currentsection]
 \end{frame}
 
 
@@ -464,22 +690,21 @@ array expansion if output dependencies are present.
 \begin{colorcode}[fontsize=\scriptsize]
 DO i = 1, N   \emphh{// Parallel}
   DO j = 1, N  \emphh{// Parallel}
-    C[i,j] = 0.0
-    
+    double tmp = 0.0
     DO k = 1, N
-      C[i,j] += A[k,j] * B[i,k]
+      tmp += A[i,k]*B[k,j]
     ENDDO
+    A[i,j] = tmp;
   ENDDO
 ENDDO
 \end{colorcode} 
 \column{0.05\textwidth}\vspace{-2ex}
 \begin{colorcode}[fontsize=\scriptsize]
-\emp{LOOP}
+\emp{STRIP}
 \emp{------->}
-\emp{TILING}
-
-
-
+\emp{MINING}
+\emph{(always}
+\emph{safe)}
 \end{colorcode}
 \column{0.45\textwidth}\vspace{-2ex}
 \begin{colorcode}[fontsize=\scriptsize]
