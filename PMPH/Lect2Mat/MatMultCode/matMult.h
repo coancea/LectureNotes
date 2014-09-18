@@ -7,7 +7,7 @@
 //void matMult(float* A, float* B, float* C, int widthA, int colsB);
 //bool isomorphic(float* A, float* B);
 
-void matMult(float* A, float* B, float* C, int rowsA, int colsA, int colsB) {
+void matMult(float* A, float* B, float* C, int colsA, int rowsA, int colsB) {
   for(int i = 0; i < rowsA; i++) {
     for(int j = 0; j < colsB; j++) {
       float sum = 0.0;
