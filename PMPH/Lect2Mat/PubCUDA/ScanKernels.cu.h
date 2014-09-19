@@ -34,6 +34,10 @@ class MyInt4 {
     static __device__ __host__ inline void set(MyInt4& v, const MyInt4& i4) {
         v.x = i4.x; v.y = i4.y; v.z = i4.z; v.w = i4.w; 
     }
+    volatile __device__ __host__ MyInt4& operator=(const MyInt4& i4) volatile {
+        x = i4.x; y = i4.y; z = i4.z; w = i4.w; 
+        return *this;
+    }
 };
 
 class MsspOp {
@@ -43,7 +47,6 @@ class MsspOp {
     static __device__ inline MyInt4 apply(const volatile MyInt4& t1, const volatile MyInt4& t2) { 
         return MyInt4(t1.x + t2.x, t1.y + t2.y, t1.z + t2.z, t1.w + t2.w); 
     }
-
     static __device__ inline void set(MyInt4& v1, const MyInt4& v2)          { MyInt4::set(v1,v2); }
     static __device__ inline void set(volatile MyInt4& v1, const MyInt4& v2) { MyInt4::set(v1,v2); }
 };
@@ -58,7 +61,7 @@ scanIncWarp( volatile T* ptr, const unsigned int idx ) {
 
     // no synchronization needed inside a WARP,
     //   i.e., SIMD execution
-    if (lane >= 1)  OP::set(ptr[idx], OP::apply(ptr[idx-1], ptr[idx]));
+    if (lane >= 1)  OP::set(ptr[idx], OP::apply(ptr[idx-1], ptr[idx])); //ptr[idx] = OP::apply(ptr[idx-1], ptr[idx]); 
     if (lane >= 2)  OP::set(ptr[idx], OP::apply(ptr[idx-2], ptr[idx]));
     if (lane >= 4)  OP::set(ptr[idx], OP::apply(ptr[idx-4], ptr[idx]));
     if (lane >= 8)  OP::set(ptr[idx], OP::apply(ptr[idx-8], ptr[idx]));
