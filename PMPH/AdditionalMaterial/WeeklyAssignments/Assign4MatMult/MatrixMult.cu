@@ -1,10 +1,10 @@
 #include "MatrixMult.h"
 #include "MatrixMult.cu.h"
 
-#define WIDTH_A  1024//2048
-#define HEIGHT_A 2048//2048
-#define WIDTH_B  4096//2048
-#define TILE     16
+#define WIDTH_A  1024 //1024//2048
+#define HEIGHT_A 2048//2048//2048
+#define WIDTH_B  1536//4096//2048
+#define TILE     32
 /////////////////////////////////////////////////////////
 // Program main
 /////////////////////////////////////////////////////////
@@ -62,8 +62,10 @@ int main() {
 
    // 8. perform the calculation
    // setup execution parameters
+   int  dimy = ceil( ((float)HEIGHT_A)/TILE ); 
+   int  dimx = ceil( ((float) WIDTH_B)/TILE );
    dim3 block(TILE, TILE, 1);
-   dim3 grid ( ceil(WIDTH_B/TILE), ceil(HEIGHT_A/TILE), 1 );
+   dim3 grid (dimx, dimy, 1);
  
    // execute the kernel
    {
@@ -80,10 +82,10 @@ int main() {
       elapsed = (t_diff.tv_sec*1e6+t_diff.tv_usec); 
       printf("GPU version runs in: %lu microsecs\n", elapsed);
 
-      float msecPerMatrixMul = elapsed; 
+      float microsecPerMatrixMul = elapsed; 
       double flopsPerMatrixMul = 2.0 * HEIGHT_A * WIDTH_B * WIDTH_A; 
-      double gigaFlops = (flopsPerMatrixMul * 1.0e-9f) / (msecPerMatrixMul / (1000.0f * 1000.0f)); 
-      printf( "Performance= %.2f GFlop/s, Time= %.3f microsec %d %d\n", gigaFlops, msecPerMatrixMul, grid.x, grid.y); 
+      double gigaFlops = (flopsPerMatrixMul * 1.0e-9f) / (microsecPerMatrixMul / (1000.0f * 1000.0f)); 
+      printf( "Performance= %.2f GFlop/s, Time= %.3f microsec %d %d\n", gigaFlops, microsecPerMatrixMul, grid.x, grid.y); 
    }
 
    // 11. copy result from device to host
