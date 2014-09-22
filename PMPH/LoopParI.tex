@@ -933,6 +933,7 @@ DOALL i = 0 to N-1  // \emph{parallel}
 ENDDO
 \end{colorcode}
 \column{0.55\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
 A' = transpose(A)
 DOALL i = 0 to N-1  // \emph{parallel}
   tmpB = A'[0,i] * A'[0,i]
@@ -945,34 +946,18 @@ DOALL i = 0 to N-1  // \emph{parallel}
   ENDDO
 ENDDO
 B = transpose(B')
+\end{colorcode}
 \end{columns}
-\medskip
-
-\emph{Accesses to {\tt A} and {\tt B} invariant to loops {\tt i} and {\tt j} $\Rightarrow$ Block Tiling to optimize locality of reference!}  
 \bigskip
 
-First step: Strip Mining, always safe since 
-the transformed loop executes the same instructions in the same 
-order as the original loop:\medskip
+\emp{The transformed program performs about twice the number of
+accesses to global memory than the original.}  
+\bigskip
 
-\begin{columns}
-\column{0.47\textwidth}
-\begin{colorcode}[fontsize=\scriptsize]
-DO i = 1, N, 1  \alert{// stride 1}
-  loop_body(i)
-ENDDO
+\emph{But exhibits only coalesced accesses!}
+\bigskip
 
-
-\end{colorcode}
-\column{0.47\textwidth}
-\begin{colorcode}[fontsize=\scriptsize]
-DO ii = 1, N, T        \alert{// stride T}
-  DO i = ii, MIN(ii+T-1,N), 1 
-    loop_body(i)
-  ENDDO
-ENDDO
-\end{colorcode}
-\end{columns}
+\alert{What else could we have done to achieve the same effect?}
 \end{frame}
 
 

@@ -19,8 +19,8 @@ int timeval_subtract(struct timeval *result, struct timeval *t2, struct timeval 
 
 
 void randomInit(float* data, int size) {
-   for (int i = 0; i < size; ++i)
-   data[i] = rand() / (float)RAND_MAX;
+    for (int i = 0; i < size; ++i)
+        data[i] = rand() / (float)RAND_MAX;
 }
 
 
@@ -34,10 +34,10 @@ void matTranspose(T* A, T* trA, int rowsA, int colsA) {
 }
 
 template<class T>
-bool validate(float* A,float* trA, int rowsA, int colsA){
+bool validateTranspose(float* A,float* trA, unsigned int rowsA, unsigned int colsA){
   bool valid = true;
-  for(int i = 0; i < rowsA; i++) {
-    for(int j = 0; j < colsA; j++) {
+  for(unsigned int i = 0; i < rowsA; i++) {
+    for(unsigned int j = 0; j < colsA; j++) {
       if(trA[j*rowsA + i] != A[i*colsA + j]) {
         printf("row: %d, col: %d, A: %.4f, trA: %.4f\n", 
                 i, j, A[i*colsA + j], trA[j*rowsA + i] );
@@ -49,6 +49,28 @@ bool validate(float* A,float* trA, int rowsA, int colsA){
   }
   if (valid) printf("GPU TRANSPOSITION   VALID!\n");
   else       printf("GPU TRANSPOSITION INVALID!\n");
+  return valid;
+}
+
+
+bool validateProgram(float* A, float* B, unsigned int N){
+  bool valid = true;
+  for(unsigned int i = 0; i < N; i++) {
+    unsigned long long ii = i*64;
+    float tmpB = A[i*64];
+    tmpB = tmpB*tmpB;
+    if(fabs(B[ii] - tmpB)> 0.00001) { valid = false; break; }
+    for(int j = 1; j < 64; j++) {
+        float tmpA  = A[ii + j];
+        float accum = sqrt(tmpB) + tmpA*tmpA;
+
+        if(fabs(B[ii+j] - accum) > 0.00001) { valid = false; break; }
+        tmpB        = accum;
+    }
+    if(!valid) break;
+  }
+  if (valid) printf("GPU PROGRAM   VALID!\n");
+  else       printf("GPU PROGRAM INVALID!\n");
   return valid;
 }
 

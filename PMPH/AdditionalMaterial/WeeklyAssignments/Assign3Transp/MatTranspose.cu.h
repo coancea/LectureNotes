@@ -25,7 +25,7 @@ __global__ void matTransposeTiledKer(float* A, float* B, int heightA, int widthA
 
   __syncthreads();
 
-  x = blockIdx.y * TILE + threadIdx.x;  // transpose block offset
+  x = blockIdx.y * TILE + threadIdx.x; 
   y = blockIdx.x * TILE + threadIdx.y;
 
   if( x < heightA && y < widthA )
@@ -33,29 +33,37 @@ __global__ void matTransposeTiledKer(float* A, float* B, int heightA, int widthA
 }
 
 
-// blockDim.y = BLOCK_ROWS; blockDim.x = TILE
-// each block transposes a square TILE
-template <class T, int TILE, int BLOCK_ROWS> 
-__global__ void matTransposeTiledKer1(float* A, float* B, int heightA, int widthA) {
+__global__ void 
+origProg(float* A, float* B, unsigned int N) {
+    unsigned long long gid = (blockIdx.x * blockDim.x + threadIdx.x);
+    if(gid >= N) return;
 
-  __shared__ float tile[TILE][TILE+1];
+    gid *= 64;
+    float tmpB = A[gid];
+    tmpB = tmpB*tmpB;
+    B[gid] = tmpB;
+    for(int j=1; j<64; j++) {
+        float tmpA  = A[gid + j];
+        float accum = sqrt(tmpB) + tmpA*tmpA; //tmpB*tmpB + tmpA*tmpA;
+        B[gid + j]  = accum;
+        tmpB        = accum;
+    }
+}
 
-  int x = blockIdx.x * TILE + threadIdx.x;
-  int y = blockIdx.y * TILE + threadIdx.y;
+__global__ void 
+transfProg(float* A, float* B, unsigned int N) {
+    unsigned long long gid = (blockIdx.x * blockDim.x + threadIdx.x);
+    if(gid >= N) return;
 
-  if( x < widthA )
-  for (int j = 0; j < TILE; j += BLOCK_ROWS)
-    if( y+j < heightA )
-      tile[threadIdx.y+j][threadIdx.x] = A[(y+j)*widthA + x];
-
-  __syncthreads();
-
-  x = blockIdx.y * TILE + threadIdx.x;  // transpose block offset
-  y = blockIdx.x * TILE + threadIdx.y;
-
-  if( x < heightA )
-  for (int j = 0; j < TILE; j += BLOCK_ROWS)
-    if( y+j < widthA )
-      B[(y+j)*heightA + x] = tile[threadIdx.x][threadIdx.y + j];
+    float tmpB = A[gid];
+    tmpB = tmpB*tmpB;
+    B[gid] = tmpB;
+    gid += N;
+    for(int j=1; j<64; j++,gid+=N) {
+        float tmpA  = A[gid];
+        float accum = sqrt(tmpB) + tmpA*tmpA;
+        B[gid]  = accum;
+        tmpB    = accum;
+    }
 }
 
