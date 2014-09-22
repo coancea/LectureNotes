@@ -690,9 +690,9 @@ DO i = 1, M, 1   \emphh{// Parallel}
   DOALL j = 1, N, 1  \emphh{// Parallel}
     float tmp = 0.0
     DO k = 1, U, 1 \emp{reduction}
-      tmp += A[i,k]*B[k,j]    \blue{// A access invariant to loop j}
-    ENDDO                     \blue{// B access invariant to loop i}
-    C[i,j] = tmp;             \blue{// Block Tiling optimizes locality}
+      tmp += A[i,k]*B[k,j] 
+    ENDDO                  
+    C[i,j] = tmp;          
   ENDDO
 ENDDO
 \end{colorcode}
@@ -703,21 +703,23 @@ $\leftarrow$Matrix Multiplication. Matrices:\smallskip
     \item input {\tt B} has {\tt U} rows and {\tt N} columns
     \item result {\tt C} has {\tt M} rows and {\tt N} columns 
 \end{itemize}
-\medskip
 
 Loops of indices {\tt i} and {\tt j} are parallel
 (can be proved by direction vectors).
 \end{columns}
+\medskip
+
+\emph{Accesses to {\tt A} and {\tt B} invariant to loops {\tt i} and {\tt j} $\Rightarrow$ Block Tiling to optimize locality of reference!}  
 \bigskip
 
-First step is to apply Strip Mining, which is always safe, since 
+First step: Strip Mining, always safe since 
 the transformed loop executes the same instructions in the same 
 order as the original loop:\medskip
 
 \begin{columns}
 \column{0.47\textwidth}
 \begin{colorcode}[fontsize=\scriptsize]
-DO i = 1, N, 1  // stride 1
+DO i = 1, N, 1  \alert{// stride 1}
   loop_body(i)
 ENDDO
 
@@ -725,7 +727,7 @@ ENDDO
 \end{colorcode}
 \column{0.47\textwidth}
 \begin{colorcode}[fontsize=\scriptsize]
-DO ii = 1, N, T            // stride T
+DO ii = 1, N, T        \alert{// stride T}
   DO i = ii, MIN(ii+T-1,N), 1 
     loop_body(i)
   ENDDO

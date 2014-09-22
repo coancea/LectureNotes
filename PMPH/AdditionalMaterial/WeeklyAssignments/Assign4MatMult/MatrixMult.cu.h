@@ -27,9 +27,6 @@ __global__ void matMultTiledKer(float* A, float* B, float* C, int widthA, int he
   int gidx = blockIdx.x*blockDim.x + threadIdx.x;
   int gidy = blockIdx.y*blockDim.y + threadIdx.y; 
 
-  Ash[threadIdx.y][threadIdx.x] = 0.0;
-  Bsh[threadIdx.y][threadIdx.x] = 0.0;
-
   for(int kk = 0; kk < widthA; kk += TILE) {
       Ash[threadIdx.y][threadIdx.x] = ((gidy < heightA) && (kk+threadIdx.x < widthA)) ?
             A[gidy*widthA + kk + threadIdx.x] : 0.0;
