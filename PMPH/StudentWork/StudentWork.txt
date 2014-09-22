@@ -4,19 +4,22 @@
         Assignment 1: NOT SUBMITTED
 
 2   Bramming, Mathias               grm609@alumni.ku.dk
-        Assignment 1:  FAIL
-            -- task 1 was completely incorrect
+        Assignment 1:  AFTER RESUBMISSION 8/10 (was FAIL)
+            -- task 1 SOLVED in RESUBMSSION (was incorrect before)
             -- task 2 was solved correctly (but not really tested)
-            -- tasks 3-5 were not submitted
+            -- task 3: missing
+            -- task 4: SOLVED in RESUBMISSION 
+            -- task 5: SOLVED in RESUBMISSION
 
 3   Dørge, Aske                     hnr137@alumni.ku.dk
-        Assignment 1:   7/10
+        Assignment 1:  AFTER RESUBMISSION 9/10 (was 7/10)
             -- task 1: almost correct, has confused `map (map f)' 
                                               with `(map . map f)'
             -- task 2: perfect but no tests
             -- task 3: flat parallelism, but merge operator uses concatenation.
                        flag array is not correct, value array seems correct.
-            -- task 4: (a) is morally the flat version, OK, (b) is incorrect,
+            -- task 4: CORRECTED in RESUBMISSION
+                        (a) is morally the flat version, OK, (b) is incorrect,
                         as it uses a segmented scan with non-associative operator:
                         (id1,v1) `myop` (id2,v2) = 
                             ((-1), let lres = if id1 == (-1) then v1 else v1*(x !! id1)
@@ -33,13 +36,15 @@
             -- Task 5: ok (bypasses the copying of the array by using the index space!)
 
 5   Espensen, Morten                dzr440@alumni.ku.dk
-        Assignment 1:   7/10
+        Assignment 1:   9/10 AFTER RESUBMISSION   (was 7/10)
             -- Task 1: perfect.
-            -- Task 2: not touched (?)
+            -- Task 2: FIXED in RESUBMISSION
+                       not touched (?)
             -- Task 3: nested parallelism: mapping over parFilter, but using
                         a recursive (seq) function with cons and ++ to build the flags.
             -- Task 4a: ok
-            -- Task 4b: right idea: flat map followed by segmented scan,
+            -- Task 4b: FIXED IN RESUBMISSION
+                        right idea: flat map followed by segmented scan,
                         but then uses again a recursive function of depth O(n)
                         that uses concatenation (instead of shifting the flags
                         by one and selecting the end of the segment, which is
@@ -63,12 +68,13 @@
             -- Task 5: seems ok.
 
 8   Holmgreen, Casper Mark Hagen    tcv380@alumni.ku.dk
-        Assignment 1:  8/10
+        Assignment 1:  After Resubmission 9/10 (was 8/10)
             -- Task 1: perfect,
             -- Task 2: newok = okx && oky   (missing a && connect)
             -- Task 3: recursion of extra depth O(# of segments)
             -- Task 4a: ok, 
-            -- Task 4b: almost ok, but not quite, i.e., works
+            -- Task 4b: CORRECTED in RESUBMISSION
+                        almost ok, but not quite, i.e., works
                         because of serial execution.
                       
                     write (scanInc (+) (-1) flags) 
@@ -98,14 +104,16 @@
             -- Task 5: ok
 
 11  Jøkladal, Ásbjørn Viderø        wvc561@alumni.ku.dk
-        Assignment 1:  7/10
+        Assignment 1:  CORRECTED in RESUBMISSION 10/10 (was 7/10)
             -- Task 1: perfect.
             -- Task 2: perfect.
-            -- Task 3: pretty good until you used the `segmScanIncSeq'
+            -- Task 3: CORRECTED in RESUBMISSION
+                        pretty good until you used the `segmScanIncSeq'
                         with non-associative operator to compute the
                         new flags. 
             -- Task 4a): incorrect use of reduce with non-associative operator.
-            -- Task 4b:  not submitted.
+            -- Task 4b:  CORRECTED in RESUBMISSION
+                        not submitted.
             -- Task 5: ok 
 
 12  Kjær, Daniel                    lvb133@alumni.ku.dk
@@ -121,14 +129,16 @@
             -- Task 5: ok.
 
 14  Larsen, Mathias Normann         dlw426@alumni.ku.dk
-        Assignment 1: 6/10
+        Assignment 1: AFTER RESUBMISSION 9/10 (was 6/10)
             -- Task 1: perfect
-            -- Task 2: wrong newlis and newlcs
+            -- Task 2: CORRECTED in RESUBMISSION
+                        wrong newlis and newlcs
                         newlis = if okx && connect then lssx + lisy else lssx
             -- Task 3: uses nested parallelism, i.e., map parFilter 
                         and concatenation in foldl operator.
             -- Task 4a: ok
-            -- Task 4b: morally correct but (i) uses
+            -- Task 4b: CORRECTED IN RESUBMISSION
+                        morally correct but (i) uses
                             scanl(\(c1,v1) (c2,v2) ->
                                     (c2,x!!c2 * v2)) (0,0.0) mat
                             INSTEAD OF A MAP:
@@ -221,18 +231,21 @@
                        sequential loop there...
             
 29  Tørholm, Sebastian Paaske       bns895@alumni.ku.dk
-        Assignment 1:  9/10
+        Assignment 1:  AFTER RESUBMISSIOn 10/10  (was 9/10)
+            -- Task 4b FIXED in RESUBMISSION
             -- Almost perfect, but for Task 4b which is not executed
                properly, i.e., uses nested parallelism and scanl with 
                neutral element -1?
 
 30  Urms, Henriks                   mgs837@alumni.ku.dk
-        Assignment 1:  FAIL
+        Assignment 1:  AFTER RESUBMISSION 10/10 (was ...?...)
             -- Task 1: perfect
-            -- Task 2: partially implemented
-            -- Tasks 3 and 4: not submitted.
-            -- Task 5: something, but a strange 
-                       sequential loop there...
+            -- Task 2: Fixed by RESUBMISISON 
+                        partially implemented
+            -- Task 3: perfect
+            -- Task 4: CORRECTED by RESUBMISSION
+                       not submitted.
+            -- Task 5: ok
 
 31  Wejendorp, Jacob                nrm891@alumni.ku.dk
         Assignment 1: NOT SUBMITTED

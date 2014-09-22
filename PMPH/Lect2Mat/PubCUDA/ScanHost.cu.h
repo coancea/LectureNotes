@@ -1,3 +1,6 @@
+#ifndef SCAN_HOST
+#define SCAN_HOST
+
 #include "ScanKernels.cu.h"
 
 #include <sys/time.h>
@@ -42,7 +45,6 @@ void scanInc(    unsigned int  block_size,
                     d_size / block_size + 1 ;
 
     scanIncKernel<OP,T><<< num_blocks, block_size, sh_mem_size >>>(d_in, d_out, d_size);
-
     cudaThreadSynchronize();
     
     if (block_size >= d_size) { return; }
@@ -62,6 +64,7 @@ void scanInc(    unsigned int  block_size,
 
     //   2. copy in the end-of-block results of the previous scan 
     copyEndOfBlockKernel<T><<< num_blocks_rec, block_size >>>(d_out, d_rec_in, num_blocks);
+    cudaThreadSynchronize();
 
     //   3. scan recursively the last elements of each CUDA block
     scanInc<OP,T>( block_size, num_blocks, d_rec_in, d_rec_out );
@@ -70,6 +73,7 @@ void scanInc(    unsigned int  block_size,
     //      recursively scanned data to all elements of the
     //      corresponding original block
     distributeEndBlock<OP,T><<< num_blocks, block_size >>>(d_rec_out, d_out, d_size);
+    cudaThreadSynchronize();
 
     //   5. clean up
     cudaFree(d_rec_in );
@@ -148,6 +152,7 @@ void sgmScanInc( const unsigned int  block_size,
     //      segment is open).
     sgmDistributeEndBlock <OP,T> <<< num_blocks, block_size >>>
                 ( d_rec_out, d_out, f_inds, d_size );
+    cudaThreadSynchronize();
 
     //   5. clean up
     cudaFree(d_rec_in );
@@ -155,4 +160,4 @@ void sgmScanInc( const unsigned int  block_size,
     cudaFree(f_rec_in );
     cudaFree(f_inds   );
 }
-
+#endif //SCAN_HOST

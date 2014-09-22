@@ -1,3 +1,6 @@
+#ifndef SCAN_KERS
+#define SCAN_KERS
+
 #include <cuda_runtime.h>
 
 template<class T>
@@ -45,7 +48,11 @@ class MsspOp {
     typedef MyInt4 BaseType;
     static __device__ inline MyInt4 identity() { return MyInt4(0,0,0,0); }  
     static __device__ inline MyInt4 apply(const volatile MyInt4& t1, const volatile MyInt4& t2) { 
-        return MyInt4(t1.x + t2.x, t1.y + t2.y, t1.z + t2.z, t1.w + t2.w); 
+        int mss = max(t1.x, max(t2.x,t1.z+t2.y));
+        int mis = max(t1.y, t1.w+t2.y);
+        int mcs = max(t2.z, t1.z+t2.w);
+        int t   = t1.w + t2.w;
+        return MyInt4(mss, mis, mcs, t); 
     }
     static __device__ inline void set(MyInt4& v1, const MyInt4& v2)          { MyInt4::set(v1,v2); }
     static __device__ inline void set(volatile MyInt4& v1, const MyInt4& v2) { MyInt4::set(v1,v2); }
@@ -260,4 +267,37 @@ sgmDistributeEndBlock(T* d_rec_in, T* d_out, int* f_inds, unsigned int d_size) {
     }
 }
 
+////////////////////////////////////////
+////////////////////////////////////////
+__global__ void 
+trivial_map(int* inp_d, MyInt4* inp_lift, int inp_size) {
+    const unsigned int gid = blockIdx.x*blockDim.x + threadIdx.x;
+    if(gid < inp_size) {
+        int el = inp_d[gid];
+        MyInt4 res(el,el,el,el);
+        if(el < 0) { res.x = 0;  res.y = 0;  res.z = 0; }
+        inp_lift[gid] = res;
+    }
+}
+
+__global__ void
+mult_pairs(int* mat_inds, float* mat_vals, float* vct, int tot_size, float* tmp_pairs) {
+    const unsigned int gid = blockIdx.x*blockDim.x + threadIdx.x;
+    if(gid < tot_size) {
+        tmp_pairs[gid] = mat_vals[gid] * vct[ mat_inds[gid] ];
+    }
+}
+
+__global__ void
+write_lastsgm(float* tmp_scan, int* tmp_inds, int* flags_d, int tot_size, float* vct_d) {
+    const unsigned int gid = blockIdx.x*blockDim.x + threadIdx.x;
+    if(gid < tot_size) {
+        if ( (gid == (tot_size-1)) || (flags_d[gid+1] != 0) )
+            vct_d[tmp_inds[gid]-1] = tmp_scan[gid]; 
+    }
+}
+
+//<OP,T><<< num_blocks, block_size >>>(inp_d, inp_lift, inp_size);
+
+#endif //SCAN_KERS
 

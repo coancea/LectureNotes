@@ -2,8 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-
 #include "ScanHost.cu.h"
+
+
 
 template<class OP, class T>
 int testGeneric(    unsigned int num_threads, 
@@ -50,7 +51,7 @@ int testGeneric(    unsigned int num_threads,
 }
 
 
-int main(int argc, char** argv) {
+int mainTest(int argc, char** argv) {
     const unsigned int num_threads = 8353455;
     const unsigned int block_size  = 512;
     unsigned int mem_size = num_threads * sizeof(int);
@@ -69,14 +70,6 @@ int main(int argc, char** argv) {
 
     testGeneric<Add<int>,int>( num_threads, block_size, h_in, flags_h, h_out );
 
-    MyInt4 *arr_in4  = (MyInt4*) malloc(num_threads*sizeof(MyInt4));
-    MyInt4 *arr_out4 = (MyInt4*) malloc(num_threads*sizeof(MyInt4));
-    for(int i=0; i<num_threads;i++) {
-        MyInt4 el(1,1,1,1);
-        arr_in4[i] = el;
-    }
-    testGeneric<MsspOp, MyInt4>( num_threads, block_size, arr_in4, flags_h, arr_out4);
-
     { // validation
         bool  success = true;
         int   accum   = 0;
@@ -84,8 +77,7 @@ int main(int argc, char** argv) {
             if (i % sgm_size == 0) accum  = 1;
             else                   accum += 1;
             //accum += 1;
-            if ( accum != h_out[i] || accum != arr_out4[i].x || accum != arr_out4[i].y || 
-                                      accum != arr_out4[i].z || accum != arr_out4[i].w ) { 
+            if ( accum != h_out[i] ) { 
                 success = false;
                 printf("Violation: %.1d should be %.1d\n", h_out[i], accum);
             }
@@ -99,9 +91,18 @@ int main(int argc, char** argv) {
     free(h_out);
     free(flags_h);
 
-    free(arr_in4);
-    free(arr_out4);
-
     return 0;
 }
+ 
+#include "MsspProblem.cu.h" 
+#include "SparseMatVctMult.cu.h" 
 
+int main(int argc, char** argv) { 
+    const unsigned int mssp_list_size = 8353455; 
+    const unsigned int matrix_row_num = 11033;
+    const unsigned int vct_size       = 2076;
+    const unsigned int block_size     = 256;
+
+    MsspProblem(block_size, mssp_list_size);
+    SparseMatVctMult(block_size, matrix_row_num, vct_size);
+}
