@@ -686,10 +686,10 @@ Compilers cannot recognize and parallelize even simple scans:
 \begin{columns}
 \column{0.42\textwidth}
 \begin{colorcode}[fontsize=\scriptsize]
-DO i = 1, M, 1   \emphh{// Parallel}
+DOALL i = 1, M, 1    \emphh{// Parallel}
   DOALL j = 1, N, 1  \emphh{// Parallel}
     float tmp = 0.0
-    DO k = 1, U, 1 \emp{reduction}
+    DO k = 1, U, 1 \emp{Reduction}
       tmp += A[i,k]*B[k,j] 
     ENDDO                  
     C[i,j] = tmp;          
@@ -846,6 +846,133 @@ __global__ void matMultTiledKer( ... ) \{
 
 A global memory access amortized by (T-1) shared memory accesses.
 
+\end{frame}
+
+\begin{frame}[fragile,t]
+  \frametitle{Measuring GFlops Performance} % of CPU, Multicores, GPGPU
+
+Sequential matrix multiplication $\sim2\times M\times N\times U$
+floating point operations. What is the GFlops performance of our implementation? 
+
+\begin{columns}
+\column{0.44\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+// CPU code
+int  dimy = ceil( ((float)M) / T ); 
+int  dimx = ceil( ((float)N) / T );
+dim3 block(T,T,1), grid(dimx,dimy,1);
+
+unsigned long int elapsed;
+struct timeval t_start,t_end,t_diff;
+gettimeofday(&t_start, NULL); 
+
+   matMultTiledKer<<< grid, block >>>
+        (d_A, d_B, d_C, U, M, N);
+
+gettimeofday(&t_end, NULL);
+timeval_subtract(&t_diff,
+                 &t_end,&t_start);
+elapsed=(t_diff.tv_sec*1e6 +
+         t_diff.tv_usec); 
+double flops = 2.0 * M * N * U; 
+double gigaFlops=(flops*1.0e-3f) /
+                 elapsed; 
+\end{colorcode}
+\column{0.53\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+// KERNEL
+__global__ void matMultTiledKer( ... ) \{
+  \alert{__shared__ T Ash[T][T], Bsh[T][T];}
+  \emp{int ii = blockIdx.y * T;} //blockDim.x==T
+  \emp{int jj = blockIdx.x * T;} //blockDim.y==T
+  \emph{int tidy = threadIdx.y, i = tidy+ii;}
+  \emph{int tidx = threadIdx.x, j = tidx+jj;}
+  float tmp = 0.0;
+
+  for(int kk=0; kk<U; kk+=T) \{
+    \alert{Ash[tidy,tidx] = (i<M && kk+tidx<U) ?} 
+                     \alert{A[i,kk+tidx] : 0.0 ;}
+    \alert{Bsh[tidy,tidx] = (j<N && kk_tidy<U) ?} 
+                     \alert{B[kk+tidy,j] : 0.0 ;}
+    \blue{__syncthreads();}
+    \blue{for(int k=0; k<T; k++) \{}
+      \blue{tmp += Ash[tidy][k] * Bsh[k][tidx]}
+    \blue{\} __syncthreads();}
+  \} if (i<M && j<N) C[i,j] = tmp;
+\}
+\end{colorcode} 
+\end{columns}
+
+\end{frame}
+
+
+
+\section{Block Tiling: Matrix Transposition Study Case}
+
+\begin{frame}[fragile]
+	\tableofcontents[currentsection]
+\end{frame}
+
+\begin{frame}[fragile,t]
+  \frametitle{Matrix Transposition: Motivation} 
+
+\begin{columns}
+\column{0.42\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+// Non-Coalesced Memory Access
+// Transposition to coalesce it \mymath{\Rightarrow}
+DOALL i = 0 to N-1  // \emph{parallel}
+  tmpB = A[i,0] * A[i,0]
+  B[i,0] = tmpB
+  DO j = 1, 63 // \emp{sequential}
+    tmpA   = A[i, j]
+    accum  = tmpB*tmpB + tmpA*tmpA
+    B[i,j] = accum
+    tmpB   = accum
+  ENDDO
+ENDDO
+\end{colorcode}
+\column{0.55\textwidth}
+A' = transpose(A)
+DOALL i = 0 to N-1  // \emph{parallel}
+  tmpB = A'[0,i] * A'[0,i]
+  B'[0,i] = tmpB
+  DO j = 1, 63 // \emp{sequential}
+    tmpA   = A'[j, i]
+    accum  = tmpB*tmpB + tmpA*tmpA
+    B'[j, i] = accum
+    tmpB     = accum
+  ENDDO
+ENDDO
+B = transpose(B')
+\end{columns}
+\medskip
+
+\emph{Accesses to {\tt A} and {\tt B} invariant to loops {\tt i} and {\tt j} $\Rightarrow$ Block Tiling to optimize locality of reference!}  
+\bigskip
+
+First step: Strip Mining, always safe since 
+the transformed loop executes the same instructions in the same 
+order as the original loop:\medskip
+
+\begin{columns}
+\column{0.47\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+DO i = 1, N, 1  \alert{// stride 1}
+  loop_body(i)
+ENDDO
+
+
+\end{colorcode}
+\column{0.47\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+DO ii = 1, N, T        \alert{// stride T}
+  DO i = ii, MIN(ii+T-1,N), 1 
+    loop_body(i)
+  ENDDO
+ENDDO
+\end{colorcode}
+\end{columns}
 \end{frame}
 
 
