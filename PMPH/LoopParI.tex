@@ -674,7 +674,7 @@ Compilers cannot recognize and parallelize even simple scans:
 
 \end{frame}
 
-\section{Block Tiling: Matrix Multiplication Study Case}
+\section{Block Tiling: Matrix Multiplication Case Study}
 
 \begin{frame}[fragile]
 	\tableofcontents[currentsection]
@@ -865,9 +865,9 @@ dim3 block(T,T,1), grid(dimx,dimy,1);
 unsigned long int elapsed;
 struct timeval t_start,t_end,t_diff;
 gettimeofday(&t_start, NULL); 
-
-   matMultTiledKer<<< grid, block >>>
-        (d_A, d_B, d_C, U, M, N);
+  // ignoring generic shared mem problems
+  matMultTiledKer<T><<<grid, block>>>
+            (d_A, d_B, d_C, U, M, N);
 
 gettimeofday(&t_end, NULL);
 timeval_subtract(&t_diff,
@@ -880,9 +880,9 @@ double gigaFlops=(flops*1.0e-3f) /
 \end{colorcode}
 \column{0.53\textwidth}
 \begin{colorcode}[fontsize=\scriptsize]
-// KERNEL
+template <int T> // KERNEL
 __global__ void matMultTiledKer( ... ) \{
-  \alert{__shared__ T Ash[T][T], Bsh[T][T];}
+  \alert{__shared__ float Ash[T][T], Bsh[T][T];}
   \emp{int ii = blockIdx.y * T;} //blockDim.x==T
   \emp{int jj = blockIdx.x * T;} //blockDim.y==T
   \emph{int tidy = threadIdx.y, i = tidy+ii;}
@@ -907,7 +907,7 @@ __global__ void matMultTiledKer( ... ) \{
 
 
 
-\section{Block Tiling: Matrix Transposition Study Case}
+\section{Coalesced Accesses: Matrix Transposition Case Study}
 
 \begin{frame}[fragile]
 	\tableofcontents[currentsection]
@@ -957,66 +957,693 @@ accesses to global memory than the original.}
 \emph{But exhibits only coalesced accesses!}
 \bigskip
 
-\alert{What else could we have done to achieve the same effect?}
+\alert{What else could we have done to achieve the same effect?}\\\pause
+\emph{Loop Interchange. Does it works in general?}
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+  \frametitle{Transposition: Strip Mining, Interchange \& Kernel} 
+\vspace{-1ex}
+\begin{columns}
+\column{0.42\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+//\emphh{Both loops are parallel}
+//Strip mining \& interchange\mymath{\Rightarrow}
+for(i = 0; i < rowsA; i++) \{    
+  for(j = 0; j < colsA; j++) \{ 
+    trA[j*rowsA+i] = A[i*colsA+j];
+\} \}
+\end{colorcode}
+\column{0.55\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+\emp{for(ii=0; ii<rowsA; ii+=T) \{}
+  \emp{for(jj=0; jj<colsA; jj+=T) \{}
+    \emphh{for(i=ii; i<min(ii+T,rowsA); i++) \{}
+      \emphh{for(j=jj; j<min(jj+T,colsA); j++) \{}
+        \blue{trA[j*rowsA+i]} = A[i*colsA+j];
+\} \} \} \}
+\end{colorcode}
+\end{columns}
+
+
+
+\begin{columns}
+\column{0.5\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+__global__ void matTranspose(
+        float* A,  float* trA, 
+        int rowsA, int colsA  ) \{
+  __shared__ float tile[T][\alert{T}];
+  int tidx = threadIdx.x;
+  int tidy = threadIdx.y;
+  int j    = blockIdx.x*T + tidx;
+  int i    = blockIdx.y*T + tidy;
+  if( j < colsA && i < rowsA )
+    tile[tidy][tidx] = A[i*colsA+j];
+  __syncthreads();
+  \blue{i = blockIdx.y*T + threadIdx.x;} 
+  \blue{j = blockIdx.x*T + threadIdx.y;}
+  \blue{if( j < colsA && i < rowsA )}
+    \blue{trA[j*rowsA+i] = tile[tidx]\alert{[tidy]};}
+\}
+\end{colorcode}
+\column{0.47\textwidth}
+\begin{itemize}
+    \item \blue{Trick is to write the element of the symmetric thread in the same block.}
+    \item \alert{What is the problem?}\pause
+    \item Number of shared memory banks typically 16 or 32.
+    \item T is also either 16 or 32 $\Rightarrow$
+    \item 16 consecutive threads will read the same 
+            memory bank at the same time.
+    \item \emph{Solution: {\tt tile[T][\alert{T+1}];} }
+\end  {itemize}
+\end{columns}
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+  \frametitle{Lessons Learned So Far} 
+
+\begin{itemize}
+    \item Tiled transposition is less that $3\times$ faster
+            than the naive version,
+    \item but the motivating example runs more than $8\times$
+            faster when transposition coalesces accesses to arrays 
+            {\tt A} and {\tt B}. \alert{Why?}\pause
+    \item \emp{Better to eliminate rather than hide latency.}
+            Impact of hardware multi-threading limited  
+            by the amount of available resources!\bigskip
+
+    \item Generic Array of Tuples using shared memory:\pause requires a class
+            with a ``volatile'' assignment operator [Esben Skaarup]. 
+    \item I believe it is safe to ignore the warnings; they can be
+            eliminated at the expense of writing awkward code.\bigskip
+
+    \item Shared-memory of generic type [Aske Dorge]:\pause
+            empirically, $\sim8$ words of shared memory per 
+            thread does not degrade perform.
+    \item Simple solution: declare in kernel a shared memory
+            array of type {\tt char}, then cast it to the generic type. 
+            Set the size when calling the kernel to {\tt block\_size*32} bytes.
+\end  {itemize}
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+  \frametitle{Constant (Read-Only) Memory in CUDA} 
+
+\begin{itemize}
+    \item 64KB of {\tt \_\_constant\_\_} memory on device (global/slow), 
+            cached in each multiprocessor, e.g., 8KB (fast).\smallskip
+    \item May reduce the required memory bandwidth:
+            \begin{itemize}
+                \item if found in cache, then no extra traffic,
+                \item if a (half) warp accesses the same location and 
+                        misses in cache $\Rightarrow$
+                        only one request is sent and the result is
+                        broadcast back to all,
+                \item \alert{serialized} accesses if a warp of threads
+                        read different locations!
+                \item latency can range from one to hundreds of cycles.
+            \end{itemize}\smallskip
+    \item \emph{Best Use: when an entire block accesses 
+                the same location in the same SIMD instruction}:
+            even on a miss, the first warp brings the data in cache @ minimal traffic,
+            the rest find it in cache. 
+\end  {itemize}
+
+\begin{columns}
+\column{0.4\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+// \emphh{C in __constant__ memory: Good!}
+DO i = 1, N, 1   \emp{// grid}
+  DO j = 1, M, 1 \emp{// block(s)}
+    A[i,j] = A[i,j] \% C[i]
+ENDDO
+\end{colorcode}
+\column{0.55\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+// \alert{C in __constant__ memory: Bad!}
+DO i = 1, N, 1   \emp{// grid}
+  DO j = 1, M, 1 \emp{// block(s)}
+    A[i,j] = A[i,j] \% C[j]
+ENDDO
+// \emphh{Either global memory or loop interchange}
+\end{colorcode}
+\end{columns}
+\end{frame}
+
+
+\section{Non-Trivial Synchronization: Histogram Case Study}
+\begin{frame}[fragile]
+	\tableofcontents[currentsection]
+\end{frame}
+
+\begin{frame}[fragile,t]
+  \frametitle{Histogram: Problem Statement}
+  
+\begin{block}{Sequential Pseudocode \mbox{~~~~~~}\&\mbox{~~~~~~} Notation/Parameters:}
+\begin{columns}
+\column{0.4\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+for(int i = 0; i < N; i++ ) \{
+    (ind, val) = fun(image,i);
+    H[ ind ] += val;
+\}
+\end{colorcode}
+\column{0.54\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+H = histogram
+B = sizeof(H), e.g., 4\mymath{\times}4 \mymath{\dots} 64\mymath{\times}64 
+N = sizeof(image), e.g., 256\mymath{\times}256\mymath{\times}256 
+P = degree of parallelism (\# of cores)
+\end{colorcode}
+\end{columns}
+\end{block} 
+
+\bigskip
+Typically, the additions to a histogram are {\tt 1},
+but in this case two locations of the histogram are
+incremented with {\tt val} and {\tt 1.0-val} (not shown).\bigskip  
+
+{\tt ind} values are unstructured and may generate data races\\
+if loop iterations are executed out of order, i.e., in parallel.
+
+%\pause
+\bigskip
+However the code looks like a reduction on arrays $\Rightarrow$ can be \emph{parallelized}.
+
+%\begin{center} 
+%\includegraphics[height=20ex]{figures/MulticoreArch.png}  
+%$\mbox{ }\mbox{ }\mbox{ }\mbox{ }\mbox{ }\mbox{ }\mbox{ }\mbox{ }\mbox{ }\mbox{ }\mbox{ }\mbox{ }\mbox{ }\mbox{ }\mbox{ }\mbox{ }$ 
+%\includegraphics[height=20ex]{figures/GPGPUarch.png}  
+%\end{center} 
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+  \frametitle{Histogram: OpenMP Code}
+  
+\begin{block}{ One Histogram/Thread \mbox{~~~~~~} \& \mbox{~~~~~~} Reduce Across Histograms }
+\begin{columns}
+\column{0.48\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+int   P  = omp_get_num_threads(); 
+REAL* pH = new REAL[P*B]; 
+\emph{#pragma omp parallel}
+\{ int   th_id = omp_get_thread_num();
+  REAL* privH = pH + th_id * B;
+  for(int i=0; i<B; i++) privH[i]=0.0;
+
+\emph{#pragma omp for schedule(static)}
+  \emp{for( int i=0; i < N; i++ )} \{
+    (ind, val) = fun(image,i);
+    privH[ ind ] += val;
+  \} // \emp{end par for}
+\end{colorcode}
+\column{0.48\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+// Assuming B big enough
+pH' = parallel_transpose(pH);
+
+\emph{#pragma omp for schedule(static)}
+  \emp{for( int i=0; i<B; i++ )} \{
+     for( int p=0; p<P; p++ ) \{
+       H[i] += pH'[i*P + p];
+     \}
+  \} // \emp{end par for}
+\} // \emp{end OMP parallel region}
+\end{colorcode}
+\end{columns}
+\end{block} 
+
+\bigskip
+
+Work Efficient: $O({\tt P} \times {\tt B}) \leq O({\tt N})$.
+Typically only the outer loop of the (image) nest is executed in parallel,
+since {\tt P} is relatively small. 
+
+\bigskip
+
+The alternative is to not privatize \& reduce, but instead to 
+provide lock-free (fine-grain) synchronization for each index 
+in the histogram. 
+
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+  \frametitle{What Is Different for GPGPU Parallelization ?}
+  
+Differences:
+\begin{itemize}
+    \item Quite a few more cores, hence need to exploit all levels of parallelism,\bigskip %\pause \bigskip
+    \item No (illusion of) constant-time random-memory access, e.g.,
+            global memory accesses are up to two order of magnitude 
+            more expensive than (scarce) local memory,\bigskip
+    \item Synchronization primitives limited to local workgroup, i.e., barriers, 
+            and can simulate {\sc cas}-like instructions at warp level. 
+\end{itemize}
+
+%\pause
+%\bigskip
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+  \frametitle{Intuition}
+  
+\begin{itemize}
+    \item If possible, keep histograms in local memory, 
+            e.g., about $16$ ``local'' floats per thread:\bigskip
+    \item If {\tt B} $\leq 16$ then $1$ histogram is maintained per thread,
+    \item if {\tt B} $= 32$ then two threads build one histogram,
+            using compare-and-swap {\sc cas} like locking.\bigskip
+    \item In general if $16 <${\tt B} $\leq 32*8 = 512$ then up to $32$ (warp size)
+            threads cooperate at building a histogram.\bigskip
+    \item \emp{Difficulty:} up to {\tt B}$=16\times128$ one workgroup 
+            builds a histogram; unfortunately no efficient 
+            {\sc cas}-like sync. at workgroup level.\bigskip
+    \item \emp{Difficulty:} for {\tt B}$\geq 64*64$ need to keep the 
+            histogram in global memory: prohibitively expensive
+            due to irregular accesses.
+\end{itemize}   
+
+
+For simplicity use fix $L = 128$ the size of the local workgroup,
+$G = 512$ the number of workgroups, and unroll the loop: $N / (L\times G)$.
+Work Efficient $\sim$ {\tt B} $ \leq $ {\tt N} / {\tt G}.
+  
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+  \frametitle{ When {\tt L / WARP} Histograms Fit in Shared Memory }
+
+\begin{block}{ CUDA Pseudocode; {\tt }, {\tt C} is the number of cooperating threads}
+\begin{colorcode}[fontsize=\scriptsize]
+\emph{__shared__ REAL sh_hist[ 16 * L ];} // L is the size of the block.
+int tid = threadIdx.x;
+// \emp{init local histogram(s)}
+for( t = tid; t < 16*L; t += L )
+    sh_hist[ t ] = 0.0;  
+__syncthreads();
+
+// \emp{2) each thread executes U iterations sequentially.}
+u = blockIdx.x * U * L + tid; 
+for( t = u; t < u+(U*L); t += L ) \{
+    (ind, val) = fun(image,i);
+    // we work with the transposed sh_hist
+    ind = ( ind * L / C ) + ( tid / C );  
+    if ( C > 1 )
+         \emph{raw_cas_update( sh_hist, ind, val );}
+    else \emph{sh_hist[ ind ] += val;}
+\}  __syncthreads();
+
+// \emp{3) reduce locally across histograms}
+segm_scan_reg_block( sh_hist, B * L / C, L / C );
+// \emp{4) commit the resulted local histogram to global storage } ...
+\end{colorcode}
+\end{block} 
+%jhist += get_group_id(0) * B;
+%for(t = TH_ID; t < B; t += L ) 
+%    ghist[ t ] = sh_hist[ t ];   
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+  \frametitle{ CAS-like Synchronization }
+
+\begin{block}{ Function {\tt raw\_cas\_update} }
+\begin{colorcode}[fontsize=\scriptsize]
+void raw_cas_update(volatile REAL* sh_hist, ulong ind, REAL val) \{
+    REAL acc, id  = (REAL)threadIdx.x;
+    if (val == 0.0) return;
+    bool repeat = true;
+    while(repeat) \{
+        acc = sh_hist[ind];
+        \emp{sh_hist[ind] = id;} 
+        \emp{if( sh_hist[ ind ] == id )} \{
+            \emph{sh_hist[ ind ] = acc + val;}
+            repeat = false;
+        \}
+    \}
+\}
+\end{colorcode}
+\end{block} 
+
+\bigskip
+
+Bug in {\sc nvidia} implem of \textsc{OpenCL}: 
+if barriers are placed inside {\tt while} loop the
+execution does not deadlocks but incorrect result!\bigskip
+
+\alert{How Do Results Look Like?}
+
+\end{frame}
+
+
+\section{Known Recurrences: Tridiagonal Solver Case Study}
+\begin{frame}[fragile]
+	\tableofcontents[currentsection]
+\end{frame}
+
+\begin{frame}[fragile,t]
+  \frametitle{TRIDAG Motivation}
+
+\emp{\em Stochastic Volatility Calibration}: given a set of observed prices
+of contracts, identify a model of such prices, as a function of volatility
+(unknown), time and strikes (known), and some other (unobserved) parameters.
+\bigskip 
+
+Volatility is modeled as a system of continuous differential
+equations and solved via Crank-Nicolson finite-difference method:
+%Compute function $f(x,t)$, $f : \mathcal{S} \times [0, T] \rightarrow \mathbb{R}$, 
+%which solves the second order partial differential equation:
+
+\begin{equation}
+\frac{\partial f}{\partial t}(x,t)\mbox{ }+\mbox{ }\mu(x,t)\frac{\partial f}{\partial x}(x,t)\mbox{ }+\mbox{ }
+\frac{1}{2}\sigma(x,t)^{2}\frac{\partial^{2} f}{\partial x^{2}}(x,t)\mbox{ }-\mbox{ }
+r(x,t)f(x,t) = 0
+\end{equation}
+
+\smallskip
+
+with terminal condition $f(x, T) = F(x), x \in \mathcal{S}$, where $F$ is known.
+
+\bigskip
+
+\emp{It comes down to solving this equation for many instances of $\mu, \sigma, r$.}
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+  \frametitle{Explicit Finite Difference Approach}
+
+\begin{itemize}
+    \item $\Delta x = (x_{J}-x_{1})/J$, $\Delta t = (t_{N}-t_{1})/N$\smallskip
+    \item Uses Parametrizations:
+        \begin{itemize}
+            \item $D_xf_{j,n} = \frac{f_{j+1,n}-f_{j-1,n}}{2\Delta x}$,
+                  $D_x^2f_{j,n} = \frac{f_{j+1,n}-2f_{j,n}+f_{j-1,n}}{(\Delta x)^2}$
+            \item \alert{$D_t^{-}f_{j,n} = \frac{f_{j,n} - f_{j,n-1}}{\Delta t}$} 
+        \end  {itemize}\smallskip
+    \item Using this discretization in the differential equation yields:\\
+             $f_{j,n-1} = \alpha_{j,n}f_{j-1,n} + \beta_{j,n}f_{j,n} + \gamma_{j,n}f_{j+1,n}$\smallskip
+    \item where $f_{j,N}$ are known $\forall j \in \{1\ldots J\}$ and 
+             we aim to find $f_{j,1}, \forall j$.\smallskip
+    \item Trivial Parallel Algorithm Depth $O(T)$, Work $O(JT)$\smallskip
+
+    \item \alert{However, mathematical reasoning requires $N >> J$, i.e.,
+            a very fine-grained time discretization $\Rightarrow$ deep depth!}
+\end  {itemize}
+
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+  \frametitle{Implicit Finite Difference Approach}
+
+\begin{itemize}
+    \item $\Delta x = (x_{J}-x_{1})/J$, $\Delta t = (t_{N}-t_{1})/N$\smallskip
+    \item Uses Parametrizations:
+        \begin{itemize}
+            \item $D_xf_{j,n} = \frac{f_{j+1,n}-f_{j-1,n}}{2\Delta x}$,
+                  $D_x^2f_{j,n} = \frac{f_{j+1,n}-2f_{j,n}+f_{j-1,n}}{(\Delta x)^2}$
+            \item \alert{$D_t^{+}f_{j,n} = \frac{f_{j,n+1} - f_{j,n}}{\Delta t}$}
+        \end  {itemize}\smallskip
+    \item Using this discretization in the differential equation yields:\\
+             $f_{j,n+1} = a_{j,n}f_{j-1,n} + b_{j,n}f_{j,n} + c_{j,n}f_{j+1,n}$\smallskip
+    \item where $f_{j,N}$ are known $\forall j \in \{1\ldots J\}$ and 
+             we aim to find $f_{j,1}, \forall j$,\smallskip
+    \item meaning that we know $f_{j,n+1}~\forall j$ and want to compute $f_{j,n}~\forall j$\smallskip
+    \item \emp{Requires solving a tridiagonal system (TRIDAG) at every time step; non-trivial
+            to parallelize!}
+
+    \item \alert{However, mathematical reasoning requires $N \sim J$, i.e.,
+            the depth is reduced and degree of parallelism increased.}
+\end  {itemize}
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+  \frametitle{TRIDAG Problem Statement}
+
+\begin{block}{Needed: Parallel Algorithm for Computing $X$:} 
+
+Given $A$ and $D$, find $X$ such that \emp{$A * X = D$}, \\
+       where $A \in \mathbb{M}^{n \times n}$ is \emph{tridiagonal}, and $X$ and $D$ vectors of size $n$.
+
+\begin{colorcode}[fontsize=\scriptsize]
+                   \emp{\mymath{A}                   *    \mymath{X}     =    \mymath{D}}
+ | b\mymath{\myindx{0}}  c\mymath{\myindx{0}}  0   0    ............... 0 |   | x\mymath{\myindx{0}}   |   | d\mymath{\myindx{0}}   |
+ | a\mymath{\myindx{0}}  b\mymath{\myindx{1}}  c\mymath{\myindx{1}}  0    ............... 0 |   | x\mymath{\myindx{1}}   |   | d\mymath{\myindx{1}}   |
+ | 0   a\mymath{\myindx{1}}  b\mymath{\myindx{2}}  c\mymath{\myindx{2}}  0  ............. 0 |   | x\mymath{\myindx{2}}   |   | d\mymath{\myindx{2}}   |
+ | .................................. | * | .... | = | .... |
+ | 0    0  ...    0    a\mymath{\myindx{n-3}} b\mymath{\myindx{n-2}} c\mymath{\myindx{n-2}} |   | x\mymath{\myindx{n-2}} |   | d\mymath{\myindx{n-2}} |
+ | 0    0  ...    0    0    a\mymath{\myindx{n-2}} b\mymath{\myindx{n-1}} |   | x\mymath{\myindx{n-1}} |   | d\mymath{\myindx{n-1}} |
+
+\end{colorcode}
+\end{block}
+
+At every step in the time series/discretization (sequential), we know matrix {\tt A} and
+vector {\tt D} and need to compute in parallel vector {\tt X}.
+
+\end{frame}
+
+
+
+
+\begin{frame}[fragile,t]
+  \frametitle{High-Level Solution (Sequential and Parallel)}
+
+\begin{block}{Problem is to Find $X$ = $[x_0, ..., x_{n-1}]^T$ such that:} 
+
+\begin{colorcode}[fontsize=\scriptsize]
+                   \emp{\mymath{A}                   *    \mymath{X}     =    \mymath{D}}
+
+ | b\mymath{\myindx{0}}  c\mymath{\myindx{0}}  0   0    ............... 0 |   | x\mymath{\myindx{0}}   |   | d\mymath{\myindx{0}}   |
+ | a\mymath{\myindx{0}}  b\mymath{\myindx{1}}  c\mymath{\myindx{1}}  0    ............... 0 |   | x\mymath{\myindx{1}}   |   | d\mymath{\myindx{1}}   |
+ | 0   a\mymath{\myindx{1}}  b\mymath{\myindx{2}}  c\mymath{\myindx{2}}  0  ............. 0 |   | x\mymath{\myindx{2}}   |   | d\mymath{\myindx{2}}   |
+ | .................................. | * | .... | = | .... |
+ | 0    0  ...    0    a\mymath{\myindx{n-3}} b\mymath{\myindx{n-2}} c\mymath{\myindx{n-2}} |   | x\mymath{\myindx{n-2}} |   | d\mymath{\myindx{n-2}} |
+ | 0    0  ...    0    0    a\mymath{\myindx{n-2}} b\mymath{\myindx{n-1}} |   | x\mymath{\myindx{n-1}} |   | d\mymath{\myindx{n-1}} |
+
+\end{colorcode}
+\end{block}
+
+\begin{itemize}
+    \item STEP 1: Compute the LU decomposition of $A$, i.e., $A = L * U$, 
+                  where $L$ and $U$ are lower and upper-diagonal matrices $\in \mathbb{M}^{n \times n}$. \bigskip
+%
+    \item STEP 2: Solve $L * Y = D$, i.e., compute partial solution $Y$. \bigskip
+%
+    \item STEP 3: Solve $U * X = Y$, i.e., compute problem solution $X$. \bigskip
+%
+    \item \emp{Each of the three steps needs to be parallel (of depth $O(log n)$)!}
+\end{itemize}
+
+\end{frame}
+
+
+
+\begin{frame}[fragile,t]
+  \frametitle{High-Level Solution (Sequential and Parallel)}
+
+\begin{block}{Problem is to Find $X$ = $[x_0, ..., x_{n-1}]^T$ such that:} 
+
+\begin{colorcode}[fontsize=\scriptsize]
+                   \emp{\mymath{A}                   *    \mymath{X}     =    \mymath{D}}
+
+ | b\mymath{\myindx{0}}  c\mymath{\myindx{0}}  0   0    ............... 0 |   | x\mymath{\myindx{0}}   |   | d\mymath{\myindx{0}}   |
+ | a\mymath{\myindx{0}}  b\mymath{\myindx{1}}  c\mymath{\myindx{1}}  0    ............... 0 |   | x\mymath{\myindx{1}}   |   | d\mymath{\myindx{1}}   |
+ | 0   a\mymath{\myindx{1}}  b\mymath{\myindx{2}}  c\mymath{\myindx{2}}  0  ............. 0 |   | x\mymath{\myindx{2}}   |   | d\mymath{\myindx{2}}   |
+ | .................................. | * | .... | = | .... |
+ | 0    0  ...    0    a\mymath{\myindx{n-3}} b\mymath{\myindx{n-2}} c\mymath{\myindx{n-2}} |   | x\mymath{\myindx{n-2}} |   | d\mymath{\myindx{n-2}} |
+ | 0    0  ...    0    0    a\mymath{\myindx{n-2}} b\mymath{\myindx{n-1}} |   | x\mymath{\myindx{n-1}} |   | d\mymath{\myindx{n-1}} |
+\end{colorcode}
+\end{block}
+
+\begin{colorcode}[fontsize=\scriptsize]
+void tridag( REAL* a, REAL* b, REAL* c, REAL* d, int n, REAL* y, REAL* u )\{
+    double beta;
+    y[0] = d[0];   u[0] = b[0];
+    for(int i=1; i<n; i++) \{     // distribute with
+        beta = a[i] / u[i-1];     // direction vcts!
+        u[i] = b[i] - beta*c[i-1];
+        y[i] = d[i] - beta*y[i-1];
+    \}
+    y[n-1] = y[n-1]/u[n-1];
+    for(int i=n-2; i>=0; i--) \{
+        y[i] = (y[i] - c[i]*y[i+1]) / u[i];
+\}  \}
+\end{colorcode}
+
+\end{frame}
+
+
+
+\begin{frame}[fragile,t]
+  \frametitle{LU-Decomposition Recurrences}
+
+\begin{block}{Writing the LU decomposition: $A = L * U$, where $L, U \in \mathbb{M}^{n\times n}$} 
+\begin{colorcode}[fontsize=\scriptsize]
+            \mymath{A}                =           \mymath{L}           *          \mymath{U}
+ 
+ | b\mymath{\myindx{0}}  c\mymath{\myindx{0}}  0   0  ... 0    |   | 1   0  0 ...   0 |   | u\mymath{\myindx{0}}  c\mymath{\myindx{0}}  0 ... 0    |
+ | a\mymath{\myindx{0}}  b\mymath{\myindx{1}}  c\mymath{\myindx{1}}  0  ... 0    |   | m\mymath{\myindx{0}}  1  0 ...   0 |   | 0   u\mymath{\myindx{1}}  c\mymath{\myindx{1}}... 0    |
+ | .................. c\mymath{\myindx{n-2}} | = | ................ | * | ....... u\mymath{\myindx{n-2}} c\mymath{\myindx{n-2}} |
+ | 0   0 ...  0  a\mymath{\myindx{n-2}} b\mymath{\myindx{n-1}} |   | 0 ...  0  m\mymath{\myindx{n-2}} 1 |   | 0 ..... 0    u\mymath{\myindx{n-1}} |
+\end{colorcode}
+\end{block}
+
+\bigskip
+
+\begin{block}{LU-decomposition Recurrences:} 
+\begin{colorcode}[fontsize=\scriptsize]
+I.  First, compute {\tt u}\mymath{\myindx{i}, i \in \{0 .. n-1\}}: 
+        I.a) {\tt u}\mymath{\myindx{0}} = {\tt b}\mymath{\myindx{0}}
+        I.b) {\tt u}\mymath{\myindx{i}} = {\tt b}\mymath{\myindx{i}} - ( {\tt a}\mymath{\myindx{i-1}} * {\tt c}\mymath{\myindx{i-1}} ) / {\tt u}\mymath{\myindx{i-1}},   \mymath{i \in \{1 .. n-1\}}
+
+II. Knowing the {\tt u}'s, we can easily compute the {\tt m}'s:
+             {\tt m}\mymath{\myindx{i}} = {\tt a}\mymath{\myindx{i}} / {\tt u}\mymath{\myindx{i}}, \mymath{i \in \{0 .. n-2\}}
+\end{colorcode}
+\end{block}
+
+%Testing to see the font here!
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+  \frametitle{The Difficult Recurrence of LU-Decomposition I.b) }
+
+\begin{block}{ Parallel Algorithm: {\bf scan} with $\mathbb{M}^{2\times 2}$ multiplication operator} 
+\begin{colorcode}[fontsize=\scriptsize]
+Recurrence:
+    I.a) {\tt u}\mymath{\myindx{0}} = {\tt b}\mymath{\myindx{0}}
+    I.b) {\tt u}\mymath{\myindx{i}} = {\tt b}\mymath{\myindx{i}} - ( {\tt a}\mymath{\myindx{i-1}} * {\tt c}\mymath{\myindx{i-1}} ) / {\tt u}\mymath{\myindx{i-1}},  \mymath{i \in \{1 .. n-1\}} 
+
+1) Substitute in I.b) {\tt u}\mymath{\myindx{i}\mbox{ }\leftarrow} {\tt q}\mymath{\myindx{i+1}} / {\tt q}\mymath{\myindx{i}}, 
+        where q\mymath{\myindx{1}} = b\mymath{\myindx{0}} and q\mymath{\myindx{0}} = 1.0, i.e., u\mymath{\myindx{0}} == b\mymath{\myindx{0}} still holds! \emph{We obtain:}
+    I.c) | q\mymath{\myindx{i+1}} | = | b\mymath{\myindx{i}}      - a\mymath{\myindx{i-1}} * c\mymath{\myindx{i-1}} | * | q\mymath{\myindx{i}}   |    
+         | q\mymath{\myindx{i}}   |   | 1.0     0.0          |   | q\mymath{\myindx{i-1}} |    \mymath{i \in \{1 .. n-1\}}
+
+2) Denoting the above \mymath{2\times 2} matrix by S\mymath{\myindx{i}\mbox{ }\in\mbox{ }\mathbb{M}\myindu{2\times{}2}} we obtain by induction:
+    I.d) | q\mymath{\myindx{i+1}}  q\mymath{\myindx{i}} |\mymath{\myindu{T}} = ( S\mymath{\myindx{i}} * S\mymath{\myindx{i-1}} * S\mymath{\myindx{1}} ) * | b\mymath{\myindx{0}} 1.0 |\mymath{\myindu{T}}
+
+3) We can compute all such matrices, i.e., S\mymath{\myindx{i}} * S\mymath{\myindx{i-1}} * S\mymath{\myindx{1}} with \mymath{i\in\{1..n-1\}}, 
+   by applying {\bf{}scanInc} with the (associative) matrix-multiplication operator (*)
+    I.e) matrices = scanInc (*) [S\mymath{\myindx{n-1}}, S\mymath{\myindx{n-2}}, ..., S\mymath{\myindx{1}}]
+
+4) Finally, we compute each [q\mymath{\myindx{i+1}}, q\mymath{\myindx{i}}]\mymath{\myindu{T}} by multiplying its corresponding 
+   matrix with [b\mymath{\myindx{0}}, 1.0]\mymath{\myindu{T}}, and compute u\mymath{\myindx{i}} = {\tt q}\mymath{\myindx{i+1}} / {\tt q}\mymath{\myindx{i}}. \emph{Both are PARALLEL:}
+    I.f) q_pairs = map (matVectMult (b\mymath{\myindx{0}}, 1.0)) matrices
+    I.g) u       = map (\mymath{\backslash} (x,y) \mymath{\rightarrow} x/y) q_pairs
+\end{colorcode}
+\end{block}
+
+% , which has the identity \mymath{2 \times 2} matrix as neutral element.
+
+
 \end{frame}
 
 
 %\begin{frame}[fragile,t]
-%  \frametitle{Block Tiling via Loop Distribution and Interchange} % of CPU, Multicores, GPGPU
-%\vspace{-2ex}
-%\begin{block}{Matrix Multiplication Example}
-%\begin{columns}
-%\column{0.47\textwidth}\vspace{-2ex}
-%\begin{colorcode}[fontsize=\scriptsize]
-%DOALL i = 1, N, 1   \emphh{// Parallel}
-%  DOALL j = 1, N, 1  \emphh{// Parallel}
-%    float tmp = 0.0
-%    DO k = 1, N, 1
-%      tmp += A[i,k]*B[k,j]
-%    ENDDO
-%    C[i,j] = tmp;
-%  ENDDO
-%ENDDO
-%// \mymath{\downarrow} Strip Mining \mymath{\downarrow}
-%// \mymath{\downarrow} Always Safe  \mymath{\downarrow}
-%\emp{DOALL ii = 1, N, L}
-%  \emph{DOALL i = ii, ii+L-1, 1} //loop
-%    \emp{DOALL jj = 1, N, L} //interchange
-%      \emph{DOALL j = jj, jj+L-1, 1}
-%        float tmp = 0.0
-%        DO kk = 1, N, L
-%          DO k = kk, kk+L-1, 1
-%            tmp += A[i,k]*B[k,j]
-%        ENDDO ENDDO
-%        C[i,j] = tmp;
-%ENDDO ENDDO ENDDO ENDDO
-%\end{colorcode} 
-%\column{0.47\textwidth}\vspace{-2ex}
-%\begin{colorcode}[fontsize=\scriptsize]
+%  \frametitle{Implementing The LU-Decomposition Recurrences}
 %
-%// \mymath{\downarrow} \emp{Cuda Grid} \mymath{\downarrow}
-%// \mymath{\downarrow} \emph{Cuda Block}  \mymath{\downarrow}
+%5) Recurrence II, i.e., {\tt m}\mymath{\myindx{i}} = {\tt a}\mymath{\myindx{i}} / {\tt u}\mymath{\myindx{i}}, \mymath{i \in \{0 .. n-2\}} is written in parallel as:
+%    {\tt{}m = map (lambda(x,y) -> x/y) (zip a u)}
 %
-%\emp{DOALL ii = 1, N, L}   // grid.y
-%  \emp{DOALL jj = 1, N, L} // grid.x
-%    \emph{DOALL i = ii, ii+L-1}   // block.y 
-%      \emph{DOALL j = jj, jj+L-1} // block.x
-%        float tmp = 0.0
-%        DO kk = 1, N, L
-%          DO k = kk, kk+L-1
-%\alert{S1}            tmp += A[i,k]*B[k,j]
-%        ENDDO ENDDO 
-%        C[i,j] = tmp;
-%ENDDO ENDDO ENDDO ENDDO
-%// \mymath{\downarrow} What are the indices touched by\mymath{\downarrow}
-%// \mymath{\downarrow} a block at \alert{statement S1}?\mymath{\downarrow}
-%// \mymath{\downarrow} A[ii:ii+L-1, kk:kk+L-1] ... \mymath{\downarrow}
+%\begin{block}{ Haskell Code for Parallel LU Decomposition:} 
+%\begin{colorcode}[fontsize=\scriptsize]
+%\emp{computeLU_us_par} :: (Fractional a, Ord a) => [a] -> [a] -> [a] -> [a] 
+%\emp{computeLU_us_par} a b c = 
+%    let matMult2by2 [a1, a2, a3, a4] [b1, b2, b3, b4] =
+%            [ (b1*a1+b2*a3), (b1*a2+b2*a4), (b3*a1+b4*a3), (b3*a2+b4*a4) ]
+%        matVectMult b0 [a1, a2, a3, a4] = (a1*b0 + a2) / (a3*b0 + a4)
+%            
+%        b0             = head b
+%        abc            = zip3 a (tail b) c
+%        matrices\_inp  = map (lambda (a,b,c)->[b, (- (a * c)), 1.0, 0.0]) abc 
+%        matrices\_out  = \emph{scanl matMult2by2 [1.0, 0.0, 0.0, 1.0] matrices\_inp}
+%    in map (matVectMult b0) matrices\_out
+%
+%\emp{computeLU_ms_par} :: (Fractional a, Ord a) => [a] -> [a] -> [a]
+%\emp{computeLU_ms_par} a u = map (lambda(x,y) -> x/y) (zip a u)
+%
+%\emp{decompLU} :: (Fractional a, Ord a) => [a] -> [a] -> [a] -> ([a],[a]) 
+%\emp{decompLU} a b c = (\emph{computeLU_us_par} a b c, \emph{computeLU_ms_par} a us)
 %\end{colorcode}
-%\end{columns}
 %\end{block}
 %
 %\end{frame}
 
+
+\begin{frame}[fragile,t]
+  \frametitle{STEP 2 \& 3: Solving For/Backward Recurrences}
+
+\begin{block}{ STEP 2: Parallel Algorithm for $L * Y = D$ (forward recurrence)} 
+\begin{colorcode}[fontsize=\scriptsize]
+1) By doing the arithmetics, it comes down to solving the recurrence:
+    II.a) y\mymath{\myindx{0}} = d\mymath{\myindx{0}}
+    II.b) y\mymath{\myindx{i}} = d\mymath{\myindx{i}} - m\mymath{\myindx{i-1}} * y\mymath{\myindx{i-1}},   \mymath{i \in {1 .. n-1}}
+
+2) We shall use {\bf scanInc} with linear-function-composition operator:
+      i)   Consider f\mymath{\myindx{1}}(x) = a\mymath{\myindx{1}} + b\mymath{\myindx{1}}*x and f\mymath{\myindx{2}}(x) = a\mymath{\myindx{2}} + b\mymath{\myindx{2}}*x
+      ii)  (f\mymath{\myindx{1}\mbox{ }\diamond\mbox{ }}f\mymath{\myindx{2}}) (x) = (a\mymath{\myindx{2}}+b\mymath{\myindx{2}}*a\mymath{\myindx{1}}) + (b\mymath{\myindx{1}}*b\mymath{\myindx{2}})*x
+      iii) We represent such a function f as a pair (a, b), and implement 
+           function application via operator: apply x (a, b) = a + b*x
+
+3) Representing f\mymath{\myindx{i}} = (d\mymath{\myindx{i}}, -m\mymath{\myindx{i-1}}), \mymath{i \in {1 .. n-1}}
+      i)   It follows by induction that y\mymath{\myindx{i}} = ( f\mymath{\myindx{i}} \mymath{\diamond} f\mymath{\myindx{i-1}} \mymath{\diamond} ... \mymath{\diamond} f\mymath{\myindx{1}} ) (d\mymath{\myindx{0}})
+      ii)  We do a {\bf scanInc} with \mymath{\diamond} and neutral element (0.0, 1.0):
+                f_out = scanInc (\mymath{\diamond}) (0.0, 1.0) [f\mymath{\myindx{1}}, ..., f\mymath{\myindx{n-1}}]
+      iii) Finally, apply the f_out's to d\mymath{\myindx{0}} to compute all y\mymath{\myindx{i}}, \mymath{i\in\{1 .. n-1\}}
+                y = map (apply d\mymath{\myindx{0}}) f_out
+\end{colorcode}
+\end{block}
+\smallskip
+\emph{STEP 3: Solving $U * X = Y$ is similar to STEP 2 (but {\it backwards}):}
+
+      \emph{III.a) {\tt x}$_{n-1}$ = {\tt y}$_{n-1}$/{\tt u}$_{n-1}$ $\mbox{ }\mbox{ }\mbox{ }$}
+          \emph{b) {\tt x}$_i$ = {\tt y}$_i$/{\tt u}$_i$ - {\tt c}$_{i}*${\tt x}$_{i+1}/${\tt u}$_i$, $i \in \{n-2 .. 0\}$}
+\end{frame}
+
+%\begin{frame}[fragile,t]
+%  \frametitle{Putting The Implementation Together}
+%\begin{block}{ Haskell Code for For/Backward Recurrence and TRIDAG} 
+%\begin{colorcode}[fontsize=\scriptsize]
+%\emp{\mymath{\diamond}} :: (Fractional a, Ord a) => (a,a) -> (a,a) -> (a,a)
+%(a_1, b_1) \emp{\mymath{\diamond}} (a_2, b_2) = (a_2 + b_2*a_1, b_2*b_1)
+%
+%\emp{forward_rec} :: (Fractional a, Ord a) => [a] -> [a] -> [a] 
+%\emp{forward_rec} d m = let d0 = head d
+%                      fs = \emph{scanl (\mymath{\diamond}) (0.0,1.0) (zip (tail d) (map (0.0 -) m))}
+%                  in map (lambda(a,b) -> a + b*d0) fs
+%
+%\emp{backward_rec} :: (Fractional a, Ord a) => [a] -> [a] -> [a] -> [a]
+%\emp{backward_rec} y u c = let yuc = reverse (zip3 y u (c ++ [0.0]) )
+%                         (y_nm1, u_nm1, c_nm1) = head yuc
+%                         fs_inp = map (lambda(y,u,c)->(y/u,-c/u)) (tail yuc)
+%                         fs_out = \emph{scanl (\mymath{\diamond}) (0.0, 1.0) fs_inp}
+%                         x_nm1 = y_nm1 / u_nm1
+%                     in reverse (map (lambda(a,b) -> a + b*x_nm1) fs_out)
+%
+%\emp{tridag} :: (Fractional a, Ord a) => [a] -> [a] -> [a] -> [a] -> [a]
+%\emp{tridag} a b c d = let (u, m) = \emph{decompLU} a b c
+%                     y = \emph{forward_rec} d m
+%                 in      \emph{backward_rec} y u c
+%\end{colorcode}
+%\end{block}
+%
+%\end{frame}
 
 
 \section{Imperative Context: Summarization of Array Indexes}
@@ -1504,7 +2131,154 @@ i.e., computes the indexes involved in cross-iteration deps. \bigskip
 \end{columns}
 \end{block}
 
-\alert{Show Calculix from \textsc{Spec2006}}!
+//\alert{Show Calculix from \textsc{Spec2006}}!
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+  \frametitle{A Not So Trivial Loop}
+
+\begin{block}{Key Idea} 
+\begin{columns} 
+\column{0.55\textwidth} 
+\begin{colorcode}
+k = k0     \emphh{\em Ind.}  k = k0        
+DO i=0,N-1 \emphh{\em Var.}  DO i = 0, N-1      
+  k = k+2    \emphh{\mymath{\Rightarrow}}    a(k0+2*i)=.. 
+  a(k)=..  \emphh{\em Sub.}  ENDDO         
+ENDDO            k=k0+MAX(2N-2,0)
+   (a)               (b) 
+\end{colorcode}
+\column{0.33\textwidth} 
+\begin{colorcode}
+DO i = 0, N-1
+ IF(cond(b(i)))THEN 
+    civ = civ + 1 \emp{\mymath{\Rightarrow}{\em ?}} 
+    a(civ) = ...
+ENDIF ENDDO
+      (c)
+\end{colorcode}
+
+\end{columns}
+\end{block}
+
+\begin{itemize}
+    \item After induction variable substitution,
+            loop (b) is easily found parallel:
+          {\tt k0 + 2*i$_1 = $k0 + 2*i$_2 \Rightarrow$ i$_1 = $i$_2$}\pause
+    \item Loop (c) is similar to (a) but it is
+            more difficult to reason about because
+            {\tt civ} cannot be expressed in terms of
+            the loop index.
+    \item Denote by {\tt civ$_0$}, {\tt civ$_{\mu}^i$}, {\tt civ$_{\gamma}^i$}
+            the values of {\tt civ} at the beginning of the loop,
+            and at the start and end of iteration {\tt i}.
+    \item Express the iteration summary on each path:
+        \begin{itemize}
+            \item {\tt THEN} branch: {\tt\{civ$_{\mu}^i$+1\}~=~[civ$_{\mu}^i$+1,civ$_{\gamma}^i$]}
+            \item {\tt ELSE} branch: {\tt$\emptyset$~=~[civ$_{\mu}^i$+1,civ$_{\gamma}^i$]},
+                    (an empty interval has its lower bounds $<$ its upper bound.)
+            %\item Hence $W_i = ${\tt [civ$_{\mu}^i$+1,civ$_{\gamma}^i$]}
+        \end  {itemize}
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+  \frametitle{A Not So Trivial Loop}
+
+\begin{block}{Key Idea} 
+\begin{columns} 
+\column{0.55\textwidth} 
+\begin{colorcode}
+k = k0     \emphh{\em Ind.}  k = k0        
+DO i=0,N-1 \emphh{\em Var.}  DO i = 0, N-1      
+  k = k+2    \emphh{\mymath{\Rightarrow}}    a(k0+2*i)=.. 
+  a(k)=..  \emphh{\em Sub.}  ENDDO         
+ENDDO            k=k0+MAX(2N-2,0)
+   (a)               (b) 
+\end{colorcode}
+\column{0.33\textwidth} 
+\begin{colorcode}
+DO i = 0, N-1
+ IF(cond(b(i)))THEN 
+    civ = civ + 1 \emp{\mymath{\Rightarrow}{\em ?}} 
+    a(civ) = ...
+ENDIF ENDDO
+      (c)
+\end{colorcode}
+
+\end{columns}
+\end{block}
+
+\begin{itemize}
+    \item We have deduced that $W_i = ${\tt [civ$_{\mu}^i$+1,civ$_{\gamma}^i$]}
+
+    \item Summarize the accesses of the first $i-1$ iterations:
+        \begin{itemize}
+            \item {\tt civ$_{\mu}^{i+1} = $civ$_{\gamma}^{i-1}$}
+                    since the value of {\tt civ} at the start of an iteration
+                    is the same as the one at the end of previous iteration.
+            \item $\cup_{k=0}^{i-1} W_k = ${\tt [civ$_{\mu}^0$+1,civ$_{\gamma}^0$]$\cup\ldots\cup$[civ$_{\mu}^{i-1}$+1,civ$_{\gamma}^{i-1}$]} $=$\\{\tt~~~~~~~$=$[civ$_{\mu}^0$+1,civ$_{\gamma}^{i-1}$]$=$[civ$_{\mu}^0$+1,civ$_{\mu}^{i}$]}
+
+        \end  {itemize}
+
+    \item $(\cup_{k=0}^{i-1} W_k) \cap W_i =${\tt[civ$_{\mu}^0$+1,civ$_{\mu}^{i}$]}$\cap${\tt [civ$_{\mu}^i$+1,civ$_{\gamma}^i$]}$= \emptyset$\medskip
+
+    \item We have just proved NO output dependencies occur on array {\tt a}!
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+  \frametitle{A Not So Trivial Loop}
+
+\begin{block}{Solving the True-Dependence (RAW) on {\tt civ}} 
+\begin{columns} 
+\column{0.44\textwidth} 
+\begin{colorcode}
+DO i = 0, N-1
+ IF(cond(b(i)))THEN 
+    civ = civ + 1 \emp{\mymath{\Rightarrow}{\em ?}} 
+    a(civ) = ...
+ENDIF ENDDO
+\end{colorcode}
+\begin{scriptsize}
+\begin{itemize}
+    \item Extract the loop slice that computes the {\sc civ} value.
+            If all accesses to {\tt civ} are in reduction statement
+            then compute partial contributions of each iteration.
+    \item exclusive scan on the per-iteration contributions give
+            the value of {\tt civ} at the beginning of each iteration, and
+    \item is plugged in the original loop.
+\end{itemize}
+\end{scriptsize}
+\column{0.52\textwidth} 
+\begin{colorcode}
+civ0 = civ
+DOALL i = 0, N-1
+  civ = 0
+  IF(cond(b(i))) THEN
+    civ = civ + 1
+  ENDIF
+  civs[i] = civ
+ENDDO
+
+civs' = scanExc (+) 0 civs
+
+DOALL i = 0, N-1
+  civ = civ0 + civs'[i]
+  IF(cond(b(i))) THEN
+    civ = civ + 1
+    a(civ) = ...
+  ENDIF
+ENDDO
+\end{colorcode}
+\end{columns}
+\end{block}
 
 \end{frame}
 
