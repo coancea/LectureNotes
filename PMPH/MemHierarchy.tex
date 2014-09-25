@@ -334,9 +334,11 @@ Two Steps:
     \item \emp{{\tt||} tag check} $\Rightarrow$ tag bus lines throughout the directory; 
             comparator associated with each dir entry, then
     \item  \emph{on match} the row line is activated and data returned.
+    \item \emp{load \& store requires 2 cycles.}
 \end  {itemize} 
 %\end{scriptsize}
 \end{columns}
+\medskip
 
 Content-Addressable Memory (CAM) \emp{slower \& less dense} than RAM.\\
 (signal propag, comparison, etc.)\bigskip
@@ -661,7 +663,8 @@ Pipeline Cache Accesses:
 
 
 \begin{frame}[fragile,t]
-\frametitle{Faster Hit Times (Continuation)}
+\frametitle{What Should First Level Cache (FLC) Be?}
+\pause
 
 Keep the cache simple and fast:\smallskip
 \begin{itemize}
@@ -903,7 +906,7 @@ assuming a broadcast-based interconnect, such as a bus.
         \emph{(d) Hybrid Private-Shared Cache}:
         \begin{itemize}
         \begin{scriptsize}
-            \item \emp{Shared Cache} between processor \& interconnect:
+            \item \emp{Private Cache} between processor \& interconnect:
             \item 2nd level cache (SLC) reduces memory access latency gap
                     between 1st level cache (FLC) and memory
             \item used in most commercially available processors.
@@ -927,17 +930,6 @@ at any time, have a consistent view of the last
 globally written value to each location.
 \end{definition}
 
-Assume processors P1 \& P2 access the same location {\tt M}:
-\begin{scriptsize}
-\begin{description}
-    \item[write back:] P1 and P2 write {\tt M}, then barrier, then both
-        read {\tt M} $\Rightarrow$\\\pause
-        if cache line not evicted, both read their private-cache value.\smallskip
-    \item[write through:] P1 writes {\tt M} (mem updated), then P2 writes {\tt M}, barrier 
-        $\Rightarrow$\\P1 will read an inconsistent value next from its private cache.
-\end  {description}
-\end {scriptsize}
-
 \medskip
 
 \alert{Coherence Problem: pervasive \& performance critical}
@@ -950,6 +942,68 @@ Assume processors P1 \& P2 access the same location {\tt M}:
 
 \end{frame}
 
+
+\begin{frame}[fragile,t]
+\frametitle{Locking, Barrier, Point-to-Point Synchronization}
+
+\begin{block}{Barrier and {\tt~~~~~~~~~~~~~~~~~~} Point-to-Point Synchronization}
+\begin{columns}
+\column{0.21\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+\mymath{T\myindx{1}}
+...
+BAR := BAR + 1 
+while( BAR < 2 ) ;
+...
+\end{colorcode} 
+\column{0.21\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+\mymath{T\myindx{1}}
+...
+BAR := BAR + 1 
+while( BAR < 2 ) ;
+...
+\end{colorcode} 
+\column{0.25\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+\mymath{T\myindx{1}}
+
+
+while( FLAG == 0 ) ;
+print A
+\end{colorcode} 
+\column{0.18\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+\mymath{T\myindx{2}}
+A    := 1;
+FLAG := 1;
+
+
+\end{colorcode} 
+\end{columns}
+\end{block}
+\medskip
+
+\emp{Point-to-Point}: no need for critical section; producer-consumer sync.
+\medskip
+
+\emp{Barrier}: all threads have to reach it before executing beyond it.
+\begin{itemize}
+    \item \alert{need critical section to increment {\tt BAR}} + \emph{read/reset {\tt BAR} fine}.
+    \item but even assuming the writes to bar do not interleave, i.e., atomic,
+            with the current cache design:\pause
+    \begin{itemize}
+    \item[write back:] P1 and P2 write {\tt M}, then barrier, then both
+        read {\tt M} $\Rightarrow$\\
+        if cache line not evicted, both read their private-cache value.\smallskip
+    \item[write through:] P1 writes {\tt M} (mem updated), then P2 writes {\tt M}, barrier 
+        $\Rightarrow$\\P1 will read an inconsistent value next from its private cache.
+    \end  {itemize}
+\end  {itemize}
+
+\alert{Need Coherence!}
+
+\end{frame}
 
 \subsection{Simple Protocol for Write-Through Caches}
 
@@ -979,7 +1033,7 @@ other procs can see the new value}.
 %\begin{scriptsize}
 \begin{itemize}
     \item[Rd Miss] inserted in (request) buffer, V(alid) bit set.
-    When bus acquired $\Rightarrow$ {\tt BusRd} request placed on bus \& returns copy of mem block. 
+    When bus acquired $\Rightarrow$ {\tt BusRd} request placed on bus \& returns copy of mem block.\pause
 
     \item[Wr Hit:] value and address inserted in buffer. When acquired, 
     {\tt BusWrite} request on bus $\Rightarrow$ updates memory AND \alert{invalidates all
@@ -1083,7 +1137,7 @@ FST specifies the \emp{high-level} behavior of cache as a whole.\\
 
 Simple Protocol suffers performance bottlenecks:
 \begin{itemize}
-    \item \alert{All writes launch buss transactions.}
+    \item \alert{All writes launch bus transactions.}
     \item \emph{Key Insight}: most blocks accessed exclusively
             by one processor $\Rightarrow$ accesses to non-shared 
             block cannot interfere with other caches!
@@ -1588,7 +1642,7 @@ Write Policy is important to reduce snoop overhead:
 \begin{frame}[fragile,t]
 \frametitle{Essential vs Non-Essential Misses}
 
-Assume A, B, C belong to same word B1, and D to another word.
+Assume A, B, C belong to same block B1, and D to another block
 \begin{tabular}{lllll}
 \hline
 Time    & Proc1 & Proc2 & Proc3 & Miss Type \\\hline
