@@ -111,14 +111,18 @@
                         but also for large sizes. Good testing.
 
 9   Høj, Niklas                     nwv762@alumni.ku.dk
-        Assignment 1: 6/10
+        Assignment 1: AFTER RESUBMISSION 8/10  (was 6/10)
             -- Task 1: perfect
-            -- Task 2: almost ok, but
+            -- Task 2: FIXED IN RESUBMISSION
+                        almost ok, but
                         newlss = reduce max 0 [lssx, lssy, newlis, newlcs]
                        is not correct.
-            -- Task 3: no parallel operator, all recrusion, missed the point.
+            -- Task 3: STILL USES NESTED PARALLELISM
+                        no parallel operator, all recrusion, missed the point.
             -- Task 4a: ok
-            -- Task 4b: flat map -> ok, but the rest is recursion again.
+            -- Task 4b: FIXED BY RESUBMISSION
+                        flat map -> ok, but the rest is recursion again.
+            -- Task 5: FIXED BY RESUBMISSION
         Assignment 2: FAIL
             -- Task 1 ok.
             -- Task 2 completely missed the point, and
@@ -218,13 +222,16 @@
         Assignment 1: NOT SUBMITTED
 
 18  Pedersen, Emil Heckermann       gvh799@alumni.ku.dk
-        Assignment 1: FAIL
+        Assignment 1: 8/10
             -- Task 1:  perfect
-            -- Task 2:  almost correct, but for ``newok = okx && oky''
+            -- Task 2:  FIXED IN RESUBMISSION 
+                        almost correct, but for ``newok = okx && oky''
             -- Task 3:  not submitted
-            -- Task 4a: recursion, missed the point
-            -- Task 4b: not submitted
-            -- Task 5: loop inside the kernel, missed the point.
+            -- Task 4a&b: FIXED IN RESUBMISSION
+                        recursion, missed the point
+                        Task 4b: not submitted
+            -- Task 5: FIXED IN RESUBMISSION
+                        loop inside the kernel, missed the point.
 
 19  Podaras, Silvana                pqx917@alumni.ku.dk
         Assignment 1:  8/10
@@ -276,6 +283,8 @@
 22  Serup, Niels G. W.              njf941@alumni.ku.dk
         Assignment 1: 10/10
             -- ALL PERFECT.
+        Assignment 2: 10/10.
+            -- ALL PERFECT.
 
 23  Siozos-Drosos, Sokratis         dnb823@alumni.ku.dk
         NOT ENROLLED ANYMORE ON ABSALON!
@@ -293,10 +302,15 @@
 25  Svensson, Mathias Bundgaard     tpx783@alumni.ku.dk
         Assignment 1:  10/10
             -- Perfect Solution!
+        Assignment 2: FAIL
+            -- Task 1: Perfect
+            -- Task 2 & 3: not submitted.
 
 26  Søgaard, Ulrik                  lfd450@alumni.ku.dk
         Assignment 1:  10/10
             -- Perfect Solution!   forgot only about ``&& connect''
+        Assignment 2: 9/10
+            -- Perfect except that tasks 2&3 use small datasets.
 
 27  Tahirski, Ivaylo                jtp841@alumni.ku.dk
         NOT ENROLLED ANYMORE!
@@ -308,6 +322,9 @@
             -- Tasks 3 and 4: not submitted.
             -- Task 5: something, but a strange 
                        sequential loop there...
+        Assignment 2: FAIL
+            -- Task 1: ok, but unnecessarily complicated.
+            -- Task 2 & 3: not implemented.
             
 29  Tørholm, Sebastian Paaske       bns895@alumni.ku.dk
         Assignment 1:  AFTER RESUBMISSIOn 10/10  (was 9/10)
@@ -315,6 +332,11 @@
             -- Almost perfect, but for Task 4b which is not executed
                properly, i.e., uses nested parallelism and scanl with 
                neutral element -1?
+        Assignment 2: 9/10
+            -- Task 1: perfect
+            -- Task 2: perfect
+            -- Task 3: almost perfect, lost 1p for
+                        a minuscule dataset.
 
 30  Urms, Henriks                   mgs837@alumni.ku.dk
         Assignment 1:  AFTER RESUBMISSION 10/10 (was ...?...)
@@ -325,6 +347,10 @@
             -- Task 4: CORRECTED by RESUBMISSION
                        not submitted.
             -- Task 5: ok
+        Assignment 2: 5/10
+            -- Task 1: sloppy (not tested, many bugs)
+            -- Task 2: perfect
+            -- Task 3: not tried.
 
 31  Wejendorp, Jacob                nrm891@alumni.ku.dk
         Assignment 1: NOT SUBMITTED
