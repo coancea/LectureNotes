@@ -26,6 +26,11 @@
                                        rres = if id2 == (-1) then v2 else v2*(x !! id2)
                                    in lres+rres))
             -- task 5: ok.
+    
+        Assignment 2: 7/10
+                      Task1 Good! 
+                      Task 2: Good but untested (on 8-element array only)
+                      Task 3: pseudocode.
 
 4   Egeberg, Daniel Hessellund      mzn808@alumni.ku.dk
         Assignment 1:   9/10
@@ -34,6 +39,11 @@
                                          that at the end. (instead of shifting the flags and
                                          using a filter or a write).
             -- Task 5: ok (bypasses the copying of the array by using the index space!)
+
+        Assignment 2: 9/10
+            -- Task 1: good!
+            -- Task 2: good!
+            -- Task 3: good but minimal testing (minuscule array)
 
 5   Espensen, Morten                dzr440@alumni.ku.dk
         Assignment 1:   9/10 AFTER RESUBMISSION   (was 7/10)
@@ -51,6 +61,13 @@
                         now directly under a flag != 0)
             -- Task 5: seems ok.
 
+        Assignment 2: 6/10
+            -- Task 1: ok modulo small bugs, e.g., block size 1.
+            -- Task 2: not done -- reported a real bug for block size 1024
+            -- Task 3: after solving some bugs it works, but on a 
+                        minuscule example & implementation is not generic
+                        in terms of size.
+
 6   Garnæs, Peter Alexander          tbr439@alumni.ku.dk
         Assignment 1:   6/10
             -- Task 1: perfect
@@ -66,6 +83,12 @@
             -- Task 3: not submitted, some pseudocode shown  (?)
             -- Task 4a: ok; 4b not submitted, some pseudocode shown  (?): Please, come talk to me!
             -- Task 5: seems ok.
+        Assignment 2: 5/10
+            -- Many many compile-time bugs
+            -- Cosmin took a while to solve them and made task1 and 2 work
+            -- minimal testing
+            -- Task 3: tried prime numbers, suggested the easier 
+                sparse-matrix vector multiplication
 
 8   Holmgreen, Casper Mark Hagen    tcv380@alumni.ku.dk
         Assignment 1:  After Resubmission 9/10 (was 8/10)
@@ -82,6 +105,11 @@
                           (replicate vct_len 0)
             -- Task 5: seems ok.
 
+        Assignment 2: 10/10
+            -- Task 1 & 2 Perfect
+            -- Task 3: small bug + works only for pow2 sizes,
+                        but also for large sizes. Good testing.
+
 9   Høj, Niklas                     nwv762@alumni.ku.dk
         Assignment 1: 6/10
             -- Task 1: perfect
@@ -91,6 +119,11 @@
             -- Task 3: no parallel operator, all recrusion, missed the point.
             -- Task 4a: ok
             -- Task 4b: flat map -> ok, but the rest is recursion again.
+        Assignment 2: FAIL
+            -- Task 1 ok.
+            -- Task 2 completely missed the point, and
+                        tries with block size 9 or 5
+            -- Task 3 not submitted
 
 10  Justesen, Tor Heberg            lwj858@alumni.ku.dk
         Assignment 1: 10/10
@@ -102,6 +135,9 @@
             -- Task 4a:PERFECT!
             -- Task 4b:PERFECT!
             -- Task 5: ok
+        Assignment 2: 9/10
+            Everything is perfect except that the testing is minimal
+                for task 2 and 3.
 
 11  Jøkladal, Ásbjørn Viderø        wvc561@alumni.ku.dk
         Assignment 1:  CORRECTED in RESUBMISSION 10/10 (was 7/10)
@@ -115,6 +151,10 @@
             -- Task 4b:  CORRECTED in RESUBMISSION
                         not submitted.
             -- Task 5: ok 
+        Assignment 2: 7/10
+            -- Task 1: perfect
+            -- Task 2: perfect
+            -- Task 3: not submitted
 
 12  Kjær, Daniel                    lvb133@alumni.ku.dk
         Assignment 1: NOT SUBMITTED
@@ -145,6 +185,15 @@
                         and (ii) uses lists of (empty) lists to get
                         rid of undesired elements. 
             -- Task 5: ok.
+        Assignment 2: 7/10  
+            -- Task 1: has removed volatile from scan_warp and scan_block
+                        hence does not run correctly.
+            -- Task 2: after I placed my MssOp and MyInt4 type,
+                        it worked out of the box.
+            -- Task 3: after the corrections it worked.
+            -- Validation not provided for the big datasets,
+                many small errors.
+
 
 15  Linneberg, Simon Skjerning      vlh486@alumni.ku.dk
         Assignment 1:  9/10
@@ -156,6 +205,11 @@
             -- Task 4b: morally correct but again maps to empty lists and flattens
                             get rid of undesired elements.
             -- Task 5: ok.
+        Assignment 2: Fail
+            -- Task 1: almost ok (small bugs, such as no if(gid<size) branch)
+                        used my validation test, etc.
+            -- Task 2: not working because he used an int4 variant
+            -- Task 3: not implemented.
 
 16  Målsnes, Tarjei Sefland         tcd116@alumni.ku.dk
         Assignment 1: NOT IN THE COURSE ANYMORE
@@ -181,6 +235,15 @@
             -- Task 4b: morally correct but again maps to empty lists and flattens
                             get rid of undesired elements.
             -- Task 5: ok.
+        Assignment 2: 7/10
+            -- All tasks assume arrays of sizes that match perfectly the grid
+                i.e., no ifs inside kernel
+            Task 1: good!
+            Task 2: only a scanInc<MsspOp, MyInt4> ... on ones
+                    where's the map?
+            Task 3: ok, but minuscule dataset + result vector
+                    incorrectly assumed of the same size as the
+                    input vector (should be # of matrix rows) 
 
 20  Ravn, Christian                 jkr893@alumni.ku.dk
         Assignment 1:  7/10
@@ -190,6 +253,12 @@
             -- Task 4a: ok!
             -- Task 4b: perfect!
             -- Task 5: looks good to me.
+        Assignment 2: 7/10
+            Task 1: good!
+            Task 2: not implemented + validation.
+            Task 3: extedn the dataset to work with large matrix,
+                    e.g., of random numbers in [0,1] and then test against
+                    the result of sequential execution.
 
 21  Rønning, Ola                    vdl761@alumni.ku.dk   (focus)
         Assignment 1:  8/10
@@ -199,7 +268,11 @@
             -- Task 4a: ok!
             -- Task 4b: perfect!
             -- Task 5: looks good to me.
-
+        Assignment 2: 8/10
+            -- Task 1: small bug with potential array out of bounds for a kernel
+            -- Task 2: way more complicated than necessary (and not clear if correct)
+            -- Task 3: works well for pow2 sizes but does not validate on
+                        non-pow2s
 22  Serup, Niels G. W.              njf941@alumni.ku.dk
         Assignment 1: 10/10
             -- ALL PERFECT.
@@ -210,7 +283,13 @@
 24  Skaarup, Esben                  npl306@alumni.ku.dk
         Assignment 1:  10/10
             -- Perfect Solution!
-            
+        Assignment 2: 10/10
+            Task 1: ok, but some accesses may be out of bounds:
+            Task 2: good but would be nice to have the map on 
+                    GPU so as not to transfer 4x the necessary 
+                    memory.
+            Task 3: good!            
+
 25  Svensson, Mathias Bundgaard     tpx783@alumni.ku.dk
         Assignment 1:  10/10
             -- Perfect Solution!
