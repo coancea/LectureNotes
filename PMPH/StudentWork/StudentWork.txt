@@ -232,6 +232,8 @@
                         Task 4b: not submitted
             -- Task 5: FIXED IN RESUBMISSION
                         loop inside the kernel, missed the point.
+        Assignment 2: 7/10
+            -- Good, but used the fill-in-the-blanks form.
 
 19  Podaras, Silvana                pqx917@alumni.ku.dk
         Assignment 1:  8/10
@@ -332,10 +334,11 @@
             -- Almost perfect, but for Task 4b which is not executed
                properly, i.e., uses nested parallelism and scanl with 
                neutral element -1?
-        Assignment 2: 9/10
+        Assignment 2: 10/10 after RESUBMISSION (was 9/10)
             -- Task 1: perfect
             -- Task 2: perfect
-            -- Task 3: almost perfect, lost 1p for
+            -- Task 3: Testing fixed with RESUBMISSION
+                        almost perfect, lost 1p for
                         a minuscule dataset.
 
 30  Urms, Henriks                   mgs837@alumni.ku.dk
