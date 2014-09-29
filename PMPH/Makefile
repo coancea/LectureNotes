@@ -18,6 +18,8 @@ default:
 	pdflatex Assignm1and2.tex
 	pdflatex LoopParI.tex
 	pdflatex LoopParI.tex
+	pdflatex LocOfRef.tex
+	pdflatex LocOfRef.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
 # Lecture 1
@@ -69,6 +71,11 @@ seqcons:
 looppar:
 	pdflatex LoopParI.tex
 	pdflatex LoopParI.tex
+	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
+
+locref:
+	pdflatex LocOfRef.tex
+	pdflatex LocOfRef.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
 clean:

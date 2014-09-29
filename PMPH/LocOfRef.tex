@@ -1,0 +1,161 @@
+\documentclass{beamer}
+
+%% \documentclass[handout]{beamer}
+%% % use this with the [handout] option to create handouts for the audience
+%% \usepackage{pgfpages}
+%% \pgfpagesuselayout{2 on 1}[a4paper,border shrink=5mm]
+
+\mode<presentation>
+{
+  \usetheme{Diku}
+% set this to your preferences:
+  \setbeamercovered{invisible}
+%  \setbeamercovered{transparent}
+}
+
+\usepackage{graphicx}
+\usepackage{epic}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+\newcommand{\basetop}[1]{\vtop{\vskip-1ex\hbox{#1}}}
+\newcommand{\source}[1]{\let\thefootnote\relax\footnotetext{\scriptsize\textcolor{kugray1}{Source: #1}}}
+
+% for coloured code citation in text:
+\usepackage{fancyvrb}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%    code sections   %%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% code highlighting commands in own block
+\DefineVerbatimEnvironment{code}{Verbatim}{fontsize=\scriptsize}
+\DefineVerbatimEnvironment{icode}{Verbatim}{fontsize=\scriptsize}
+
+% Fancy code with color commands:
+\DefineVerbatimEnvironment{colorcode}%
+        {Verbatim}{fontsize=\scriptsize,commandchars=\\\{\}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%    some coloring    %%%%%%%%
+
+\definecolor{Red}{RGB}{220,50,10}
+\definecolor{Blue}{RGB}{0,51,102}
+\definecolor{Yellow}{RGB}{102,51,0}
+\definecolor{Orange}{RGB}{178,36,36}
+\definecolor{Grey}{RGB}{180,180,180}
+\definecolor{Green}{RGB}{20,120,20}
+\definecolor{Purple}{RGB}{160,50,100}
+\newcommand{\red}[1]{\textcolor{Red}{{#1}}}
+\newcommand{\blue}[1]{\textcolor{Blue}{{#1}}}
+\newcommand{\yellow}[1]{\textcolor{Yellow}{{#1}}}
+\newcommand{\orange}[1]{\textcolor{Orange}{{#1}}}
+\newcommand{\grey}[1]{\textcolor{Grey}{{#1}}}
+\newcommand{\green}[1]{\textcolor{Green}{{#1}}}
+\newcommand{\purple}[1]{\textcolor{Purple}{{#1}}}
+
+
+
+
+% use "DIKU green" from our color theme for \emph
+\renewcommand{\emph}[1]{\textcolor{structure}{#1}}
+% use some not-too-bright red for an \emp command
+\definecolor{DikuRed}{RGB}{130,50,32}
+\newcommand{\emp}[1]{\textcolor{DikuRed}{ #1}}
+\definecolor{CosGreen}{RGB}{10,100,70}
+\newcommand{\emphh}[1]{\textcolor{CosGreen}{ #1}}
+\definecolor{CosBlue}{RGB}{55,111,122}
+\newcommand{\emphb}[1]{\textcolor{CosBlue}{ #1}}
+\definecolor{CosRed}{RGB}{253,1,1}
+\newcommand{\empr}[1]{\textcolor{CosRed}{ #1}}
+
+\newcommand{\mymath}[1]{$ #1 $}
+\newcommand{\myindx}[1]{_{#1}}
+\newcommand{\myindu}[1]{^{#1}}
+
+\newcommand{\Fasto}{\textsc{Fasto}\xspace}
+
+
+%%%%%%%%%%%%%%%%%%%%
+
+\title[Locality]{Optimising Locality of Reference}
+
+\author[C.~Oancea]{Cosmin E. Oancea\\{\tt cosmin.oancea@diku.dk}}
+
+\institute{Department of Computer Science (DIKU)\\University of Copenhagen}
+
+
+\date[Sept 2014]{September 2014 PMPH Lecture Notes}
+
+
+\begin{document}
+
+\titleslide
+
+\input{Struct_Interm/StructOptLoc.tex}
+
+%%%%%%%% real content starts here %%%%%%%%%%
+
+\begin{frame}
+  \frametitle{Motivation}
+
+\begin{itemize}
+    \item[+] So far we reasoned about how to parallelize a known algorithm
+    \item[+] using a clean, functional approach, e.g., flattening, 
+    \item[+] which provides work and depth guarantees,
+    \item[\alert{-}] but does \alert{NOT} account for locality of reference.
+
+\end  {itemize}\bigskip
+
+\emp{Why do we have to look at imperative loops?}
+\begin{itemize}    
+    \item A lot of legacy sequential imperative code, C{\tt++}/Java/Fortran.\medskip
+    \item Need to parallelize the implementation of unknown algorithm,\medskip
+    \item Need to optimize parallelism, e.g., locality of reference requires subscript analysis. 
+\end  {itemize}  
+
+\end{frame}
+
+
+\section{Direction-Vector Analysis}
+
+\begin{frame}[fragile]
+	\tableofcontents[currentsection]
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+  \frametitle{Problem Statement} % of CPU, Multicores, GPGPU
+
+%[fontsize=\small]
+\begin{block}{Three Loop Examples}
+\begin{colorcode}
+DO i = 1, N             DO i = 2, N                 DO i = 2, N
+  DO j = 1, N             DO j = 2, N                 DO j = 1, N 
+    A[j,i] = A[j,i] ..      A[j,i] = A[j-1,i-1]...        A[i,j] = A[i-1,j+1]...
+  ENDDO                     B[j,i] = B[j-1,i]...      ENDDO
+ENDDO                   ENDDO ENDDO                 ENDDO
+\end{colorcode}
+\end{block} 
+
+Iterations are ordered {\em lexicographically}, i.e., in the order
+they occur in the sequential execution, e.g., 
+{\tt$\vec{k}=$(i=2,j=4) < $\vec{l}=$(i=3,j=3)}.
+
+\bigskip
+
+\begin{itemize}
+    \item \emp{Which of the three loop nests is amenable to parallelization?}\smallskip
+    \item Loop interchange is one of the most simple and useful code transformations,
+            e.g., used to enhance locality of reference, parallel-loop granularity,
+            and even to ``create'' parallelism.\smallskip
+    \item \emp{In which loop nest is it safe to interchange the loops?}
+\end{itemize}
+
+
+\end{frame}
+
+\end{document}
+
