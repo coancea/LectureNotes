@@ -401,6 +401,28 @@ Works in practice because accesses are affine, i.e., regular.
 
 \end{frame}
 
+\begin{frame}[fragile,t]
+  \frametitle{Empirical Results: Weak Scaling}
+
+\begin{scriptsize}
+\emp{Weak Scaling}: how the solution time varies with the 
+            number of processors for a fixed problem size per processor.
+            Ideally one gets a horizontal line.
+\end{scriptsize}
+
+%\begin{itemize}
+%    \item \emp{Strong Scaling}: how the solution time varies with 
+%            the number of processors for a fixed total problem size.
+%    \item \emp{Weak Scaling}: how the solution time varies with the 
+%            number of processors for a fixed problem size per processor,
+%            hence ideally a horizontal line.
+%\end  {itemize}
+
+
+\includegraphics[width=59ex]{ParTeaserFigs/WeakScaling}
+
+\end{frame}
+
 
 \section{Iteration and Data Reordering for Loop Nests with Irregular Accesses [Ding and Kenedy'99], [Strout et. al. 2003,2004]}
 
@@ -888,21 +910,79 @@ DO \{
   if (count < n) add a non visited node to iter-queue
 \} WHILE (count < n)  // until all nodes were visited.  
 \end{colorcode}
-\column{0.53\textwidth}
+\column{0.52\textwidth}
+\begin{scriptsize}
 \begin{itemize}
-    \item \emp{Array Alignment Optim} reorganizes {\tt vx}
-            array in the same way as {\tt fx'} (and {\tt x'}).
-    \item Legality Requirements:
-        \begin{itemize}
-            \item[1] the range of loop iterations is identical to
-                        the range of remapped data.
-            \item[2] the loop is parallel (so that its iterations can be reordered).
-        \end{itemize}
+    \item Metric to minimize: $\sum_{e\in G_{TL}(E)}(\sum_{i_j,i_k\in e} |\delta(i_j)-\delta(i_k)|)$,
+                where $e$ is a hyperedge of the temporal locality hypergraph and 
+                $\delta$ gives the iteration new ordering.\bigskip
+    \item Span metric: $\sum_{e\in G_{TL}(E)}( max_{i\in e}(\delta(i)) - min_{i \in e}(\delta(i)) )$\bigskip
+    \item Density metric: $\sum_{e\in G_{TL}(E)}( \frac{max_{i\in e}(\delta(i)) - min_{i \in e}(\delta(i))}{|e|} )$\bigskip
+    \item Spatial Locality Hypergraph is the dual of the Temporal Locality Hypergraph,
+            i.e., vertices are data items and an hyperedge is formed by the set of items
+            accessed by an iteration.
 \end  {itemize} 
+\end{scriptsize}
 \end{columns}
  
 \end{frame}
 
+
+\begin{frame}[fragile,t]
+  \frametitle{Empirical Results: Weak Scaling}
+
+\includegraphics[width=59ex]{ParTeaserFigs/DataReordRes}
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+  \frametitle{Application: Parallelization of Irregular Arrays}
+
+\begin{scriptsize}
+{\bf Code Generation for Parallel Execution of a Class
+of Irregular Loops on Distributed Memory Systems, M. Ravishankar et. al., ICS 2013}
+\end{scriptsize}
+
+\begin{block}{Sequential Conjugate Gradient Computation}
+\begin{columns}
+\column{0.55\textwidth}
+\begin{colorcode}
+while( !converged ) \{
+    //...Other computation not shown...
+    \emphh{//parallel, producer loop}
+    for( k = 0 ; k < n ; k++ )  
+        x[k] = ...;
+
+    //...Other computation not shown...
+    \emphh{//parallel, consumer loop}
+    for( i = 0 ; i < n ; i++ ) 
+        for( j = ia[i] ; j < ia[i+1] ; j++ )\{
+            xindex = col[j];
+            y[i] += A[j]*x[xindex];
+        \}
+    //...Other computation not shown...
+\}
+\end{colorcode}
+\column{0.42\textwidth}
+\begin{scriptsize}
+\begin{itemize}
+    \item Generates automatically the inspector that determines
+            which (indices of) elements of {\tt x} (and {\tt A})
+            are accessed in each outer iteration {\tt i}, and builds
+            the temporal locality hypergraph.
+    \item Multi-Constraint Partitioning of the hypergraph
+            (i) to achieve load balancing within each parallel loop and 
+            (ii) to minimize communication between the producer
+                    and consumer loops.
+    \item 
+\end{itemize}
+\end{scriptsize}
+\end{columns}
+\end{block} 
+
+
+\end{frame}
 
 \end{document}
 
