@@ -31,19 +31,25 @@
                       Task1 Good! 
                       Task 2: Good but untested (on 8-element array only)
                       Task 3: pseudocode.
+        Assignment 3: 8/10
+            -- CPU version of task2: forgot to multiply i*64
+            -- after fix, everything worked.
+            -- task2 with transposition was not submitted
 
 4   Egeberg, Daniel Hessellund      mzn808@alumni.ku.dk
-        Assignment 1:   9/10
+        Assignment 1:   9/10   + 1 bonus for Assign3
             -- Task 1, 2, 3, 4a -- perfect
             -- Task 4b: is ``cheating'': he creates a list of list, some empty and flatten 
                                          that at the end. (instead of shifting the flags and
                                          using a filter or a write).
             -- Task 5: ok (bypasses the copying of the array by using the index space!)
 
-        Assignment 2: 9/10
+        Assignment 2: 9/10    + 1 bonus for Assign 3
             -- Task 1: good!
             -- Task 2: good!
             -- Task 3: good but minimal testing (minuscule array)
+        Assignment 3: 10/10
+            -- PERFECT!
 
 5   Espensen, Morten                dzr440@alumni.ku.dk
         Assignment 1:   9/10 AFTER RESUBMISSION   (was 7/10)
@@ -68,6 +74,11 @@
                         minuscule example & implementation is not generic
                         in terms of size.
 
+        Assignment 3: 6/10
+			-- only task1a and task2.a submitted
+				naive transposition only somewhat works for
+				specific matrix sizes.
+
 6   Garnæs, Peter Alexander          tbr439@alumni.ku.dk
         Assignment 1:   6/10
             -- Task 1: perfect
@@ -89,6 +100,8 @@
             -- minimal testing
             -- Task 3: tried prime numbers, suggested the easier 
                 sparse-matrix vector multiplication
+		Assignment 3: 10/10
+			-- very close to perfect (BONUS POINTS?)
 
 8   Holmgreen, Casper Mark Hagen    tcv380@alumni.ku.dk
         Assignment 1:  After Resubmission 9/10 (was 8/10)
@@ -109,6 +122,9 @@
             -- Task 1 & 2 Perfect
             -- Task 3: small bug + works only for pow2 sizes,
                         but also for large sizes. Good testing.
+		Assignment 3: 10/10
+			-- perfect!
+
 
 9   Høj, Niklas                     nwv762@alumni.ku.dk
         Assignment 1: AFTER RESUBMISSION 8/10  (was 6/10)
@@ -128,6 +144,10 @@
             -- Task 2 completely missed the point, and
                         tries with block size 9 or 5
             -- Task 3 not submitted
+		Assignment 3: 7/10
+			-- minimal sizes for Task1, no validation
+			-- tiled transposition not implemented
+				(suggested resubmission will give him 10.)
 
 10  Justesen, Tor Heberg            lwj858@alumni.ku.dk
         Assignment 1: 10/10
@@ -139,9 +159,11 @@
             -- Task 4a:PERFECT!
             -- Task 4b:PERFECT!
             -- Task 5: ok
-        Assignment 2: 9/10
+        Assignment 2: 9/10  + 1 bonus from Assign 3
             Everything is perfect except that the testing is minimal
                 for task 2 and 3.
+		Assignment 3: 10/10  
+			-- PERFECT! 11/10
 
 11  Jøkladal, Ásbjørn Viderø        wvc561@alumni.ku.dk
         Assignment 1:  CORRECTED in RESUBMISSION 10/10 (was 7/10)
@@ -159,6 +181,9 @@
             -- Task 1: perfect
             -- Task 2: perfect
             -- Task 3: not submitted
+		Assignment 2: 7/10
+			-- Task 1: perfect (but no validation)
+			-- Task 2: not submitted at all
 
 12  Kjær, Daniel                    lvb133@alumni.ku.dk
         Assignment 1: NOT SUBMITTED
@@ -197,7 +222,11 @@
             -- Task 3: after the corrections it worked.
             -- Validation not provided for the big datasets,
                 many small errors.
-
+		Assignment 3: 10/10
+			-- close to perfect,
+			-- forgot cudaThreadSynchronize()
+				before measuring time, and also needs bigger sizes
+				for matrices. 
 
 15  Linneberg, Simon Skjerning      vlh486@alumni.ku.dk
         Assignment 1:  9/10
@@ -209,11 +238,16 @@
             -- Task 4b: morally correct but again maps to empty lists and flattens
                             get rid of undesired elements.
             -- Task 5: ok.
-        Assignment 2: Fail
+        Assignment 2: 10/10 RESUBMISSION FIXED ALL PROBLEMS!
+							(initially Fail)
             -- Task 1: almost ok (small bugs, such as no if(gid<size) branch)
                         used my validation test, etc.
             -- Task 2: not working because he used an int4 variant
             -- Task 3: not implemented.
+		Assignment 3: 8/10
+			-- several mistakes (e.g., in calling validate)
+			-- main problem is that the TILED transposition
+				did not result in coalesced access.
 
 16  Målsnes, Tarjei Sefland         tcd116@alumni.ku.dk
         Assignment 1: NOT IN THE COURSE ANYMORE
@@ -253,6 +287,8 @@
             Task 3: ok, but minuscule dataset + result vector
                     incorrectly assumed of the same size as the
                     input vector (should be # of matrix rows) 
+		Assignment 3: 9/10 VERY GOOD JOB!
+			Marked by Rasmus seem to not have commented enough.
 
 20  Ravn, Christian                 jkr893@alumni.ku.dk
         Assignment 1:  7/10
@@ -268,6 +304,14 @@
             Task 3: extedn the dataset to work with large matrix,
                     e.g., of random numbers in [0,1] and then test against
                     the result of sequential execution.
+		Assignment 3: 7/10
+			Task 1: tiled transposition did not fix
+					coalesced access; and naive
+					version runs slow (perhaps redundant 
+					computation?)   However, everything
+					validates and time measurement were
+					provided.
+			Task 2: not submitted.
 
 21  Rønning, Ola                    vdl761@alumni.ku.dk   (focus)
         Assignment 1:  8/10
@@ -282,11 +326,16 @@
             -- Task 2: way more complicated than necessary (and not clear if correct)
             -- Task 3: works well for pow2 sizes but does not validate on
                         non-pow2s
+		Assignment 3: 10/10 
+					several mistakes, such as not placing
+					cudaThreadSynchronize() when measuring time
+
 22  Serup, Niels G. W.              njf941@alumni.ku.dk
         Assignment 1: 10/10
             -- ALL PERFECT.
         Assignment 2: 10/10.
             -- ALL PERFECT.
+		Assignment 3: 9/10
 
 23  Siozos-Drosos, Sokratis         dnb823@alumni.ku.dk
         NOT ENROLLED ANYMORE ON ABSALON!
@@ -299,7 +348,9 @@
             Task 2: good but would be nice to have the map on 
                     GPU so as not to transfer 4x the necessary 
                     memory.
-            Task 3: good!            
+            Task 3: good!
+		Assignment 3: 10/10
+			PERFECT! 
 
 25  Svensson, Mathias Bundgaard     tpx783@alumni.ku.dk
         Assignment 1:  10/10
@@ -307,12 +358,16 @@
         Assignment 2: FAIL
             -- Task 1: Perfect
             -- Task 2 & 3: not submitted.
+		Assignment 3: 10/10
+			-- ok, some minor issues, 
+				but I could not find to fix them.
 
 26  Søgaard, Ulrik                  lfd450@alumni.ku.dk
         Assignment 1:  10/10
             -- Perfect Solution!   forgot only about ``&& connect''
-        Assignment 2: 9/10
+        Assignment 2: 9/10 +1p bonus from assignment 3
             -- Perfect except that tasks 2&3 use small datasets.
+		Assignment 3: 10/10
 
 27  Tahirski, Ivaylo                jtp841@alumni.ku.dk
         NOT ENROLLED ANYMORE!
@@ -327,6 +382,9 @@
         Assignment 2: FAIL
             -- Task 1: ok, but unnecessarily complicated.
             -- Task 2 & 3: not implemented.
+		Assignment 3: 9/10
+			-- minor mistake when he computed gid he only took threadIdx.x
+			-- confused task2b with task2a!
             
 29  Tørholm, Sebastian Paaske       bns895@alumni.ku.dk
         Assignment 1:  AFTER RESUBMISSIOn 10/10  (was 9/10)
@@ -340,6 +398,8 @@
             -- Task 3: Testing fixed with RESUBMISSION
                         almost perfect, lost 1p for
                         a minuscule dataset.
+		Assignment 3: 10/10
+			-- PERFECT
 
 30  Urms, Henriks                   mgs837@alumni.ku.dk
         Assignment 1:  AFTER RESUBMISSION 10/10 (was ...?...)
@@ -354,6 +414,11 @@
             -- Task 1: sloppy (not tested, many bugs)
             -- Task 2: perfect
             -- Task 3: not tried.
+		Assignment 3: 10/10 
+			-- RESUBMISSION fixed all problems.
+			-- reported that he made task1 but
+				I could not find it on Absalon (?)
+				
 
 31  Wejendorp, Jacob                nrm891@alumni.ku.dk
         Assignment 1: NOT SUBMITTED
