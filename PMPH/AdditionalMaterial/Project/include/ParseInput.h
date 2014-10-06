@@ -6,12 +6,22 @@
 #include <math.h>
 #include <algorithm>
 
+#include <stdlib.h>
+#include <time.h>
+#include <sys/time.h>
+//#include <sys/timeb.h>
+#include <assert.h>
+
+
 using namespace std;
 
 #include <iostream>
 using std::cout;
 using std::endl;
 
+#include "Constants.h"
+
+#define MAX_VAL 1024
 
 #if WITH_FLOATS
     #define read_real read_float
@@ -20,6 +30,31 @@ using std::endl;
 #endif
 
 const float EPS = 0.00001;
+
+
+/*******************************************************/
+/*****  Utilities Related to Time Instrumentation  *****/
+/*******************************************************/
+
+int timeval_subtract(struct timeval *result, struct timeval *t2, struct timeval *t1)
+{
+    unsigned int resolution=1000000;
+    long int diff = (t2->tv_usec + resolution * t2->tv_sec) - (t1->tv_usec + resolution * t1->tv_sec);
+    result->tv_sec = diff / resolution;
+    result->tv_usec = diff % resolution;
+    return (diff<0);
+}
+
+bool is_pow2(int atr_val) {
+    int x = 1;
+
+    for(int i = 0; i < 31; i++) {
+        if(x == atr_val) return true;
+        x = (x << 1);
+    }
+    return false;
+}
+
 
 /***********************************/
 /********** READ DATA SET **********/
@@ -45,10 +80,10 @@ void readDataSet(   unsigned int& outer,
         atr_ok  = outer > 0;
         assert(atr_ok && "Outer loop count less than 0!");
 
-        atr_ok  = (num_X > 0) && (num_X <= WORKGROUP_SIZE) && is_pow2(num_X); 
+        atr_ok  = (num_X > 0) && (num_X <= MAX_VAL); 
         assert(atr_ok && "Illegal NUM_X value!");
 
-        atr_ok  = (num_Y > 0) && (num_Y <= WORKGROUP_SIZE) && is_pow2(num_Y); 
+        atr_ok  = (num_Y > 0) && (num_Y <= MAX_VAL); 
         assert(atr_ok && "Illegal NUM_X value!");
 
         atr_ok  = num_T > 0;
@@ -79,7 +114,7 @@ bool validate( const REAL* res, const int& N ) {
 
     for ( int i = 0; i < N; i ++ ) {
         float err = fabs(std_res[i] - res[i]);
-        if ( err > EPS ) {
+        if ( isnan(res[i]) || isinf(res[i]) || err > EPS ) {
             is_valid = false;
             fprintf(stderr, "Error[%d] = %f, EPS = %f!\n", i, err, EPS);
             break;
@@ -108,14 +143,14 @@ void writeStatsAndResult(   const bool& valid, const REAL* data,
 
     // write the result
     write_1Darr( data, static_cast<int>(outer), 
-                       "Volatility Calibration Result"  );
+                       "PMPH Project Result"  );
 }
 
 #if 0
 void writeResult( const REAL* res, const unsigned int N, const char* msg ) {
     //ofstream fout;
     //fout.open ("output.data");
-    cout << "\n[ "
+    cout << "\n[ ";
     for( int k=0; k<N-1; ++k ) {
         cout<<res[k]<<", "<<endl;
     }
