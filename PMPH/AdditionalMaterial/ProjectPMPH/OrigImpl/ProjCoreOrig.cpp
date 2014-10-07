@@ -156,18 +156,18 @@ REAL   value(   PrivGlobs    globs,
                 const unsigned int numY,
                 const unsigned int numT
 ) {	
-	initGrid(s0,alpha,nu,t, numX, numY, numT, globs);
-	initOperator(globs.myX,globs.myDxx);
-	initOperator(globs.myY,globs.myDyy);
+    initGrid(s0,alpha,nu,t, numX, numY, numT, globs);
+    initOperator(globs.myX,globs.myDxx);
+    initOperator(globs.myY,globs.myDyy);
 
-	setPayoff(strike, globs);
-	for(int i = globs.myTimeline.size()-2;i>=0;--i)
-	{
-		updateParams(i,alpha,beta,nu,globs);
-		rollback(i, globs);
-	}
+    setPayoff(strike, globs);
+    for(int i = globs.myTimeline.size()-2;i>=0;--i)
+    {
+        updateParams(i,alpha,beta,nu,globs);
+        rollback(i, globs);
+    }
 
-	return globs.myResult[globs.myXindex][globs.myYindex];
+    return globs.myResult[globs.myXindex][globs.myYindex];
 }
 
 void   run_OrigCPU(  
@@ -183,10 +183,10 @@ void   run_OrigCPU(
                       REAL*           res   // [outer] RESULT
 ) {
     REAL strike;
-	PrivGlobs    globs(numX, numY, numT);
+    PrivGlobs    globs(numX, numY, numT);
 
     for( unsigned i = 0; i < outer; ++ i ) {
-        REAL strike = 0.001*i;
+        strike = 0.001*i;
         res[i] = value( globs, s0, strike, t,
                         alpha, nu,    beta,
                         numX,  numY,  numT );

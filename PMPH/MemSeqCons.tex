@@ -409,15 +409,15 @@ FLAG := 1;
 \begin{columns}
 \column{0.33\textwidth}
 \begin{colorcode}[fontsize=\scriptsize]
-Lock:   \alert{LW   R2, lock}
-        BNEZ R2, Lock
-        \alert{SW   R1, lock} //R1:=1
-        RET
-
+Lock:   
+  \alert{LW   R2, lock}
+  BNEZ R2, Lock //lock==0?
+  \alert{SW   R1, lock} //lock:=1
+  RET
 Unlock: SW   R0, lock
         RET
 \end{colorcode} 
-\column{0.24\textwidth}
+\column{0.24\textwidth}\pause
 \begin{colorcode}[fontsize=\scriptsize]
 Lock:   \emp{T\&S R1, lock}
         BNEZ R1, Lock
@@ -427,7 +427,7 @@ Lock:   \emp{T\&S R1, lock}
 Unlock: SW   R0, lock
         RET
 \end{colorcode} 
-\column{0.32\textwidth}
+\column{0.32\textwidth}\pause
 \begin{colorcode}[fontsize=\scriptsize]
 Lock:   \emph{LW   R1, lock}
         \emph{BNEZ R1, Lock}
@@ -490,7 +490,7 @@ fancier atomic ops implemented by adding code between {\tt LL} and {\tt SC}:
 \column{0.41\textwidth}
 \begin{colorcode}[fontsize=\scriptsize]
 T\&S(Rx,lock):
-    ADDI R1, R0, 1 //
+    ADDI R1, R0, 1 //R1:=1
     LL   Rx, lock  //Rx:=lock
     SC   R1, lock  //sets lock (?)
     BEQZ R1, T\&S
@@ -552,7 +552,7 @@ to the same address.}
 %\end{scriptsize}
 \end{columns}
 
-\emph{Solution: update or invalidate copies on updates. }
+\emph{Sufficient-Condition Solution: update or invalidate copies on updates. }
 
 \end{frame}
 
@@ -582,9 +582,9 @@ to the same address.}
 
     \item Lets Assume first atomic coherence transitions (no time overlap):\smallskip
         \begin{itemize}
-            \item understand how to propagate values effectively,
+            \item helps understand how to propagate values effectively,
             \item protocol description at the behavioral level (no implem details)
-            \item We briefly recall MSI protocol from previous lecture!
+            \item (We briefly recall MSI atomic-store protocol.)
         \end  {itemize}\medskip
 \end{itemize}
 
@@ -677,7 +677,7 @@ to the same address.}
 \begin{frame}[fragile,t]
 \frametitle{Atomic Memory References}
 
-Strict coherence can be applied if all memory locations are atomic,
+Strict coherence can be applied if accesses to all memory locations are atomic,
 i.e., do not overlap in time.
 
 \begin{block}{Example using MSI invalidate{\tt~~~~~~~~~~} Comments}
@@ -714,7 +714,7 @@ L\mymath{\myindu{2}}(A)a\mymath{\myindx{3}}
 ------------------
 
 \end{colorcode} 
-\column{0.45\textwidth}
+\column{0.45\textwidth}\pause
 \begin{scriptsize}
 \emp{APT} = Atomic Protocol Transaction\\
 \begin{itemize}
@@ -742,7 +742,6 @@ L\mymath{\myindu{2}}(A)a\mymath{\myindx{3}}
 \begin{frame}[fragile,t]
 \frametitle{Memory-Access Atomicity Relativity}
 
-Assume:
 \begin{itemize}
     \item P2 has a Modified (unique) copy of {\tt X} in its cache
     \item when the load from P1 misses (in P1's cache)
@@ -751,9 +750,10 @@ Assume:
 {\center \includegraphics[width=59ex]{Ch7Figs/CoherenceEG1}}\pause
 \vspace{-18ex}
 
-\emp{Even with instantaneous loads, a program using shared memory 
+\emp{Idea: enough to find an ordering of atomic instructions that ``makes sense''}, e.g.,
+even with instantaneous loads, a program using shared memory 
 cannot detect the difference between the load returning {\tt x1} or 
-{\tt x3}, simply because if P2 would be 4$\times$ faster it would return {\tt x3}}.
+{\tt x3}, simply because if P2 would be 4$\times$ faster it would return {\tt x3}.
 
 \end{frame}
 
@@ -979,7 +979,7 @@ a serial order is possible}.
             {\tt{}INIT$\rightarrow$L$^3$(A)a$_0$$\rightarrow$WB$^1$(A)a$_4$$\rightarrow$L$^1$(A)a$_4$ $\rightarrow$WB$^2$(A)a$_5$$\rightarrow$ L$^1$(A)a$_5$}\\
             {\tt~~~~$\rightarrow$WB$^3$(A)a$_2$$\rightarrow$ L$^1$(A)a$_2$$\rightarrow$L$^3$(A)a$_2$$\rightarrow$L$^2$(A)a$_2$$\rightarrow$WB$^2$(A)a$_6$}\medskip
 
-    \item We then expand all write backs (WB) by local load/stores:\\
+    \item We then expand all write buffer (WB) by local load/stores:\\
            {\tt{}INIT$\rightarrow$L$^3$(A)a$_0$$\rightarrow$S$^1$(A)a$_1$$\rightarrow$L$^1$(A)a$_1$$\rightarrow$S$^1$(A)a$_4$$\rightarrow$L$^1$(A)a$_4$$\rightarrow$L$^1$(A)a$_4$}\\
            {\tt~~~~$\rightarrow$S$^2$(A)a$_3$$\rightarrow$L$^2$(A)a$_3$$\rightarrow$L$^2$(A)a$_3$$\rightarrow$S$^2$(A)a$_5$$\rightarrow$L$^1$(A)a$_5$$\rightarrow$S$^3$(A)a$_2$}\\
            {\tt~~~~$\rightarrow$L$^3$(A)a$_2$$\rightarrow$L$^3$(A)a$_2$$\rightarrow$L$^1$(A)a$_2$$\rightarrow$L$^3$(A)a$_2$$\rightarrow$L$^2$(A)a$_2$$\rightarrow$S$^2$(A)a$_6$}\\ 
@@ -1079,7 +1079,7 @@ stores to the same variable cannot be observed in different orders.}
     \item Plain Coherence is NOT composable  with other possible orders: 
     \begin{itemize}
         \item[1] load-load or load-store on different locations,
-        \item[2] intra-thread synchronizations
+        \item[2] inter-thread synchronizations
         \item[3] lock, barrier atomic instructions (synchronization)\medskip
     \end{itemize}
 \end{itemize}
