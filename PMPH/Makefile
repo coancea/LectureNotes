@@ -20,6 +20,8 @@ default:
 	pdflatex LoopParI.tex
 	pdflatex LocOfRef.tex
 	pdflatex LocOfRef.tex
+	pdflatex Project.tex
+	pdflatex Project.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
 # Lecture 1
@@ -76,6 +78,11 @@ looppar:
 locref:
 	pdflatex LocOfRef.tex
 	pdflatex LocOfRef.tex
+	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
+
+proj:
+	pdflatex Project.tex
+	pdflatex Project.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
 clean:
