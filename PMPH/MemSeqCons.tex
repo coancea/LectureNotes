@@ -584,7 +584,6 @@ to the same address.}
         \begin{itemize}
             \item helps understand how to propagate values effectively,
             \item protocol description at the behavioral level (no implem details)
-            \item (We briefly recall MSI atomic-store protocol.)
         \end  {itemize}\medskip
 \end{itemize}
 
@@ -626,15 +625,17 @@ to the same address.}
 \subsection{Store Atomicity}
 
 \begin{frame}[fragile,t]
-\frametitle{Store Atomicity: A Sufficient Condition for SC}
+\frametitle{Store Atomicity}
 
 \begin{itemize}
-    \item Coherence Transaction do not happen instantaneously
+    \item Coherence Transactions do not happen instantaneously
     \begin{itemize}
         \item enough to make them look atomic to the software,e.g.,databases.
     \end{itemize}\medskip
 
-    \item Condition: only one value is accessible at any time. {\bf Definitions:}
+    \item \emp{\bf Condition: at any time, all threads must observe the same value for a memory location.} 
+                \emp{Definition:} 
+                %only one value of a memory location is accessible at any time.} \emp{Def:}
     \begin{itemize}
         \item[1] \emp{A load is performed} at the point in time when 
                     its value is bound and cannot be recalled, e.g., when value is used.
@@ -716,7 +717,8 @@ to the same address.}
 \frametitle{Atomic Memory References}
 
 Strict coherence can be applied if accesses to all memory locations are atomic,
-i.e., do not overlap in time.
+i.e., do not overlap in time.  Store atomicity would allow $L^1(A)a_2$ and 
+$L^2(A)a_2$ to overlap.
 
 \begin{block}{Example using MSI invalidate{\tt~~~~~~~~~~} Comments}
 \begin{columns}
@@ -856,7 +858,7 @@ cannot detect the difference between the load returning {\tt x1} or
 \begin{frame}[fragile,t]
 \frametitle{Today Coherence Transaction are Non-Atomic}
 
-{\center \includegraphics[width=59ex]{Ch7Figs/SoteBuffs}}\pause
+{\center \includegraphics[width=59ex]{Ch7Figs/SoteBuffs}}
 
 \end{frame}
 
@@ -963,7 +965,7 @@ a serial order is possible}.
 \frametitle{Plain Coherence: Forwarding Store Buffers Example}
 \vspace{-3ex}
 
-{\center \includegraphics[width=65ex]{Ch7Figs/FwdStoreBuffEG1}}\pause
+{\center \includegraphics[width=65ex]{Ch7Figs/FwdStoreBuffEG1}}
 
 \end{frame}
 
@@ -1457,9 +1459,9 @@ should be/IS part of ISA Definition.}
 \column{0.48\textwidth}
 \begin{itemize}
     \item Relax some of the access orders of threads,e.g.,
-    \item Allow loads to bypass stores!
     \item Processor View: memory is atomic, i.e., loads return 
-            values from memory only when values are GPed.
+            only (memory) GPed values,
+    \item \emp{BUT loads are allowed to bypass stores (in buffer)!}
     \item {\tt store-loads} are not ordered $\Rightarrow$ 
             loads do not wait for store buffer to empty!  
 \end{itemize}
@@ -1536,7 +1538,7 @@ print(A);
     \item The Dekker's execution that fails to synchronize is VALID:
     \item no arrow between store and load in each thread $\Rightarrow$
     \item no global order between store and load
-    \item still store is atomic overall, hence the order is coherent under the model's rules.
+    \item still store is atomic overall, hence the order is valid under the model's rules.
 \end{itemize}
 \end{columns}
 \end{frame}
@@ -1783,14 +1785,14 @@ In the second code both {\tt A} and {\tt B} must be declared as SYNC variable.
 
     \item \emph{\bf Regular stores in SB executed in any order in parallel.}\smallskip
 
-    \item \emph{\bf Regular Loads never wait for stores and can be forwarded.}
+    \item \emph{\bf Regular Loads never wait for stores and are forwarded.}
 
     \item \emp{\bf When a {\tt Sync} is executed, it is treated differently:}
         \begin{itemize}
             \item it blocks the entire memory stage until all stores in SB
                     are globally performed. This enforces \emp{\tt Op-TO-Sync}.
-            \item \emp{\tt Sync-TO-Op} and \emp{\tt Sync-TO-Sync} are automatically
-                    enforced. % by the IO Processor. 
+            \item \emp{\tt Sync-TO-Op} and \emp{\tt Sync-TO-Sync} 
+                    enforced ({\tt Sync} is blocking). % by the IO Processor. 
         \end  {itemize}
 \end{itemize}
 
