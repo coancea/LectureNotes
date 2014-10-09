@@ -590,6 +590,78 @@ to the same address.}
 
 \end{frame}
 
+
+\subsection{Strict Coherence}
+
+\begin{frame}[fragile,t]
+\frametitle{Strict Coherence (SC)}
+
+\begin{itemize}
+    \item \emph{``Memory is coherent if the value returned by a Load
+            is always the value of the latest store to the same 
+            address.''}\medskip
+
+    \item Fine for Uniprocessor, \emp{Difficult to extend to Multiprocessors}:
+        \begin{itemize}
+            \item execution time are unpredictable,
+            \item inter-processor communication is NOT instantaneous.
+        \end  {itemize}\smallskip
+
+    \item \emp{Can be applied if}:
+        \begin{itemize}
+            \item memory accesses do not overlap in time, or
+            \item \emp{stores are atomic}: all copies updated instantaneously, or
+            \item store/load orders are enforced via synchronization 
+                    primitives, i.e., by accesses to other memory locations.
+        \end  {itemize}\smallskip
+
+    \item \emp{Notations:}
+\end{itemize}
+\vspace{-3ex}
+
+\center{\includegraphics[width=44ex]{Ch7Figs/Notation1}}
+
+\end{frame}
+
+\subsection{Store Atomicity}
+
+\begin{frame}[fragile,t]
+\frametitle{Store Atomicity: A Sufficient Condition for SC}
+
+\begin{itemize}
+    \item Coherence Transaction do not happen instantaneously
+    \begin{itemize}
+        \item enough to make them look atomic to the software,e.g.,databases.
+    \end{itemize}\medskip
+
+    \item Condition: only one value is accessible at any time. {\bf Definitions:}
+    \begin{itemize}
+        \item[1] \emp{A load is performed} at the point in time when 
+                    its value is bound and cannot be recalled, e.g., when value is used.
+        \item[2] \emp{A store is performed w.r.t. thread $i$} when a load 
+                    to thread $i$ cannot return a value prior to the store.
+        \item[3] \emp{A store is globally performed} when is performed 
+                    w.r.t. all threads,
+        \item[4] \emp{A load is globally performed (GP)} when it is performed and 
+                    the store providing the value is also globally performed. 
+    \end{itemize}\medskip
+%{\tiny (NOT NECESSARY)}
+    \item \emph{{\bf Sufficient Condition for Store Atomicity}:}\pause
+    \begin{itemize}
+        \item[1] For any address, a global order of stores to that address exists \alert{and}
+        \item[2] A load must be globally performed before its value can be used!\medskip
+        \begin{itemize}
+            \item Load value being bound and its store being globally performed 
+            \item means that no thread can observe a new value while another thread
+                    can still observe the old value.
+        \end{itemize}
+
+    \end{itemize}
+\end{itemize}
+
+\end{frame}
+
+
 \begin{frame}[fragile,t]
 \frametitle{Recall Write-Back MSI Invalidate Protocol}
 
@@ -638,40 +710,6 @@ to the same address.}
 \center{\includegraphics[width=55ex]{Ch7Figs/MSIupdate}}
 
 \end{frame}
-
-
-\subsection{Strict Coherence}
-
-\begin{frame}[fragile,t]
-\frametitle{Strict Coherence}
-
-\begin{itemize}
-    \item \emph{``Memory is coherent if the value returned by a Load
-            is always the value of the latest store to the same 
-            address.''}\medskip
-
-    \item Fine for Uniprocessor, \emp{Difficult to extend to Multiprocessors}:
-        \begin{itemize}
-            \item execution time are unpredictable,
-            \item inter-processor communication is NOT instantaneous.
-        \end  {itemize}\smallskip
-
-    \item \emp{Can be applied if}:
-        \begin{itemize}
-            \item memory accesses do not overlap in time, or
-            \item \emp{stores are atomic}: all copies updated instantaneously, or
-            \item store/load orders are enforced via synchronization 
-                    primitives, i.e., by accesses to other memory locations.
-        \end  {itemize}\smallskip
-
-    \item \emp{Notations:}
-\end{itemize}
-\vspace{-3ex}
-
-\center{\includegraphics[width=44ex]{Ch7Figs/Notation1}}
-
-\end{frame}
-
 
 
 \begin{frame}[fragile,t]
@@ -740,89 +778,6 @@ L\mymath{\myindu{2}}(A)a\mymath{\myindx{3}}
 
 
 \begin{frame}[fragile,t]
-\frametitle{Memory-Access Atomicity Relativity}
-
-\begin{itemize}
-    \item P2 has a Modified (unique) copy of {\tt X} in its cache
-    \item when the load from P1 misses (in P1's cache)
-\end{itemize}
-
-{\center \includegraphics[width=59ex]{Ch7Figs/CoherenceEG1}}\pause
-\vspace{-18ex}
-
-\emp{Idea: enough to find an ordering of atomic instructions that ``makes sense''}, e.g.,
-even with instantaneous loads, a program using shared memory 
-cannot detect the difference between the load returning {\tt x1} or 
-{\tt x3}, simply because if P2 would be 4$\times$ faster it would return {\tt x3}.
-
-\end{frame}
-
-
-\subsection{Store Atomicity}
-
-\begin{frame}[fragile,t]
-\frametitle{Today Coherence Transaction are Non-Atomic}
-
-{\center \includegraphics[width=59ex]{Ch7Figs/SoteBuffs}}\pause
-
-\end{frame}
-
-\begin{frame}[fragile,t]
-\frametitle{Today Coherence Transaction are Non-Atomic}
-
-\begin{columns}
-\column{0.3\textwidth}
-\vspace{+7ex}
-\includegraphics[width=22ex]{Ch7Figs/Mesh}\pause
-\column{0.65\textwidth}
-%\begin{scriptsize}
-Packet or Circuit-switched interconnect
-\begin{itemize}
-    \item many routes between two points,
-    \item adaptive routing to optimize congestion
-    \item very unpredictable transmission times
-\end{itemize}
-\end{columns}
-
-\end{frame}
-
-\begin{frame}[fragile,t]
-\frametitle{Sufficient Condition for Store Atomicity}
-
-\begin{itemize}
-    \item Coherence Transaction do not happen instantaneously
-    \begin{itemize}
-        \item enough to make them look atomic to the software,e.g.,databases.
-    \end{itemize}\medskip
-
-    \item Condition: only one value is accessible at any time. {\bf Definitions:}
-    \begin{itemize}
-        \item[1] \emp{A load is performed} at the point in time when 
-                    its value is bound and cannot be recalled, e.g., when value is used.
-        \item[2] \emp{A store is performed w.r.t. thread $i$} when a load 
-                    to thread $i$ cannot return a value prior to the store.
-        \item[3] \emp{A store is globally performed} when is performed 
-                    w.r.t. all threads,
-        \item[4] \emp{A load is globally performed (GP)} when it is performed and 
-                    the store providing the value is also globally performed. 
-    \end{itemize}\medskip
-%{\tiny (NOT NECESSARY)}
-    \item \emph{{\bf Sufficient Condition for Store Atomicity}:}\pause
-    \begin{itemize}
-        \item[1] For any address, a global order of stores to that address exists \alert{and}
-        \item[2] A load must be globally performed before its value can be used!\medskip
-        \begin{itemize}
-            \item Load value being bound and its store being globally performed 
-            \item means that no thread can observe a new value while another thread
-                    can still observe the old value.
-        \end{itemize}
-
-    \end{itemize}
-\end{itemize}
-
-\end{frame}
-
-\begin{frame}[fragile,t]
 \frametitle{Store Atomicity in cc-NUMAs}
 
 Assume cc-NUMA with MSI invalidate protocol, and a
@@ -874,6 +829,55 @@ That's because the store is globally performed at {\tt t3}!
 \end{frame}
 
 \subsection{Plain Coherence}
+
+\begin{frame}[fragile]
+	\tableofcontents[currentsubsection]
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Memory-Access Atomicity Relativity}
+
+\begin{itemize}
+    \item P2 has a Modified (unique) copy of {\tt X} in its cache
+    \item when the load from P1 misses (in P1's cache)
+\end{itemize}
+
+{\center \includegraphics[width=59ex]{Ch7Figs/CoherenceEG1}}\pause
+\vspace{-18ex}
+
+\emp{Idea: enough to find an ordering of atomic instructions that ``makes sense''}, e.g.,
+even with instantaneous loads, a program using shared memory 
+cannot detect the difference between the load returning {\tt x1} or 
+{\tt x3}, simply because if P2 would be 4$\times$ faster it would return {\tt x3}.
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+\frametitle{Today Coherence Transaction are Non-Atomic}
+
+{\center \includegraphics[width=59ex]{Ch7Figs/SoteBuffs}}\pause
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+\frametitle{Today Coherence Transaction are Non-Atomic}
+
+\begin{columns}
+\column{0.3\textwidth}
+\vspace{+7ex}
+\includegraphics[width=22ex]{Ch7Figs/Mesh}\pause
+\column{0.65\textwidth}
+%\begin{scriptsize}
+Packet or Circuit-switched interconnect
+\begin{itemize}
+    \item many routes between two points,
+    \item adaptive routing to optimize congestion
+    \item very unpredictable transmission times
+\end{itemize}
+\end{columns}
+
+\end{frame}
 
 \begin{frame}[fragile,t]
 \frametitle{Plain Coherence: A Weaker Coherence}
