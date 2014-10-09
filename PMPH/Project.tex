@@ -94,14 +94,14 @@
 
 \titleslide
 
+
+\begin{frame}[fragile]
+	\tableofcontents
+\end{frame}
+
 %%%%%%%% real content starts here %%%%%%%%%%
 
 \section{Code Structure}
-
-\begin{frame}[fragile]
-	\tableofcontents[currentsection]
-\end{frame}
-
 
 \begin{frame}[fragile,t]
   \frametitle{Datasets} % of CPU, Multicores, GPGPU
@@ -201,8 +201,9 @@ rollback( ... ) \{
     \item summarize accesses inter-procedurally. 
             For each loop what does it write and what does it read?\medskip
     \item Within each loop: are all reads covered by writes
-            happening within the same iteration?
+            executed within the same iteration?
             If so then privatization solves those dependencies!\medskip
+    \item For CUDA: do array expansion instead of privatization.\medskip
     \item Decide for each loop whether it can or cannot be parallelize.\medskip
     \item Use loop distribution to create perfect nests,
             which will become later your CUDA kernels.\medskip
@@ -210,6 +211,158 @@ rollback( ... ) \{
             to obtain coalesced access to global memory.
 \end{itemize}
 \end{frame}
+
+\section{CPU parallelization}
+
+\begin{frame}[fragile]
+	\tableofcontents[currentsection]
+\end{frame}
+
+\begin{frame}[fragile,t]
+  \frametitle{CPU Parallelization} % of CPU, Multicores, GPGPU
+
+In function {\tt run\_OrigCPU} move the declaration of
+{\tt strike} and {\tt globs} inside the loop, and parallelize
+the loop via an \textsc{OpenMP} pragma:
+
+\begin{block}{Parallelizing the Outermost Loop Via OpenMP}
+\begin{columns}
+\column{0.95\textwidth}
+\begin{colorcode}
+\emphh{\#pragma omp parallel for default(shared) schedule(static)}
+    for( unsigned i = 0; i < outer; ++ i ) \{
+        REAL strike;
+        PrivGlobs    globs(numX, numY, numT);
+
+        strike = 0.001*i;
+        res[i] = value( globs, s0, strike, t,
+                        alpha, nu,    beta,
+                        numX,  numY,  numT );
+    \}
+\end{colorcode}
+\column{0.05\textwidth}
+\end{columns}
+\end{block} 
+
+\alert{Explain why this is safe in the report!}\\
+(For example if you not move the declarations inside
+the loop and still parallelize the loop, the executions
+will NOT validate).
+
+\end{frame}
+
+
+\section{Code Transformations}
+
+\begin{frame}[fragile]
+	\tableofcontents[currentsection]
+\end{frame}
+
+\subsection{Reasoning About Parallelism: Privatization \& Array Expansion}
+
+\begin{frame}[fragile,t]
+  \frametitle{Reasoning About Parallelism: Privatization} % of CPU, Multicores, GPGPU
+
+
+\begin{itemize}
+\item The outermost loop of index {\tt i} is NOT parallel as it is,
+because all its iterations write and read all indices of
+array {\tt A}.\smallskip
+
+\item However, each iteration reads (is covered by) what was 
+written in the same iteration, a.k.a., array {\tt A} can be privatized.
+
+\item Privatization can be achieved by moving the
+declaration of {\tt a} inside the outermost loop
+(each iteration works with its own private version of {\tt A}).
+\end{itemize}
+
+\begin{block}{Parallelizing the Outermost Loop Via OpenMP}
+\begin{columns}
+\column{0.47\textwidth}
+\begin{colorcode}
+float A[N];
+\emp{for(int i=0;i<N;i++)\{ //seq}
+  for(int j=0;j<N;j++)\{
+    A[j] = ...
+  \}
+  ...
+  for(int j=0;j<N;j++)\{
+    ... = A[j]
+  \}  
+\}
+\end{colorcode}
+\column{0.47\textwidth}
+\begin{colorcode}
+\emphh{for(int i=0;i<N;i++)\{ //par}
+  float A[N];
+  for(int j=0;j<N;j++)\{
+    A[j] = ...
+  \}
+  ...
+  for(int j=0;j<N;j++)\{
+    ... = A[j]
+  \}  
+\}
+\end{colorcode}
+\end{columns}
+\end{block} 
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+  \frametitle{Array Expansion} % of CPU, Multicores, GPGPU
+
+
+\begin{itemize}
+\item In CUDA it is preferable that all memory is allocated
+        before the kernel starts, hence making array {\tt A}
+        local would not work.\smallskip
+
+\item Instead, expand array {\tt A} with an extra dimension,
+        whose size is the count of the outermost loop. 
+
+\item Now iteration {\tt i} has exclusive access, i.e., writes to and 
+        reads from,  row {\tt i} of expanded array {\tt A}.
+
+\item The two versions of code below are \emp{semantically equivalent!}
+\end{itemize}
+
+\begin{block}{Semantically Equivalent: Privatized {\em vs} Expanded {\tt A}}
+\begin{columns}
+\column{0.47\textwidth}
+\begin{colorcode}
+\emphh{for(int i=0;i<N;i++)\{ //par}
+  \emp{float A[N];}
+  for(int j=0;j<N;j++)\{
+    \emp{A[j]} = ...
+  \}
+  ...
+  for(int j=0;j<N;j++)\{
+    ... = \emp{A[j]}
+  \}  
+\}
+\end{colorcode}
+\column{0.47\textwidth}
+\begin{colorcode}
+\emphh{float A[N, N];}
+\emphh{for(int i=0;i<N;i++)\{ //par}
+  for(int j=0;j<N;j++)\{
+    \emphh{A[i,j]} = ...
+  \}
+  ...
+  for(int j=0;j<N;j++)\{
+    ... = \emphh{A[i,j]}
+  \}  
+\}
+\end{colorcode}
+\end{columns}
+\end{block} 
+
+\end{frame}
+
+
+\subsection{Creating CUDA Kernels via Loop Distribution}
 
 \end{document}
 
