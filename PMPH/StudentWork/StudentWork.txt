@@ -144,7 +144,10 @@
             -- Task 2 completely missed the point, and
                         tries with block size 9 or 5
             -- Task 3 not submitted
-		Assignment 3: 7/10
+		Assignment 3: RESUBMISSION GOOD 9/10 (was 7/10)
+            -- still no validation for task 2, and several errors 
+                when calling transposition for task 2.
+            ----------------------------------------------
 			-- minimal sizes for Task1, no validation
 			-- tiled transposition not implemented
 				(suggested resubmission will give him 10.)
@@ -181,7 +184,8 @@
             -- Task 1: perfect
             -- Task 2: perfect
             -- Task 3: not submitted
-		Assignment 2: 7/10
+		Assignment 2: 10/10
+            -- RESUBMISSION VERY GOOD!
 			-- Task 1: perfect (but no validation)
 			-- Task 2: not submitted at all
 
