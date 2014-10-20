@@ -22,6 +22,8 @@ default:
 	pdflatex LocOfRef.tex
 	pdflatex Project.tex
 	pdflatex Project.tex
+	pdflatex OoOproc.tex
+	pdflatex OoOproc.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
 # Lecture 1
@@ -83,6 +85,11 @@ locref:
 proj:
 	pdflatex Project.tex
 	pdflatex Project.tex
+	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
+
+ooo:
+	pdflatex OoOproc.tex
+	pdflatex OoOproc.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
 clean:
