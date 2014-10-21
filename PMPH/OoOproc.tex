@@ -214,7 +214,7 @@ At \emp{\bf dispatch}, \emphh{\bf the output register operand} is assigned a
 \begin{itemize}
     \item TAG is stored in the register file and is reclaimed
             when the instr retires (writes output on CDB and releases its Q entry)
-    \item TAG \& result on CDB and ``snooped'' by queues \& register file.
+    \item TAG \& result put on CDB and ``snooped'' by queues \& reg. file.
     \item When a tag match occurs: 
             \begin{itemize}
                 \item its value is stored in queue entry and in register (file) and 
@@ -392,7 +392,7 @@ THEN to {\tt I3}'s TAG upon {\tt I3}  dispatch,
 
 \begin{itemize}
     \item \emphh{\bf Instructions issued and start execution OUT OF ORDER!}
-            Critical path\pause comprises the loads followed by {\tt ADD.S}
+            Critical path\pause {\tt~} comprises the loads followed by {\tt ADD.S}
             followed by store; the other instrs executed in parallel with critical path! 
     \item \emp{\bf {\tt SUBI$\rightarrow$BNEZ} could take advantage of static scheduling}\pause, 
                 e.g., if {\tt SUBI} moved up then branch result 
@@ -412,7 +412,7 @@ THEN to {\tt I3}'s TAG upon {\tt I3}  dispatch,
 
 
 \begin{frame}[fragile,t]
-\frametitle{Execution Beyond Unresolved Branches}
+\frametitle{Execution Beyond Unresolved Branches: A Tree of Possibilities}
 
 \includegraphics[width=44ex]{FigsOoOProc/CondBranch.pdf}
 \vspace{-11ex}
@@ -433,7 +433,7 @@ THEN to {\tt I3}'s TAG upon {\tt I3}  dispatch,
 \end{frame}
 
 \begin{frame}[fragile,t]
-\frametitle{Dynamic Branch Prediction: A Tree of Possibilities}
+\frametitle{Dynamic Branch Prediction}
 
 \includegraphics[width=55ex]{FigsOoOProc/BranchPredSimple.pdf}
 \vspace{-14ex}
@@ -586,24 +586,6 @@ THEN to {\tt I3}'s TAG upon {\tt I3}  dispatch,
 \end{itemize}
 \end{frame}
 
-
-\begin{frame}[fragile,t]
-\frametitle{(M,N) BPB}
-
-\includegraphics[width=55ex]{FigsOoOProc/PredictorMN.pdf}
-\vspace{-13ex}
-\pause
-
-\begin{itemize}
-    \item \emp{\bf Global History}: the outcome of the last M (executed) branches,
-    \item i.e., use $2^M$ N-bit predictors for each of P-bit branch entry.
-    \item BPB size: $N\times2^M\times2^P$\medskip, EOR = bitwise exclusive OR. 
- 
-    \item \emp{\bf This predictor uses global history to differentiate
-                between various behaviors of a particular branch}
-    \item \emp{\bf Can be generalized: two level predictors (next)!}
-\end{itemize}
-\end{frame}
 
 
 \begin{frame}[fragile,t]
