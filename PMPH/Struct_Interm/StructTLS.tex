@@ -1,0 +1,37 @@
+\begin{frame}
+\frametitle{Course Organization}
+
+\begin{tabular}{lccccc}
+W  & HARDWARE  & & SOFTWARE     & & LAB/CUDA \\\hline\hline
+1 & Trends        &                         & List HOM     & & Intro \& Simple\\
+  & Vector Machine & $\longleftarrow$ & (Map-Reduce) & & Map Programming\\\hline
+%
+2 & In Order & $\longrightarrow$ & VLIW Instr   & & Scan \&\\
+  & Processor& $\longleftarrow$ & Scheduling   & & Reduce \\\hline
+%
+3 & \emphh{Cache}     & & Reasoning About     & & Sparse Vect\\
+  & \emphh{Coherence} & & Parallelism   & & Matrix Mult\\\hline
+%
+4 & Interconnection & & Case Studies \&   & & Transpose \& Matrix\\
+  & Networks        & & Optimizations   & & Matrix Mult\\\hline
+%
+5 & \emphh{Memory}      & & Optimising   & & Sorting \& Profiling \& \\
+  & \emphh{Consistency} & & Locality     & & Mem Optimizations \\\hline
+%
+6 & \emphh{OoO, Spec}   & $\longleftarrow$ & \alert{Thread-Level}   & & Project \\
+  & \emphh{Processor}   & & \alert{Speculation}    & & Work    \\\hline
+
+%\framebox{Processor}       & & \framebox{Low-Level\\Optimizations}        & & \framebox{CUDA: Scan\\Reduce}\\
+%$\downarrow$ && $\uparrow$ \\
+%\framebox{\red Intermediate code generation} &$\longrightarrow$ & Intermediate code
+\end{tabular}
+\medskip
+%\alert{Keywords: Reasoning, Tradeoffs, Common Case, }
+
+Three narative threads: the path to complex \& good design: 
+\begin{itemize}
+    \item \emp{Design Space} tradeoffs, constraints, common case, trends.
+    \item \emp{Reasoning}: from simple to complex, \emp{Applying Concepts}.
+\end  {itemize}
+\end{frame}
+

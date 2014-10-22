@@ -24,6 +24,8 @@ default:
 	pdflatex Project.tex
 	pdflatex OoOproc.tex
 	pdflatex OoOproc.tex
+	pdflatex TLS.tex
+	pdflatex TLS.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
 # Lecture 1
@@ -90,6 +92,11 @@ proj:
 ooo:
 	pdflatex OoOproc.tex
 	pdflatex OoOproc.tex
+	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
+
+tls:
+	pdflatex TLS.tex
+	pdflatex TLS.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
 clean:
