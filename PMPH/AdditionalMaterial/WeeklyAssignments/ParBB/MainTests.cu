@@ -205,7 +205,7 @@ int testMultiFilter(const unsigned int num_elems, const unsigned int num_hwd_thd
             if ( out_el != in_el) {
                 success = false;
                 printf("Multi Filter Violation: %d should be %d, eq class: %d, i: %d, h_out[i]: %d\n", out_el, in_el, ind_cls, i, h_out[i]);
-                if(i > 32) break;
+                if(i > 9) break;
             }
             count[ind_cls]++;
         }
@@ -229,9 +229,9 @@ int main(int argc, char** argv) {
     const unsigned int num_hwd_thds = 32*1024;
     const unsigned int num_elems = 50332001; //50332001; //51904512; //50332001; //50331648; //16353455;  // 65535 * 512
 
-    testClassicFilter(num_elems, num_hwd_thds, 1);
-    testClassicFilter(num_elems, num_hwd_thds, 2);
-    testClassicFilter(num_elems, num_hwd_thds, 3);
+    //testClassicFilter(num_elems, num_hwd_thds, 1);
+    //testClassicFilter(num_elems, num_hwd_thds, 2);
+    //testClassicFilter(num_elems, num_hwd_thds, 3);
     testMultiFilter<Mod4>(num_elems, num_hwd_thds);
 
 #if 0

@@ -137,7 +137,7 @@ class LessThan {
     static __host__ __device__ inline int   apply(volatile float t) {
         return (t < 0.5) ? 1 : 0;
     }
-};
+};    
 
 class Mod4 {
   public:
@@ -238,6 +238,42 @@ class Mod8 {
         beg_blk   = (blockIdx.x > 0) * blk_beg->w;
         acc.w    += tmp_diff + (threadIdx.x > 0) * (blk_prv->w - beg_blk);
         arrtmp[7] = blk_end->w - beg_blk;
+    }
+};
+
+
+
+class AddInt4Opt {
+  public:
+    static __device__ inline int identity() { return 0; }  
+    static __device__ inline int apply(volatile int& t1, volatile int& t2) {
+        int t11 = t1, t22 = t2, t = 0, res = 0;
+        #pragma unroll
+        for(int i=0; i<4; i++, t+=8) {
+            res += ((t11 & 127) + (t22 & 127)) << t;
+            t11 = t11 >> 8; t22 = t22 >> 8;
+        }
+        return res;
+    }
+};
+
+class Mod4Opt {
+  public:
+    typedef int           InType;
+    typedef int          OutType;
+    typedef MyInt4       ExpType;
+    typedef AddInt4Opt   AddExpType;
+    static const int cardinal = 4;
+    static const int padelm   = 3;
+    static __host__ __device__ inline int identity() { return 0; }
+    static __host__ __device__ inline int   apply(volatile int t) {
+        return t & 3;
+    }
+    static __host__ __device__ inline int expand1(const int i) {
+        return 1 << (8*i);
+    }
+    static __host__ __device__ inline int extract(const int v, const int i) {
+        return (v >> (8*i)) & 127;
     }
 };
 
@@ -642,7 +678,7 @@ writeChunkKernel(   T* d_in, int* cond_res, int* perm_chunk, T* d_out,
  *    OTHERWISE: an MyInt2/4/8 => hold in registers, but leads to divergence.
  * MyInt4 representation seems to be a bit better than int[4]. 
  */
-//#define WITH_ARRAY
+#define WITH_ARRAY
 template<class OP>
 __global__ void
 writeMultiKernel(   typename OP:: InType* d_in,  int* cond_res, 
@@ -662,6 +698,7 @@ writeMultiKernel(   typename OP:: InType* d_in,  int* cond_res,
 //    int col = blockIdx.x*blockDim.x + threadIdx.x;
 
 #ifdef WITH_ARRAY
+//    volatile int* acc0 = (volatile int*)(ind_sh_mem + threadIdx.y*blockDim.x + threadIdx.x);
     int  acc0[OP::cardinal];
     #pragma unroll
     for(k = 0; k < OP::cardinal; k++) 
@@ -687,7 +724,9 @@ writeMultiKernel(   typename OP:: InType* d_in,  int* cond_res,
         volatile int* mem = (volatile int*)(ind_sh_mem + threadIdx.x*blockDim.y+threadIdx.y);
         #pragma unroll
         for(k = 0; k < OP::cardinal; k++) {
-            mem[k] = acc0[k];
+            int val = acc0[k];
+//            __syncthreads();
+            mem[k] = val;
         }
 #else
         ind_sh_mem[threadIdx.x*blockDim.y+threadIdx.y] = acc0;
@@ -702,7 +741,9 @@ writeMultiKernel(   typename OP:: InType* d_in,  int* cond_res,
         volatile int* mem = (volatile int*)(ind_sh_mem + threadIdx.x*blockDim.y+threadIdx.y-1);
         #pragma unroll
         for(k = 0; k < OP::cardinal; k++) {
-            acc0[k] = (threadIdx.y > 0) ? mem[k] : 0;
+            int val = (threadIdx.y > 0) ? mem[k] : 0;
+//            __syncthreads();
+            acc0[k] = val;
         }
 #else
         if (threadIdx.y > 0) {
@@ -747,6 +788,7 @@ writeMultiKernel(   typename OP:: InType* d_in,  int* cond_res,
 #ifdef WITH_ARRAY
         int shind= acc0[iind];
         elm_sh_mem[shind] = d_in[tmp_id];
+        //elm_sh_mem[k*blockDim.x*blockDim.y+threadIdx.y*blockDim.x+threadIdx.x] = d_in[tmp_id];
         acc0[iind] = shind + 1;
 #else 
         int shind = acc0.selInc(iind);
@@ -780,6 +822,104 @@ writeMultiKernel(   typename OP:: InType* d_in,  int* cond_res,
         }
     }
 }
+
+
+/**
+ * Needs separate index-value shared memories, eg (8+1)*block size!
+ */
+template<class OP>
+__global__ void
+writeMultiKernelOpt(typename OP:: InType* d_in,  int* cond_res, 
+                    typename OP::ExpType* perm_chunk, 
+                    typename OP:: InType* d_out, 
+                    const unsigned int d_height, 
+                    const unsigned int orig_size,
+                    const          int CHUNK
+) {
+    typedef typename OP:: InType T;
+    typedef typename OP::ExpType M; 
+
+    extern __shared__ char gen_sh_mem[];
+    volatile int* ind_sh_mem = (volatile int*) gen_sh_mem;
+    volatile T*   elm_sh_mem = (volatile T*) (ind_sh_mem + 32*33);
+    int k;
+
+    int acc[OP::cardinal], acc0[OP::cardinal];
+    { // 0. init accumulator to the scan-result value of the previous row.
+        unsigned int tmp_id = blockIdx.x*blockDim.x;
+        int* blk_beg = (int*)(perm_chunk + tmp_id - 1);
+        int* blk_end = (int*)(perm_chunk + tmp_id + blockDim.x  - 1);
+        int* blk_prv = (int*)(perm_chunk + tmp_id + threadIdx.y - 1);
+        tmp_id = 0;
+        #pragma unroll
+        for(k = 0; k < OP::cardinal; k++) {
+            int beg_blk = (blockIdx.x > 0) * blk_beg[k];
+            acc[k]  = tmp_id + (threadIdx.y > 0) * (blk_prv[k] - beg_blk);
+            acc0[k] = blk_end[k] - beg_blk;
+            tmp_id += acc0[k];
+        }
+    }
+
+    cond_res += blockIdx.x*blockDim.x + threadIdx.y*d_height + threadIdx.x;
+    d_in     += blockIdx.x*1024*CHUNK + threadIdx.y*CHUNK*blockDim.x + threadIdx.x;
+    for(k=0; k<CHUNK; k++, cond_res+=32*d_height, d_in+=blockDim.x) {
+        int cur_cond, lw_cond;
+        { // 1. transpose a 32*32 chunk of the cond_res array!
+            ind_sh_mem[threadIdx.x*33 + threadIdx.y] = cond_res[0];  
+            __syncthreads();
+            cur_cond = ind_sh_mem[threadIdx.y*33 + threadIdx.x];
+            __syncthreads();
+        }
+        
+        { // 2. scan-warp
+            int exp_cond = OP::expand1(cur_cond);
+            ind_sh_mem[threadIdx.y*32 + threadIdx.x] = exp_cond;
+            //__syncthreads();
+            scanIncWarp<typename OP::AddExpType,int>(ind_sh_mem+threadIdx.y*32, threadIdx.x);
+            //__syncthreads();
+            lw_cond = ind_sh_mem[threadIdx.y*32 + 31];
+        }
+
+        { // 3. write to share memory and update vars
+            int exp_cond = ind_sh_mem[threadIdx.y*32 + threadIdx.x];
+            exp_cond = OP::extract(exp_cond, cur_cond);
+            //__syncthreads();
+            elm_sh_mem[exp_cond + acc[cur_cond] - 1] = d_in[0];
+            //elm_sh_mem[CHUNK*blockDim.x*threadIdx.y+k*blockDim.x+threadIdx.x] = d_in[0]; 
+            #pragma unroll
+            for(int j = 0; j < OP::cardinal; j++) {
+                acc[j] += OP::extract(lw_cond, j);
+            }
+            __syncthreads();
+        }
+    }
+    
+    // 6. Finally, the shared memory is traverse in order and
+    //    and the filtered array is written to global memory;
+    //    Since all the elements of an equiv-class are contiguous
+    //    in shared memory (and global memory), the uncoalesced 
+    //    writes are minimized. 
+    {
+        int* blk_vlst= ((int*)(perm_chunk + d_height - 1)); // very last (row) scan result
+        k   = threadIdx.y*blockDim.x + threadIdx.x;
+        unsigned int total_len = blockDim.x*blockDim.y*CHUNK;
+        for( ; k < total_len; k+=blockDim.x*blockDim.y) {
+            unsigned int glb_ind = 0, loc_ind = k;
+            unsigned int tmp_id = 0;
+            while( loc_ind >= acc0[tmp_id] && tmp_id < OP::cardinal) {
+                glb_ind += blk_vlst[tmp_id];
+                loc_ind -= acc0[tmp_id];
+                tmp_id++;
+            }
+
+            tmp_id = glb_ind + loc_ind + (blockIdx.x > 0) * 
+                     ((int*) (perm_chunk + blockIdx.x*blockDim.x - 1))[tmp_id]; // blk_beg;
+            if(tmp_id < orig_size) 
+                d_out[tmp_id] = elm_sh_mem[k];
+        }
+    }
+}
+
 /************************/
 /*** TRANSPOSE Kernel ***/
 /************************/

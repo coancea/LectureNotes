@@ -387,12 +387,13 @@ multiFilter(    const unsigned int      num_elems,
                 typename DISCR::InType* d_in,  // device
                 typename DISCR::InType* d_out  // device
 ) {
+    const unsigned int MAX_CHUNK = 384; //256; //384;
     // compute a suitable CHUNK factor and padd the intermediate arrays such
     // that 64 | D_HEIGHT and 32 | D_WIDTH
-    const unsigned int D_WIDTH = min( nextMultOf(max(num_elems/num_hwd_thds,1), 32), 384);  // SEQ CHUNK
+    const unsigned int D_WIDTH = min( nextMultOf(max(num_elems/num_hwd_thds,1), 32), MAX_CHUNK);  // SEQ CHUNK
     const unsigned int D_HEIGHT= nextMultOf( (num_elems + D_WIDTH - 1) / D_WIDTH, 64 );
     const unsigned int PADD    = nextMultOf(D_HEIGHT*D_WIDTH, 64*D_WIDTH) - num_elems;
-    
+
     struct timeval t_start, t_med0, t_med1, t_med2, t_end, t_diff;
     unsigned long int elapsed;
 
@@ -440,16 +441,33 @@ multiFilter(    const unsigned int      num_elems,
     cudaThreadSynchronize();
     gettimeofday(&t_med2, NULL);
 
+#if 1
     { // 4. the write to global memory part
         // By construction: D_WIDTH  is guaranteed to be a multiple of 32 AND
         //                  D_HEIGHT is guaranteed to be a multiple of 64 !!! 
         const unsigned int SEQ_CHUNK   = D_WIDTH / 32;
-        const unsigned int SH_MEM_SIZE = max(SEQ_CHUNK,DISCR::cardinal) * 1024 * sizeof(int);
+        printf("SEQ_CHUNK: %u, DISCRcaqrd: %u\n\n", SEQ_CHUNK, DISCR::cardinal);
+        const unsigned int SH_MEM_SIZE = 1024 * sizeof(int) * max(SEQ_CHUNK,DISCR::cardinal);    
+
         dim3 block(32, 32, 1);
         dim3 grid ( D_HEIGHT/32, 1, 1);
         writeMultiKernel<DISCR><<<grid, block, SH_MEM_SIZE>>> 
             (d_tr_in, cond_res, inds_res+D_HEIGHT, d_out, D_HEIGHT, num_elems, SEQ_CHUNK);
     }
+#else
+    { // 4. the write to global memory part
+        // By construction: D_WIDTH  is guaranteed to be a multiple of 32 AND
+        //                  D_HEIGHT is guaranteed to be a multiple of 64 !!! 
+        const unsigned int SEQ_CHUNK   = D_WIDTH / 32;
+        printf("SEQ_CHUNK: %u, DISCRcaqrd: %u\n\n", SEQ_CHUNK, DISCR::cardinal);
+        const unsigned int SH_MEM_SIZE = 1024 * sizeof(int) * SEQ_CHUNK + 32*33*sizeof(int); // PUT CORRECT TYPES!    
+
+        dim3 block(32, 32, 1);
+        dim3 grid ( D_HEIGHT/32, 1, 1);
+        writeMultiKernelOpt<Mod4Opt><<<grid, block, SH_MEM_SIZE>>> 
+            (d_in, cond_res, inds_res+D_HEIGHT, d_out, D_HEIGHT, num_elems, SEQ_CHUNK);
+    }    
+#endif
     cudaThreadSynchronize();
     gettimeofday(&t_end, NULL);
 
