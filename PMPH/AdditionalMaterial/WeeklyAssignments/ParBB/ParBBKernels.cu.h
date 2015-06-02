@@ -666,6 +666,12 @@ writeChunkKernel(   T* d_in, int* cond_res, int* perm_chunk, T* d_out,
     }
 }
 
+__device__ inline
+int myHash(int ind) {
+    return ind;
+    //return ((ind >> 12) << 12) + ((ind & 4095) ^ 4095);
+    //return ((ind & 127) << 5) + ((ind >> 7) & 31) + ((ind >> 12)<<12);
+}
 
 /**
  * The use of this kernel should guarantee that the blocks are full;
@@ -678,7 +684,7 @@ writeChunkKernel(   T* d_in, int* cond_res, int* perm_chunk, T* d_out,
  *    OTHERWISE: an MyInt2/4/8 => hold in registers, but leads to divergence.
  * MyInt4 representation seems to be a bit better than int[4]. 
  */
-#define WITH_ARRAY
+//#define WITH_ARRAY
 template<class OP>
 __global__ void
 writeMultiKernel(   typename OP:: InType* d_in,  int* cond_res, 
@@ -721,7 +727,7 @@ writeMultiKernel(   typename OP:: InType* d_in,  int* cond_res,
 
     { 
 #ifdef WITH_ARRAY
-        volatile int* mem = (volatile int*)(ind_sh_mem + threadIdx.x*blockDim.y+threadIdx.y);
+        volatile int* mem = (volatile int*)(ind_sh_mem + threadIdx.x*(blockDim.y+1)+threadIdx.y);
         #pragma unroll
         for(k = 0; k < OP::cardinal; k++) {
             int val = acc0[k];
@@ -729,16 +735,16 @@ writeMultiKernel(   typename OP:: InType* d_in,  int* cond_res,
             mem[k] = val;
         }
 #else
-        ind_sh_mem[threadIdx.x*blockDim.y+threadIdx.y] = acc0;
+        ind_sh_mem[threadIdx.x*(blockDim.y+1)+threadIdx.y] = acc0;
 #endif
     }
     __syncthreads();
     // 2. vertical warp-scan of the results from the seq scan step, put result back in acc0
-    scanIncWarp<typename OP::AddExpType,M>(ind_sh_mem, threadIdx.y*blockDim.x+threadIdx.x);
+    scanIncWarp<typename OP::AddExpType,M>(ind_sh_mem + threadIdx.y*(blockDim.x+1), threadIdx.x);
     __syncthreads();
     {
 #ifdef WITH_ARRAY
-        volatile int* mem = (volatile int*)(ind_sh_mem + threadIdx.x*blockDim.y+threadIdx.y-1);
+        volatile int* mem = (volatile int*)(ind_sh_mem + threadIdx.x*(blockDim.y+1)+threadIdx.y-1);
         #pragma unroll
         for(k = 0; k < OP::cardinal; k++) {
             int val = (threadIdx.y > 0) ? mem[k] : 0;
@@ -747,7 +753,7 @@ writeMultiKernel(   typename OP:: InType* d_in,  int* cond_res,
         }
 #else
         if (threadIdx.y > 0) {
-            acc0.set(ind_sh_mem[threadIdx.x*blockDim.y+threadIdx.y-1]);
+            acc0.set(ind_sh_mem[threadIdx.x*(blockDim.y+1)+threadIdx.y-1]);
         } else {
             acc0.zeroOut();
         }
@@ -787,12 +793,12 @@ writeMultiKernel(   typename OP:: InType* d_in,  int* cond_res,
         int iind = cond_res[tmp_id];
 #ifdef WITH_ARRAY
         int shind= acc0[iind];
-        elm_sh_mem[shind] = d_in[tmp_id];
+        elm_sh_mem[myHash(shind)] = d_in[tmp_id];
         //elm_sh_mem[k*blockDim.x*blockDim.y+threadIdx.y*blockDim.x+threadIdx.x] = d_in[tmp_id];
         acc0[iind] = shind + 1;
 #else 
         int shind = acc0.selInc(iind);
-        elm_sh_mem[shind-1] = d_in[tmp_id];
+        elm_sh_mem[myHash(shind-1)] = d_in[tmp_id];
 #endif
     }
     __syncthreads();
@@ -818,7 +824,7 @@ writeMultiKernel(   typename OP:: InType* d_in,  int* cond_res,
             tmp_id = glb_ind + loc_ind + (blockIdx.x > 0) * 
                      ((int*) (perm_chunk + blockIdx.x*blockDim.x - 1))[tmp_id]; // blk_beg;
             if(tmp_id < orig_size) 
-                d_out[tmp_id] = elm_sh_mem[k];
+                d_out[tmp_id] = elm_sh_mem[myHash(k)];
         }
     }
 }
