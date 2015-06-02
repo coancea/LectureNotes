@@ -1,5 +1,6 @@
 #include "ProjHelperFun.h"
 #include "Constants.h"
+#include "TridagScan.h"
 
 void updateParams(const unsigned g, const REAL alpha, const REAL beta, const REAL nu, PrivGlobs& globs)
 {
@@ -126,7 +127,8 @@ rollback( const unsigned g, PrivGlobs& globs ) {
             c[i] =		 - 0.5*(0.5*globs.myVarX[i][j]*globs.myDxx[i][2]);
         }
         // here yy should have size [numX]
-        tridag(a,b,c,u[j],numX,u[j],yy);
+        //tridag(a,b,c,u[j],numX,u[j],yy);
+        tridagScan(a,b,c,u[j],numX,u[j],yy);
     }
 
     //	implicit y
@@ -141,7 +143,8 @@ rollback( const unsigned g, PrivGlobs& globs ) {
             y[j] = dtInv*u[j][i] - 0.5*v[i][j];
 
         // here yy should have size [numY]
-        tridag(a,b,c,y,numY,globs.myResult[i],yy);
+        //tridag(a,b,c,y,numY,globs.myResult[i],yy);
+        tridagScan(a,b,c,y,numY,globs.myResult[i],yy);
     }
 }
 
