@@ -74,7 +74,9 @@
                         minuscule example & implementation is not generic
                         in terms of size.
 
-        Assignment 3: 6/10
+        Assignment 3: 9/10 AFTER e-mail resubmission (was 6/10)
+            -- still some errors in task2b
+            ------------------------------------------------
 			-- only task1a and task2.a submitted
 				naive transposition only somewhat works for
 				specific matrix sizes.
@@ -272,6 +274,10 @@
                         loop inside the kernel, missed the point.
         Assignment 2: 7/10
             -- Good, but used the fill-in-the-blanks form.
+        Assignment 3: 9/10
+            -- the tiled transposed is not coalesced for the write access
+            -- forgot to put cudaDeviceSynchronize(); everywhere and small 
+                NUM_ROWS for task 2. Otherwise very good!
 
 19  Podaras, Silvana                pqx917@alumni.ku.dk
         Assignment 1:  8/10
@@ -359,9 +365,12 @@
 25  Svensson, Mathias Bundgaard     tpx783@alumni.ku.dk
         Assignment 1:  10/10
             -- Perfect Solution!
-        Assignment 2: FAIL
+        Assignment 2: 9/10
+                RESUBMISSION solved task #2 but actually
+                implemented a reduce from scratch, hence 2pts bonus.
             -- Task 1: Perfect
             -- Task 2 & 3: not submitted.
+                
 		Assignment 3: 10/10
 			-- ok, some minor issues, 
 				but I could not find to fix them.
@@ -377,13 +386,13 @@
         NOT ENROLLED ANYMORE!
 
 28  Thegler, Asbjørn                rzw488@alumni.ku.dk
-        Assignment 1:  FAIL
+        Assignment 1:  5 (FAIL)
             -- Task 1: perfect
             -- Task 2: partially implemented
             -- Tasks 3 and 4: not submitted.
             -- Task 5: something, but a strange 
                        sequential loop there...
-        Assignment 2: FAIL
+        Assignment 2: 5 (FAIL)
             -- Task 1: ok, but unnecessarily complicated.
             -- Task 2 & 3: not implemented.
 		Assignment 3: 9/10
