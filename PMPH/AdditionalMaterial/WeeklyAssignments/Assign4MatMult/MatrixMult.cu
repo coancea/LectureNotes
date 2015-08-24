@@ -1,9 +1,9 @@
 #include "MatrixMult.h"
 #include "MatrixMult.cu.h"
 
-#define WIDTH_A  1024 //1024//2048
-#define HEIGHT_A 2048//2048//2048
-#define WIDTH_B  1536//4096//2048
+#define WIDTH_A  1024//1024 //1024//2048
+#define HEIGHT_A 1024//2048//2048//2048
+#define WIDTH_B  1024//1536//4096//2048
 #define TILE     32
 /////////////////////////////////////////////////////////
 // Program main
@@ -75,6 +75,7 @@ int main() {
       
         //matMultKer<float> <<< grid, block >>>(d_A, d_B, d_C, WIDTH_A, HEIGHT_A, WIDTH_B);
         matMultTiledKer<float,TILE> <<< grid, block >>>(d_A, d_B, d_C, WIDTH_A, HEIGHT_A, WIDTH_B); 
+        //matMultCacheKer<float,TILE> <<< grid, block >>>(d_A, d_B, d_C, WIDTH_A, HEIGHT_A, WIDTH_B);
         cudaThreadSynchronize();
 
       gettimeofday(&t_end, NULL);
