@@ -225,16 +225,14 @@ and a constant number of integer operations per communication stage.
 
 \begin{itemize}
     \item Class of problems which requires to find the longest segment of a list
-            for which some property holds, for example:
+            for which some property holds, such as:
     \item longest sequence of zeros, or longest sequence made from the same number, or longest sorted sequence.  
-    \item How about longest sequence whose sum is 0?
-    \item For the latter any correct solution needs to access the complete list, giving 
-            sequential implementation without any parallelism, \\ e.g., {\tt lsum0 [4,1,1] $\odot$ lsum0[-2,5,1]}.
+    \item Not all predicates can be written as a list homomorphism, e.g., longest sequence whose sum is 0.
 \end{itemize}
 
 \bigskip
 
-\begin{block}{Restrict the Shape of the Predicate:}
+\begin{block}{Restrict The Shape of the Predicate to:}
 \begin{colorcode}
 p []           = True
 p [x]          = ...
@@ -251,9 +249,9 @@ p [x : y : zs] = (p [x,y]) \mymath{\wedge} p (y : zs)
 
 \begin{block}{Restrict the Shape of the Predicate:}
 \begin{colorcode}
-zeroes [x]   = x == 0           same [x]   = True     sorted [x]   = True
-zeroes [x,y] =  (zeroes [x])    same [x,y] = x == y   sorted [x,y] = x <= y
-              \mymath{\wedge} (zeroes [y])
+zeros [x]   = x == 0           same [x]   = True     sorted [x]   = True
+zeros [x,y] =  (zeros [x])     same [x,y] = x == y   sorted [x,y] = x <= y
+             \mymath{\wedge} (zeros [y])
 \end{colorcode}
 \end{block} 
 
@@ -265,8 +263,8 @@ Extra Baggage:
     \item When considering the concatenation of the {\tt (lcs, lis)} pair, it is not guaranteed that the
             result satisfies the predicate \\
             e.g., {\tt (sorted x) $\wedge$ (sorted y) $\not\Rightarrow$ sorted x++y}.  
-    \item Hence store the {\em last} element of {\tt lcs} and the {\em first} element of {\tt lis},
-    \item and compute whether {\tt (lcs x)} is {\em connected} to {\tt (lis y)}, \\ i.e., {\tt p [lastx,firsty] == True}
+    \item We also need the {\em last} element of {\tt lcs} and the {\em first} elem of {\tt lis},
+    \item in order to compute whether {\tt (lcs x)} is {\em connected} to {\tt (lis y)}, \\ i.e., {\tt p [lastx,firsty] == True}
     \item Boolean indicating whether the whole list satisfies {\tt p} ({\tt ok}).
 \end{itemize}
 \end{frame}
@@ -274,7 +272,7 @@ Extra Baggage:
 \begin{frame}[fragile,t]
   \frametitle{Longest Satisfying Segment Problem: Exercise}
 
-\begin{block}{Exercise: fill in the blanks, test in Haskell for zeroes/same/sorted}
+\begin{block}{Exercise: fill in the blanks, test in Haskell for zeros/same/sorted}
 \begin{colorcode}
 (lssx, lisx, lcsx, tlx, firstx, lastx, okx) \mymath{\odot}
 (lssy, lisy, lcsy, tly, firsty, lasty, oky) 
@@ -517,6 +515,34 @@ operators  $\oplus$ and $\otimes$.
 \subsection{Implementation of Reduce and Scan}
 
 \begin{frame}[fragile,t]
+  \frametitle{Map, Reduce, and Scan Types and Semantics}
+
+\begin{itemize}
+    \item \emp{\tt map~::~($\alpha\rightarrow\beta$)~$\rightarrow$~[$\alpha$]$~\rightarrow$~[$\beta$]}\\
+    \emph{\tt map f [x$_1,\ldots, $x$_n$] = [f(x$_1$),$\ldots$, f(x$_n$)]},\\  
+        i.e., \emp{\tt{}x$_i$~::~$\alpha, \forall i$}, and 
+        \emp{\tt f~::~$\alpha\rightarrow\beta$}.\medskip
+
+    \item \emp{{\tt reduce~::~($\alpha$~$\rightarrow$~$\alpha$~$\rightarrow$~$\alpha$)~$\rightarrow$~$\alpha$~$\rightarrow$~[$\alpha$]~$\rightarrow$~$\alpha$}}\\
+        \emph{\tt reduce $\odot$~e~[x$_1$,x$_2$,..,x$_n$]~=~e$\odot$x$_1\odot$x$_2\odot\ldots\odot$x$_n$},\\
+        i.e., \emp{{\tt{}e::$\alpha$, x$_i$~::~$\alpha, \forall i$}}, and 
+        \emp{\tt $\odot$~::~$\alpha\rightarrow\alpha\rightarrow\alpha$}.\medskip
+
+    \item \emp{{\tt scan$^{exc}$~::~($\alpha$~$\rightarrow$~$\alpha$~$\rightarrow$~$\alpha$)~$\rightarrow$~$\alpha$~$\rightarrow$~[$\alpha$]~$\rightarrow$~[$\alpha$]}}\\
+        \emph{\tt scan$^{exc}~\odot$~e~[x$_1$,$\ldots$,x$_n$]~=~[e,e$\odot$x$_1$,$\ldots$,e$\odot$x$_1\odot\ldots$x$_{n-1}$]}\\
+        i.e., \emp{{\tt{}e::$\alpha$, x$_i$~::~$\alpha, \forall i$}}, and 
+        \emp{\tt $\odot$~::~$\alpha\rightarrow\alpha\rightarrow\alpha$}.\medskip
+
+    \item \emp{{\tt scan$^{inc}$~::~($\alpha$~$\rightarrow$~$\alpha$~$\rightarrow$~$\alpha$)~$\rightarrow$~$\alpha$~$\rightarrow$~[$\alpha$]~$\rightarrow$~[$\alpha$]}}\\
+        \emph{\tt scan$^{inc}~\odot$~e~[x$_1$,$\ldots$,x$_n$]~=~[e$\odot$x$_1$,$\ldots$,e$\odot$x$_1\odot\ldots$x$_{n}$]}\\
+        i.e., \emp{{\tt{}e::$\alpha$, x$_i$~::~$\alpha, \forall i$}}, and 
+        \emp{\tt $\odot$~::~$\alpha\rightarrow\alpha\rightarrow\alpha$}.
+
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile,t]
   \frametitle{Parallel Random Access Machine (PRAM)}
 
 PRAM focuses exclusively on parallelism and ignores issues
@@ -710,19 +736,19 @@ Output: B = \mymath{[0, a\myindx{1}, a\myindx{1}\oplus{}a\myindx{2},\ldots,\oplu
   \frametitle{Zip, ZipWith}
 
 \begin{itemize}
-    \item \emph{\tt zip :: [$T_1$] $\rightarrow$ [$T_2$] $\rightarrow$ [($T_1$,$T_2$)]}
+    \item \emph{\tt zip :: [$\alpha_1$] $\rightarrow$ [$\alpha_2$] $\rightarrow$ [($\alpha_1$,$\alpha_2$)]}
     \item \emp{\tt zip [a$_1$,$\ldots$,a$_n$] [b$_1$,$\ldots$,b$_m$] $\equiv$ [(a$_1$,b$_1$),\ldots,(a$_q$,b$_q$)]},
-            where {\tt q = min(m,n)}.
-    \item \emph{\tt unzip :: [($T_1$,$T_2$)] $\rightarrow$ ([$T_1$],[$T_2$])}
-    \item \emp{\tt unzip [(a$_1$,b$_1$),\ldots,(a$_n$,b$_n$)]$\equiv$([a$_1$,$\ldots$,a$_n$],[b$_1$,$\ldots$,b$_n$])},\medskip
+            where {\tt q = min(m,n)}.\pause
+    \item \emph{\tt unzip :: [($\alpha_1$,$\alpha_2$)] $\rightarrow$ ([$\alpha_1$],[$\alpha_2$])}
+    \item \emp{\tt unzip [(a$_1$,b$_1$),\ldots,(a$_n$,b$_n$)]$\equiv$([a$_1$,$\ldots$,a$_n$],[b$_1$,$\ldots$,b$_n$])},\pause\medskip
 
     \item In some sense {\tt zip} is syntactic sugar, for example one could work with the
             tuple of array representation, e.g.,
     \item \emp{\tt mapT :: (($\alpha_1$,$\ldots$,$\alpha_m$)$\rightarrow$($\beta_1$,$\ldots$,$\beta_n$)) $\rightarrow$}\\ 
           \emp{\tt~~~~~~~~~[$\alpha_1$] $\rightarrow\ldots\rightarrow$ [$\alpha_m$] $\rightarrow$ ([$\beta_1$],$\ldots$,[$\beta_n$]])}
-    \item \emph{\tt mapT f $\equiv$ unzip$^n$ . map f . zip$^n$}\medskip
+    \item \emph{\tt mapT f $\equiv$ unzip$^n$ . map f . zip$^n$}\pause\medskip
 
-    \item {\tt zipWith :: [$\alpha_1$] $\rightarrow$ [$\alpha_2$] $\rightarrow$ [$\beta$]}
+    \item {\tt zipWith :: ($\alpha_1\rightarrow\alpha_2\rightarrow\beta$) $\rightarrow$ [$\alpha_1$] $\rightarrow$ [$\alpha_2$] $\rightarrow$ [$\beta$]}
     \item {\tt zipWith $\odot$ [a$_1$,$\ldots$,a$_n$] [b$_1$,$\ldots$,b$_n$] $\equiv$ [a$_1\odot$b$_1$,$\ldots$,a$_n\odot$b$_n$]}
     \item {\tt zipWith $\odot$ $\equiv$ map ($\backslash$(u,v) $\rightarrow$ u $\odot$ v) . zip}
 \end  {itemize}
@@ -1061,7 +1087,7 @@ Assume n = 9, sqrtN = 3
 call primesOpt 3
 n = 3,sqrtN = 1,sqrt_primes=[2]
 nested = [[]]; not\_primes = [] 
-mm = 0; zeroes = []
+mm = 0; zeros = []
 prime_flags = [T,T,T,T]
 primes = [0,1,2,3]; returns [2,3]
 
@@ -1070,7 +1096,7 @@ return from primesOpt3,
 sqrt_primes = [2,3]
 nested = [[4,6,8],[6,9]]
 not_primes = [4,6,8,6,9]
-mm=5;zeroes= [F,F,F,F,F]
+mm=5;zeros= [F,F,F,F,F]
 prime_flags= [T,T,T,T,\emp{F},T,\emp{F},T,\emp{F},\emp{F}]
 primes = [0,1,2,3,5,7]
 returns [2,3,5,7]
@@ -1254,7 +1280,7 @@ p_vals    = [2, 2, 2, 3, 3]
 p_inds    = [2, 3, 4, 2, 3]
              =  =  =  =  =
 not_primes= [4, 6, 8, 6, 9]
-zeroes    = [F, F, F, F, F]
+zeros    = [F, F, F, F, F]
 prime_flg=[T,T,T,T,F,T,F,T,F,F]
   transformed to prime indexes
 primes   =[0,1,2,3,  5,  7    ]
@@ -1316,7 +1342,7 @@ p_vals     = [2, 2, 2, 3, 3]
 p_inds     = [2, 3, 4, 2, 3]
               =  =  =  =  =
 not_primes = [4, 6, 8, 6, 9]
-zeroes     = [F, F, F, F, F]
+zeros     = [F, F, F, F, F]
 prime_flg=[T,T,T,T,F,T,F,T,F,F]
   transformed to prime indexes
 primes   =[0,1,2,3,  5,  7    ]
