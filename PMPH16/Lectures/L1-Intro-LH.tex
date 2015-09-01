@@ -565,8 +565,10 @@ Present at many layers:
             \item complexity of design
         \end  {itemize}\bigskip
 
-    \item Architecture can play a significant role to maintain viability
-            of CMOS technology for years to come
+    \item \emphh{It seems that parallelism addresses well all these constraints.} 
+%    \item Architecture can play a significant role to maintain viability
+%            of CMOS technology for years to come.\bigskip
+
 \end{itemize}
 \end{frame}
 
@@ -848,6 +850,8 @@ E.g., $(\mathbb{N},+)$, $(\mathbb{Z},\times)$, $(\mathbb{L}_T,++)$, where\\
         $\mathbb{L}_T$ denotes lists of elements of type $T$,
         and $++$ list concatenation. 
 
+\pause
+
 \begin{mydef}[Monoid Homomorphism]\label{HomDef}\vspace{-1ex}
 \emp{A monoid homomorphism} from monoid $(S,\oplus)$ to monoid $(T,\odot)$
 is a function $h : S \rightarrow T$ such that $\forall u, v\in S$,
@@ -874,6 +878,7 @@ is a function $h : S \rightarrow T$ such that $\forall u, v\in S$,
 %    \item Motivation: a large class of list-homomorphic function have 
 %            {\em efficient data-parallel} (map-reduce style) implementations!
 \end{itemize}
+\pause
 
 \begin{mydef}[List Homomorphism]\label{LHomDef}
 $h :: [T_1] \rightarrow T_2$ over finite lists is a {\em list homomorphism}
@@ -1079,6 +1084,59 @@ Build programs by combining \emp{map}, \emp{reduce} and other such operators. %E
 
 \end{frame}
 
+
+\begin{frame}[fragile,t]
+  \frametitle{1st List-Homomorphism Theorem [Meertens]}
+
+\begin{mytheo}[1st List Homomorphism Theorem (Meertens)]\label{LHomTh1}
+Any homomorphism \emp{$h = hom \ (\odot) \ f \ e$} can be written 
+as the functional composition of a reduce and a map: \\
+\emp{$\ \ \ \ \ \ \ \ \ h = hom \ (\odot) \ f \ e_{\odot} \ = \ (reduce \ (\odot) \ e_{\odot}) \ . \ (map \ f)$} \\
+Conversely, each such composition is a homomorphism. \\
+\end{mytheo}
+
+%Theorem tells how to parallelize LHs based on {\tt map-reduce} skeletons.
+%Note that $\mbox{ }map\mbox{ }f \equiv map_f\mbox{ }\mbox{ }$ and 
+%$\mbox{ }\mbox{ }hom\mbox{ }(\odot)\mbox{ }id\mbox{ }e_{\odot} \equiv red_{\odot}$
+
+\begin{block}{Apply Theorem to Re-Write LH to Map-Reduce!}
+\vspace{-2ex}
+\begin{columns}
+\column{0.45\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+-- \emp{len} = \emp{hom (+) one 0}, one x = 1
+len :: [T] -> Integer
+len []     = \emp{0}
+len [x]    = \emp{1}
+\emph{len} (x++y) = (\emph{len} x) \emp{+} (\emph{len} y)
+
+-- \emph{flatten} = \emp{hom (++) id []}
+flatten :: [[T]] -> [T]
+flatten []     = \emp{[]}
+flatten [x]    = \emp{x}
+\emph{flatten} (x++y) = (\emph{flatten} x) \emp{++} 
+                 (\emph{flatten} y)
+\end{colorcode}
+\column{0.45\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+-- \emph{maxList} = \emp{hom (max) id \mymath{-\infty}} 
+maxList :: [Int] -> Int
+maxList []     = \emp{\mymath{-\infty}}
+maxList [x]    = \emp{x}
+\emph{maxList} (x++y) = (\emph{maxList} x) \emp{`max`} 
+                 (\emph{maxList} y)
+-- Assume p :: T -> Bool given,
+-- \emph{all\mymath{\myindx{p}}} = \emp{hom (&&) p True}
+all\mymath{\myindx{p}} :: [T] -> Bool
+all\mymath{\myindx{p}} []     = \alert{???}
+all\mymath{\myindx{p}} [x]    = \alert{???} 
+\emph{all\mymath{\myindx{p}}} (x++y) = \alert{???}
+\end{colorcode}
+\end{columns}
+\end{block}
+
+
+\end{frame}
 
 \begin{frame}[fragile,t]
   \frametitle{1st List-Homomorphism Theorem [Meertens]}
