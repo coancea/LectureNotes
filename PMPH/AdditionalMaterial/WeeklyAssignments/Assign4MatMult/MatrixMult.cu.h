@@ -45,3 +45,24 @@ __global__ void matMultTiledKer(float* A, float* B, float* C, int widthA, int he
     C[gidy*widthB + gidx] = accum;
 }
 
+// widthA = heightB
+template <class T, int TILE> 
+__global__ void matMultCacheKer(float* A, float* B, float* C, int widthA, int heightA, int widthB) {
+  T accum = 0.0f;
+
+  int gidx = blockIdx.x*blockDim.x + threadIdx.x;
+  int gidy = blockIdx.y*blockDim.y + threadIdx.y; 
+
+  for(int kk = 0; kk < widthA; kk += TILE) {
+      __syncthreads();
+      #pragma unroll
+      for(int k = 0; k < TILE; k++)
+        accum += A[gidy*widthA + kk + k] * B[gidy*widthB + (kk+k)];
+        //accum += A[gidy*widthA + kk + k] * B[(kk+k)*widthB + gidx];
+
+  }
+
+  if( (gidx < widthB) && (gidy < heightA) )
+    C[gidy*widthB + gidx] = accum;
+}
+
