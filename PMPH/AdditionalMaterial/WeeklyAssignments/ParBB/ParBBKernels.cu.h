@@ -624,6 +624,15 @@ writeChunkKernelDummy(
     }
 }
 
+__device__ inline
+int myHash(int ind) {
+    return ind;
+    //return ((ind >> 12) << 12) + ((ind & 4095) ^ 4095);
+    //return ((ind & 255) << 4) + ((ind >> 8) & 15) + ((ind >> 12)<<12);
+    //return ((ind & 511) << 3) + ((ind >> 9) & 7) + ((ind >> 12)<<12);
+}
+
+
 template<class T>
 __global__ void
 writeChunkKernel(   T* d_in, int* cond_res, int* perm_chunk, T* d_out, 
@@ -652,7 +661,7 @@ writeChunkKernel(   T* d_in, int* cond_res, int* perm_chunk, T* d_out,
     tmp_id = blockIdx.x*blockDim.x + threadIdx.y*CHUNK*d_height + threadIdx.x; 
     for(int k = 0; k < CHUNK; k++, tmp_id+=d_height) {
         if(cond_res[tmp_id] > 0) {
-            elm_sh_mem[acc_tmp+acc0] = d_in[tmp_id];
+            elm_sh_mem[myHash(acc_tmp+acc0)] = d_in[tmp_id];
             acc0++;
         }
     }
@@ -662,16 +671,10 @@ writeChunkKernel(   T* d_in, int* cond_res, int* perm_chunk, T* d_out,
     hind = blockDim.x*blockDim.y;
     tmp_id = threadIdx.y*blockDim.x + threadIdx.x;
     for( ; tmp_id < tot_len; tmp_id += hind) {
-        d_out[acc_blk+tmp_id] = elm_sh_mem[tmp_id];
+        d_out[acc_blk+tmp_id] = elm_sh_mem[myHash(tmp_id)];
     }
 }
 
-__device__ inline
-int myHash(int ind) {
-    return ind;
-    //return ((ind >> 12) << 12) + ((ind & 4095) ^ 4095);
-    //return ((ind & 127) << 5) + ((ind >> 7) & 31) + ((ind >> 12)<<12);
-}
 
 /**
  * The use of this kernel should guarantee that the blocks are full;
