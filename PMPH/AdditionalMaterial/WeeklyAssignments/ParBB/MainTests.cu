@@ -227,10 +227,11 @@ int testMultiFilter(const unsigned int num_elems, const unsigned int num_hwd_thd
 
 int main(int argc, char** argv) { 
     const unsigned int num_hwd_thds = 64*1024;
-    const unsigned int num_elems = 25332001; //50332001; //51904512; //50332001; //50331648; //16353455;  // 65535 * 512
+    const unsigned int num_elems = 25332001; 
+    //50332001; //51904512; //50332001; //50331648; //16353455;  // 65535 * 512
 
-    //testClassicFilter(num_elems, num_hwd_thds, 1);
-    //testClassicFilter(num_elems, num_hwd_thds, 2);
+    testClassicFilter(num_elems, num_hwd_thds, 1);
+    testClassicFilter(num_elems, num_hwd_thds, 2);
     testClassicFilter(num_elems, num_hwd_thds, 3);
     testMultiFilter<Mod4>(num_elems, num_hwd_thds);
 
