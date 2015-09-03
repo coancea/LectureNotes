@@ -256,8 +256,9 @@ www.udacity.com/course/cs344
 #include <cuda_runtime.h>
 
 \emp{__global__ void squareKernel(float* d_in, float *d_out) \{}
-\emp{    const unsigned int tid = threadIdx.x;} \blue{// access thread id}
-\emp{    d_out[tid] = d_in[tid]*d_in[tid];}     \blue{// do computation}
+\emp{    const unsigned int lid = threadIdx.x;} \blue{// local id inside a block}
+\emp{    const unsigned int gid = blockIdx.x*blockDim.x + lid;} \blue{// global id}
+\emp{    d_out[gid] = d_in[gid]*d_in[gid];}     \blue{// do computation}
 \emp{\}}
 
 int main(int argc, char** argv) \{
@@ -400,9 +401,10 @@ This shouldn't be a problem given the shown program
 ...
 
 \emp{__global__ void squareKernel(float* d_in, float *d_out, int threads_num) \{}
-    \emp{const unsigned int tid = threadIdx.x;} \blue{// access thread id}
-    if(tid < num_threads) \{
-    \emp{    d_out[tid] = d_in[tid]*d_in[tid];}     \blue{// do computation}
+\emp{    const unsigned int lid = threadIdx.x;} \blue{// local id inside a block}
+\emp{    const unsigned int gid = blockIdx.x*blockDim.x + lid;} \blue{// global id}
+    if(gid < threads_num) \{
+    \emp{    d_out[gid] = d_in[gid]*d_in[gid];}     \blue{// do computation}
     \emp{\}}
 \emp{\}}
 \end{colorcode}
