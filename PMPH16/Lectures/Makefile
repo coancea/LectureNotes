@@ -4,6 +4,8 @@ default:
 	pdflatex L1-Intro-LH.tex
 	pdflatex L2-Flatenning.tex
 	pdflatex L2-Flatenning.tex
+	pdflatex Lab1-CudaIntro.tex
+	pdflatex Lab1-CudaIntro.tex
 #	pdflatex Processor.tex
 #	pdflatex Processor.tex
 #	pdflatex VLIW.tex
@@ -39,6 +41,12 @@ l2-listhom:
 	pdflatex L2-Flatenning.tex
 	pdflatex L2-Flatenning.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb *~
+
+lab1-cuda:
+	pdflatex Lab1-CudaIntro.tex
+	pdflatex Lab1-CudaIntro.tex
+	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb *~
+
 
 # Lecture 3
 #processor:

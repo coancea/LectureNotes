@@ -134,6 +134,7 @@
   \frametitle{Almost Homomorphisms [Gorlatch]}
 
 \emp{``Systematic Extraction and Implementation of Divide-and-Conquer Parallelism'', Sergei Gorlatch, 1996.} 
+(attached in TeachingMaterial/AdditionalMaterial/ListHom-Flattening).
 \bigskip
 
 \emph{Intuition}: a non-homomorphic function $g$ can be sometimes ``lifted'' 
@@ -555,16 +556,20 @@ related to synchronization and communication:
                 in the execution of an instruction.
 \end  {itemize}
 
+\pause
 
 \begin{columns}
-\column{0.6\textwidth}
-\includegraphics[height=37ex]{Figures/L2/VectorMachine}
-\column{0.5\textwidth}\vspace{-15ex}
+\column{0.5\textwidth}
+\includegraphics[height=33ex]{Figures/L2/VectorMachine}
+\column{0.55\textwidth}\vspace{-15ex}
 \begin{itemize}
     \item \emp{Work Time Algorithm (WT):}
-    \item \emp{Work Complexity W(n)}: is the total \# of ops performed,
-    \item \emp{Depth/Step Complexity D(n)}: is the \# of sequential steps.\medskip
-    \item \emph{WT $\longrightarrow$ PRAM algorithm\\by Brent Theorem}.
+    \begin{itemize}
+        \item \emp{Work Complexity W(n)}:       is the total \# of ops performed,
+        \item \emp{Depth/Step Complexity D(n)}: is the \# of sequential steps.
+    \end{itemize}
+    \item If we know WT's work and depth, then Brent Theorem 
+            gives good complexity bounds for a PRAM.
 \end{itemize}
 \end{columns}
 
@@ -844,20 +849,17 @@ Result = [4, 2, 8, 5, 3, 7]
 
 \end{frame}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\section{Nested Data Parallelism and Flattening}
+\subsection{Implementation of Segmented Scan}
 
 \begin{frame}[fragile]
-	\tableofcontents[currentsection]
+	\tableofcontents[currentsubsection]
 \end{frame}
 
-\subsection{Segmented Scan}
 
 \begin{frame}[fragile,t]
   \frametitle{Segmented Inclusive Scan with Operator $\oplus$}
+
+\emphh{Equiv with Mapping a Scan op on each segment of an irregular array.}
 
 \begin{columns}
 \column{0.55\textwidth}
@@ -881,7 +883,7 @@ sgmScanInc (+) 0 [1,0,0,1,0,0,0] -- \emph{flag}
 \end{columns}
 \medskip
 
-Can be obtained by replacing the following operator:
+\emphh{Can be obtained by replacing the following operator:}
 \smallskip
 
 \begin{colorcode}
@@ -970,10 +972,28 @@ Output: B = segmented scan of 2-dim array A
 
 \end{frame}
 
-\subsection{Computing the Prime Numbers}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\section{Nested Data-Parallel Applications} 
+
+\begin{frame}[fragile]
+	\tableofcontents[currentsection]
+\end{frame}
+
+
+\subsection{Sieve: Prime-Numbers Computation}
 
 \begin{frame}[fragile,t]
   \frametitle{Computing Prime Numbers: First Attempt}
+
+See also "Scan as Primitive Parallel Operation" [Bleelloch]\\
+(attached in TeachingMaterial/AdditionalMaterial/ListHom-Flattening).
+
+\medskip
 
 Start with an array of size $n$ filled intially with $1$,
 i.e., all are primes, and iteratively zero out all multiples
@@ -995,7 +1015,6 @@ for(i = 2; i < sqrt(n); i++) \{  \alert{//sequential}
 \emph{Work: $O(n \ lg \ lg \ n)$} but \emp{Depth: $O(\sqrt{n})$ (Not Good Enough!)}
 
 \end{frame}
-
 
 \begin{frame}[fragile,t]
   \frametitle{Computing Prime Numbers: First Attempt}
@@ -1057,7 +1076,13 @@ result: [0,0,\emp{1},\emp{1},0,\emp{1},0,\emp{1},0,\emp{0}]
 
 \begin{frame}[fragile,t]
   \frametitle{Computing Prime Numbers: Nested Parallelism}
-
+\vspace{-2ex}
+If we have all primes from $2$ to $\sqrt{n}$ we could
+generate all multiples of these primes at once:
+\emp{\tt \{[2*p:n:p]: p in sqr\_primes\}} in NESL.
+\blue{Also call algorithm recursively on $\sqrt{n}$ $\Rightarrow$ Depth: $O(lg \ lg \ n)$!}\\
+(solution of $n^{(1/2)^{m}}=2$).
+\pause
 \begin{columns}
 \column{0.59\textwidth}
 \begin{colorcode}[fontsize=\scriptsize]
@@ -1102,15 +1127,69 @@ primes = [0,1,2,3,5,7]
 returns [2,3,5,7]
 \end{colorcode}
 \end{columns}
-\medskip
 
-If we have all primes from $2$ to $\sqrt{n}$ we could
-generate all multiples of these primes at once:
-\emp{\tt \{[2*p:n:p]: p in sqr\_primes\}} in NESL.
-\blue{Also call algorithm recursively on $\sqrt{n}$ $\Rightarrow$ Depth: $O(lg \ lg \ n)$!}
 \end{frame}
 
+\subsection{Nested Parallel Quicksort}
 
+\begin{frame}[fragile,t]
+  \frametitle{Quicksort with Nested Parallelism}
+
+\begin{columns}
+\column{0.59\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+nestedQuicksort :: [a] -> [a]
+nestedQuicksort arr = 
+  if (length arr) <= 1 then arr else 
+  let i = getRand (0, (length arr) - 1)
+      a = arr !! i
+      s1 = filter (\mymath{\backslash}x -> (x <  a)) arr
+      s2 = filter (\mymath{\backslash}x -> (x >= a)) arr
+      rs = map nestedQuicksort [s1, s2]
+  in  (rs !! 0) ++ (rs !! 1)
+
+-- \alert{Average Depth and Work ?}
+\end{colorcode}
+\column{0.4\textwidth}\pause
+\begin{colorcode}[fontsize=\scriptsize]
+Assume input array [3,2,4,1]
+Assume random i = 0 \mymath{\Rightarrow} a = 3
+
+s1 = [2,1]
+s2 = [3,4]
+
+\emp{nestedQuicksort [2,1]}:
+i = 0, a = 2
+s1 = [1]
+s2 = [2]
+results in [1]++[2]==[1,2]
+
+\emp{nestedQuicksort [3,4]}: ...
+results in [3,4]
+
+\emp{After recursion concat:}
+[1,2] ++ [3,4] = [1,2,3,4]
+\end{colorcode}
+\end{columns}
+\medskip
+
+Denoting by $n$ the size of the input array: Average Work is $O(n \ lg \ N)$.\\
+\medskip
+
+If filter would have depth $1$, then Average Depth: $O(lg \ n)$.
+\medskip
+
+In practice we have depth: $O(lg^2 \ n)$.
+
+\end{frame}
+
+\section{Flattening Nested Parallelism}
+
+\begin{frame}[fragile]
+	\tableofcontents[currentsection]
+\end{frame}
+
+\subsection{Rules For Flattening}
 
 \begin{frame}[fragile,t]
   \frametitle{Nested {\it vs} Flattened Parallelism}
@@ -1119,7 +1198,7 @@ generate all multiples of these primes at once:
 \begin{columns}
 \column{0.47\textwidth}
 \begin{colorcode}[fontsize=\scriptsize]
-\alert{-- scan nested inside a map:}
+\emp{-- 1. scan nested inside a map:}
 map (\mymath{\backslash}row->scan\mymath{\myindu{inc}} (+) 0 row) 
     \emp{[[1,3], [2,4,6]]} \mymath{\equiv}
 [ scan\mymath{\myindu{inc}} (+) 0 [1,3],
@@ -1127,13 +1206,13 @@ map (\mymath{\backslash}row->scan\mymath{\myindu{inc}} (+) 0 row)
 
 \emp{[ [ 1, 4], [2, 6, 12] ]}
 
-\alert{-- map nested inside a map:}
+\emp{-- 2. map nested inside a map:}
 map ((\mymath{\backslash}row->map f row)) 
     \emp{[[1,3], [2,4,6]]} \mymath{\equiv}
 [ map f [1, 3],  map f [2, 4, 6] ] \mymath{\equiv}
 \emp{[ [f(1),f(3)], [f(2),f(4),f(6)] ]}
 
---\alert{Distribute segment size to each elem}
+\emp{-- 3. Distrib segment size to each elem}
 --E.g., flags = [2, 0, 3, 0, 0]
 \end{colorcode}
 \column{0.47\textwidth}
@@ -1158,11 +1237,72 @@ map f \emph{[1, 3, 2, 4, 6]} \mymath{\equiv}
 \end{columns}
 \end{block}
 
-\begin{itemize}
-    \item a filter nested inside a map $\Rightarrow$
-            write a filter in terms of map and scan and 
-            distribute the outer map against each operation.
-\end  {itemize}
+%\begin{itemize}
+%    \item a filter nested inside a map $\Rightarrow$
+%            write a filter in terms of map and scan and 
+%            distribute the outer map against each operation.
+%\end  {itemize}
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+  \frametitle{Nested {\it vs} Flattened Parallelism}
+
+\begin{block}{Nested Arrays/Parallelism{\tt~~~~~~~~~}Flat Arrays/Parallelism}
+\begin{columns}
+\column{0.43\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+\emp{-- 4. replicate nested inside a map:}
+let arr = \emp{[1,3,2]} in
+map (\mymath{\backslash}n -> replicate(n, n)) arr 
+\mymath{\equiv}
+[ replicate(1,1)
+, replicate(3,3)
+, replicate(2,2) ] 
+\mymath{\equiv}
+[ [1], [3,3,3], [2,2] ]
+
+\emp{-- 7. if nested inside a filter}
+let arr = [3, 4, 6, 7] in
+map(\mymath{\backslash}x -> 
+        if (odd x)
+        then f x  -- assume f is *2
+        else g x  -- assume g is -1
+   ) arr 
+-- \mymath{\Rightarrow} [6, 3, 5, 14]
+
+\emp{-- 6. filter nested inside a map:}
+map(\mymath{\backslash}row -> filter p row)
+
+\end{colorcode}
+\column{0.55\textwidth}
+\begin{colorcode}[fontsize=\scriptsize]
+\emph{--build the flag array and sgmScan it!}
+inds = sgmScan\mymath{\myindu{exc}} (+) 0 arr
+size = (last inds) + (last arr)
+flag = write arr   -- \emp{[1,3,2]}
+             inds  -- \emp{[0,1,4]}
+             replicate(size, 0)
+--           [1,3,0,0,2,0]
+sgmScan\mymath{\myindu{inc}} (+) 0 flag
+-- [1,3,3,3,2,2]
+
+\emph{-- scatter o map o gather}
+ais = zip arr (iota (length arr))
+(ais',flg)=parFilter(\mymath{\backslash}(x,_)->p e) ais
+(ais\mymath{\myindu{t}},ais\mymath{\myindu{f}}) = split flg[0] ais'
+(arr\mymath{\myindu{t}},inds\mymath{\myindu{t}}) = unzip ais\mymath{\myindu{t}}
+(arr\mymath{\myindu{f}},inds\mymath{\myindu{f}}) = unzip ais\mymath{\myindu{f}}
+(arr\mymath{\myindu{then}},arr\mymath{\myindu{else}}) = (map f arr\mymath{\myindu{t}}, map g arr\mymath{\myindu{f}})
+restmp = write inds\mymath{\myindu{t}} arr\mymath{\myindu{then}} [0,\mymath{\ldots},0]
+result = write inds\mymath{\myindu{f}} arr\mymath{\myindu{else}} restmp
+\emph{-- write filter in terms of map/scan}
+\emph{-- the flatten each operation!}
+
+\end{colorcode}
+\end{columns}
+\end{block}
 
 \end{frame}
 
@@ -1176,7 +1316,7 @@ map f \emph{[1, 3, 2, 4, 6]} \mymath{\equiv}
 \bigskip
 
 Any difference between \emph{[0..n-1]} and \emp{[0..i]}?
-How does one write the latter?
+How does one write \emp{[0..i]}?
 \pause\bigskip
 
 \begin{colorcode}
@@ -1248,6 +1388,7 @@ Assume N = 4. Expected Result:
 
 \end{frame}
 
+\subsection{Flattening Prime-Number Computation}
 
 \begin{frame}[fragile,t]
   \frametitle{How Does One Flattens Prime Numbers?}
@@ -1353,59 +1494,7 @@ primes   =[0,1,2,3,  5,  7    ]
 
 \end{frame}
 
-\subsection{Quicksort}
-
-\begin{frame}[fragile,t]
-  \frametitle{Quicksort with Nested Parallelism}
-
-\begin{columns}
-\column{0.59\textwidth}
-\begin{colorcode}[fontsize=\scriptsize]
-nestedQuicksort :: [a] -> [a]
-nestedQuicksort arr = 
-  if (length arr) <= 1 then arr else 
-  let i = getRand (0, (length arr) - 1)
-      a = arr !! i
-      s1 = filter (\mymath{\backslash}x -> (x <  a)) arr
-      s2 = filter (\mymath{\backslash}x -> (x >= a)) arr
-      rs = map nestedQuicksort [s1, s2]
-  in  (rs !! 0) ++ (rs !! 1)
-
--- \alert{Average Depth and Work ?}
-\end{colorcode}
-\column{0.4\textwidth}\pause
-\begin{colorcode}[fontsize=\scriptsize]
-Assume input array [3,2,4,1]
-Assume random i = 0 \mymath{\Rightarrow} a = 3
-
-s1 = [2,1]
-s2 = [3,4]
-
-\emp{nestedQuicksort [2,1]}:
-i = 0, a = 2
-s1 = [1]
-s2 = [2]
-results in [1]++[2]==[1,2]
-
-\emp{nestedQuicksort [3,4]}: ...
-results in [3,4]
-
-\emp{After recursion concat:}
-[1,2] ++ [3,4] = [1,2,3,4]
-\end{colorcode}
-\end{columns}
-\medskip
-
-Denoting by $n$ the size of the input array: Average Work is $O(n \ lg \ N)$.\\
-\medskip
-
-If filter would have depth $1$, then Average Depth: $O(lg \ n)$.
-\medskip
-
-In practice we have depth: $O(lg^2 \ n)$.
-
-\end{frame}
-
+\subsection{Flattening Quicksort}
 
 \begin{frame}[fragile,t]
   \frametitle{How to Flatten Quicksort}
