@@ -984,7 +984,6 @@ Output: B = segmented scan of 2-dim array A
 	\tableofcontents[currentsection]
 \end{frame}
 
-
 \subsection{Sieve: Prime-Numbers Computation}
 
 \begin{frame}[fragile,t]
@@ -1192,312 +1191,411 @@ In practice we have depth: $O(lg^2 \ n)$.
 \subsection{Rules For Flattening}
 
 \begin{frame}[fragile,t]
-  \frametitle{Nested {\it vs} Flattened Parallelism}
+  \frametitle{Nested {\it vs} Flattened Parallelism: Scan inside a Map}
 
-\begin{block}{Nested Arrays/Parallelism{\tt~~~~~~~~~}Flat Arrays/Parallelism}
-\begin{columns}
-\column{0.47\textwidth}
+\blue{\bf (1) Scan inside a nested map:}
+
 \begin{colorcode}[fontsize=\scriptsize]
-\emp{-- 1. scan nested inside a map:}
-map (\mymath{\backslash}row->scan\mymath{\myindu{inc}} (+) 0 row) 
-    \emp{[[1,3], [2,4,6]]} \mymath{\equiv}
-[ scan\mymath{\myindu{inc}} (+) 0 [1,3],
-  scan\mymath{\myindu{inc}} (+) 0 [2,4,6] ] \mymath{\equiv}
+map (\mymath{\backslash}row->scan\mymath{\myindu{inc}} (+) 0 row) \emp{[[1,3], [2,4,6]]} 
+\mymath{\equiv}
+[ scan\mymath{\myindu{inc}} (+) 0 [1,3],    scan\mymath{\myindu{inc}} (+) 0 [2,4,6] ] 
+\mymath{\equiv}
+\emp{[ [ 1, 4],               [2, 6, 12] ]}
+\end{colorcode}
 
-\emp{[ [ 1, 4], [2, 6, 12] ]}
+\bigskip
+\pause
 
-\emp{-- 2. map nested inside a map:}
-map ((\mymath{\backslash}row->map f row)) 
-    \emp{[[1,3], [2,4,6]]} \mymath{\equiv}
-[ map f [1, 3],  map f [2, 4, 6] ] \mymath{\equiv}
+\blue{\bf becomes a segmented scan}, which requires a flag array as arg:
+\bigskip
+
+\begin{colorcode}[fontsize=\scriptsize]
+sgmScan\mymath{\myindu{inc}} (+) 0 \emph{[2, 0, 3, 0, 0]} \emph{[1, 3, 2, 4, 6]} \mymath{\equiv} \emph{[ 1, 4, 2, 6, 12 ]}
+\end{colorcode}
+
+\bigskip
+
+The flag array \emph{[2, 0, 3, 0, 0]} encodes the fact that the 
+flat-data array \emph{[1, 3, 2, 4, 6]} has two segments:
+\begin{itemize} 
+    \item one of length $2$ starting at index $0$
+    \item one of length $3$ starting at index $2$
+\end{itemize}
+
+(i.e., an non-zero element in the flag array denotes the 
+       length of the segment that start at that point.  )
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+  \frametitle{Nested {\it vs} Flattened Parallelism: Map inside a Map}
+
+\blue{\bf (2) Map nested inside a map:}
+
+\begin{colorcode}[fontsize=\scriptsize]
+map (\mymath{\backslash}row->map f row) \emp{[[1,3], [2,4,6]]} 
+\mymath{\equiv}
+[ map f [1, 3],      map f [2, 4, 6] ] 
+\mymath{\equiv}
 \emp{[ [f(1),f(3)], [f(2),f(4),f(6)] ]}
-
-\emp{-- 3. Distrib segment size to each elem}
---E.g., flags = [2, 0, 3, 0, 0]
 \end{colorcode}
-\column{0.47\textwidth}
+
+\bigskip
+\pause
+
+\blue{\bf becomes a map on the flat array:}
+\bigskip
+
 \begin{colorcode}[fontsize=\scriptsize]
--- \emph{becomes a segmented scan}
-sgmScan\mymath{\myindu{inc}} (+) 0
--- flags: \mymath{\neq}0 starts a new segment
-    \emph{[2, 0, 3, 0, 0]} 
-    \emph{[1, 3, 2, 4, 6]} \mymath{\equiv}
---  \emph{[ 2, 0, 3, 0, 0  ]} 
-    \emph{[ 1, 4, 2, 6, 12 ]}
-
--- \emph{becomes a map on the flat array}
-map f \emph{[1, 3, 2, 4, 6]} \mymath{\equiv}
-\emph{[ f(1), f(3), f(2), f(4), f(6) ]}
--- \& the flag array is preserved: 
--- [2, 0, 3, 0, 0]
-
-\emph{[2, 2, 3, 3, 3] \mymath{\equiv}}\pause
-    scan\mymath{\myindu{inc}} (+) 0 flags flags
+map f \emph{[1, 3, 2, 4, 6]} \mymath{\equiv} \emph{[ f(1), f(3), f(2), f(4), f(6) ]}
 \end{colorcode}
-\end{columns}
-\end{block}
 
-%\begin{itemize}
-%    \item a filter nested inside a map $\Rightarrow$
-%            write a filter in terms of map and scan and 
-%            distribute the outer map against each operation.
-%\end  {itemize}
+\bigskip
+
+The flag array is assumed known and is preserved \emph{[2, 0, 3, 0, 0]}
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+  \frametitle{How To Distribute the Segment Size?}
+
+Assume flag array: \emph{\tt [2, 0, 3, 0, 0]}.
+
+\bigskip
+
+How do we get \emp{\tt [2, 2, 3, 3, 3]}?
+
+\bigskip
+\pause
+
+\blue{\tt scan\mymath{\myindu{inc}} (+) 0 flags flags}
 
 \end{frame}
 
 
 \begin{frame}[fragile,t]
-  \frametitle{Nested {\it vs} Flattened Parallelism}
+  \frametitle{Nested {\it vs} Flattened Parallelism: Replicate in a Map}
 
-\begin{block}{Nested Arrays/Parallelism{\tt~~~~~~~~~}Flat Arrays/Parallelism}
-\begin{columns}
-\column{0.43\textwidth}
+\blue{\bf (4) Replicate nested inside a map:}
+
 \begin{colorcode}[fontsize=\scriptsize]
-\emp{-- 4. replicate nested inside a map:}
-let arr = \emp{[1,3,2]} in
-map (\mymath{\backslash}n -> replicate(n, n)) arr 
-\mymath{\equiv}
-[ replicate(1,1)
-, replicate(3,3)
-, replicate(2,2) ] 
-\mymath{\equiv}
-[ [1], [3,3,3], [2,2] ]
+map (\mymath{\backslash}(n,m) -> replicate n m) \emp{[(1,7),(3,8),(2,9)]} \mymath{\equiv}
+[ replicate 1 7, replicate 3 8, replicate 2 9 ] \mymath{\equiv}
+[ [7], [8,8,8], [9,9] ]
+\end{colorcode}
 
-\emp{-- 7. if nested inside a filter}
+\bigskip
+\pause
+
+\blue{\bf becomes a composition of scans and write:}
+\bigskip
+
+\begin{colorcode}[fontsize=\scriptsize]
+1. (ns, ms)  = unzip([(1,7), (3,8), (2,9)]
+2. inds = sgmScan\mymath{\myindu{exc}} (+) 0 ns                   -- [0,1,4]
+3. size = (last inds) + (last ns)               -- 4 + 2 = 6
+4. flag = write inds  ns  (replicate size 0)    -- [1, 3, 0, 0, 2, 0]
+5. vals = write inds  ms  (replicate size 0)    -- [7, 8, 0, 0, 9, 0]
+6. sgmScan\mymath{\myindu{inc}} (+) 0 flag \emp{vals}                    \emph{-- [7,8,8,8,9,9]}
+\end{colorcode}
+
+\bigskip
+
+\begin{itemize}
+    \item[2.] builds the indices at which segment start
+    \item[3.] get the size of the flat array (equivalent to summing {\tt arr})
+    \item[4-5.] write the array elems at the position where a segment starts
+    \item[6.] distribute the start-elem of a segment throughout the segment.  
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+  \frametitle{Nested {\it vs} Flattened Parallelism: Iota in a Map}
+
+\blue{\bf (5) Iota nested inside a map} ({\tt (iota n)$\equiv$[0,$\ldots$,n-1]}): 
+
+\begin{colorcode}[fontsize=\scriptsize]
+map (\mymath{\backslash}i -> iota i) \emp{[1,3,2]} \mymath{\equiv}
+[ iota 1, iota 3, iota 2 ] \mymath{\equiv} [ [0], [0,1,2], [0,1] ]
+\end{colorcode}
+
+\bigskip
+\pause
+
+\blue{\bf becomes a composition of scans and write:}
+\bigskip
+
+\begin{colorcode}[fontsize=\scriptsize]
+1. arr  = [1, 3, 2]
+2. inds = sgmScan\mymath{\myindu{exc}} (+) 0 arr      -- [0,1,4]
+3. size = (last inds) + (last arr) -- 4 + 2 = 6
+4. flag = write inds  -- \emp{[0,1,4]}
+                arr   -- \emp{[1,3,2]}
+                (replicate size 0)
+--              [1, 3, 0, 0, 2, 0]
+5. \emp{tmp  = replicate size 1  --[1, 1, 1, 1, 1, 1]}
+6. sgmScan\mymath{\myindu{exc}} (+) 0 flag \emp{tmp} \emph{--[0, 0, 1, 2, 0, 1]}
+\end{colorcode}
+
+\bigskip
+
+\begin{itemize}
+    \item[2.] builds the indices at which segment start
+    \item[3.] get the size of the flat array (equivalent to summing {\tt arr})
+    \item[4.] write the array elems at the position where a segment starts
+    \item[6.] \emp{segmented scan an array of ones}.
+\end{itemize}
+
+\end{frame}
+
+
+
+
+\begin{frame}[fragile,t]
+  \frametitle{Nested {\it vs} Flattened Parallelism: If Inside a Map}
+
+\blue{\bf (6) An If-Then-Elese nested inside a map:} 
+
+\begin{colorcode}[fontsize=\scriptsize]
 let arr = [3, 4, 6, 7] in
-map(\mymath{\backslash}x -> 
-        if (odd x)
-        then f x  -- assume f is *2
-        else g x  -- assume g is -1
-   ) arr 
--- \mymath{\Rightarrow} [6, 3, 5, 14]
-
-\emp{-- 6. filter nested inside a map:}
-map(\mymath{\backslash}row -> filter p row)
-
+map(\mymath{\backslash}x -> if (odd x)  then f x  -- assume f is *2
+                      else g x  -- assume g is -1 ) arr 
+-- should result in [6, 3, 5, 14]
 \end{colorcode}
-\column{0.55\textwidth}
+
+\bigskip
+\pause
+
+\textbf{\blue{translates to a} \emp{scatter-}\emph{map}\purple{-gather} \blue{composition}:}
+\bigskip
+
 \begin{colorcode}[fontsize=\scriptsize]
-\emph{--build the flag array and sgmScan it!}
-inds = sgmScan\mymath{\myindu{exc}} (+) 0 arr
-size = (last inds) + (last arr)
-flag = write arr   -- \emp{[1,3,2]}
-             inds  -- \emp{[0,1,4]}
-             replicate(size, 0)
---           [1,3,0,0,2,0]
-sgmScan\mymath{\myindu{inc}} (+) 0 flag
--- [1,3,3,3,2,2]
-
-\emph{-- scatter o map o gather}
-ais = zip arr (iota (length arr))
-(ais',flg)=parFilter(\mymath{\backslash}(x,_)->p e) ais
-(ais\mymath{\myindu{t}},ais\mymath{\myindu{f}}) = split flg[0] ais'
-(arr\mymath{\myindu{t}},inds\mymath{\myindu{t}}) = unzip ais\mymath{\myindu{t}}
-(arr\mymath{\myindu{f}},inds\mymath{\myindu{f}}) = unzip ais\mymath{\myindu{f}}
-(arr\mymath{\myindu{then}},arr\mymath{\myindu{else}}) = (map f arr\mymath{\myindu{t}}, map g arr\mymath{\myindu{f}})
-restmp = write inds\mymath{\myindu{t}} arr\mymath{\myindu{then}} [0,\mymath{\ldots},0]
-result = write inds\mymath{\myindu{f}} arr\mymath{\myindu{else}} restmp
-\emph{-- write filter in terms of map/scan}
-\emph{-- the flatten each operation!}
-
+1. ais = zip arr (iota (length arr))      -- [(3,0), (4,1), (6,2), (7,3)]
+2. (ais',flg)=\emp{parFilter}(\mymath{\backslash}(x,_)->odd x) ais--([(3,0),(7,3),(4,1),(6,2)],[2,0,2,0])
+3. (ais\mymath{\myindu{t}},ais\mymath{\myindu{f}}) = split flg[0] ais'        --([(3,0),(7,3)], [(4,1),(6,2)])
+4. (arr\mymath{\myindu{t}},inds\mymath{\myindu{t}}) = unzip ais\mymath{\myindu{t}}                 --([3,7], [0,3])
+5. (arr\mymath{\myindu{f}},inds\mymath{\myindu{f}}) = unzip ais\mymath{\myindu{f}}                 --([4,6], [1,2])
+6. (arr\mymath{\myindu{then}},arr\mymath{\myindu{else}}) = (\emph{map f arr\mymath{\myindu{t}}, map g arr\mymath{\myindu{f}}}) --([6,14], [3,5])
+7. result = \purple{write inds\mymath{\myindu{f}} arr\mymath{\myindu{else}} (write inds\mymath{\myindu{t}} arr\mymath{\myindu{then}} [0,\mymath{\ldots},0])} --[6, 3, 5, 14]
 \end{colorcode}
-\end{columns}
-\end{block}
+
+\bigskip
+
+\begin{itemize}
+    \item[1-2.] zip array with indices and \emp{permute based on if predicate},
+    \item[3-5.] unzip the array segments and indices,
+    \item[6.] \emph{map the two data arrays}
+    \item[7.] \purple{write back the resulted elements at original positions.}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+  \frametitle{Nested {\it vs} Flattened Parallelism: Filter inside a Map}
+
+\blue{\bf Rule 7:} Assignment I, Task 3!
+
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Flattening a Simple (Contrived) Program}
+
+\begin{frame}[fragile]
+	\tableofcontents[currentsubsection]
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+  \frametitle{How to Flatten? A Relatively Simple Case}
+\begin{colorcode}
+let arr = [1, 2, 3, 4] in
+\alert{map (\mymath{\backslash}i -> map (+(i+1)) (iota i)) arr}
+-- Result: [[2],[3,4],[4,5,6],[5,6,7,8]]
+\end{colorcode}
+\bigskip
+\pause
+
+Normalize the code:
+\begin{colorcode}
+map (\mymath{\backslash}i -> let ip1 = i+1 in
+           let iot = (iota i) in
+           let ip1r= (replicate i ip1) in
+           map (+) (zip iot ip1r)            ) arr
+\end{colorcode}
+\bigskip
+
+\blue{Distribute the map over every instruction in the body}\\
+(bottom-up if nest $>$ 2), where $\mathcal{F}$ denotes the flattening transf:
+\bigskip
+\pause
+
+\begin{colorcode}
+\mymath{\mathcal{F}}(\alert{map (\mymath{\backslash}i -> map (+(i+1)) (iota i)) [0..n-1]}) \mymath{\equiv}
+1. let ip1s = map (\mymath{\backslash}i -> i+1) arr in -- [2, 3, 4, 5]
+2. let iots = \mymath{\mathcal{F}}(map (\mymath{\backslash}i -> (iota i)) arr)) in
+3. let ip1rs= \mymath{\mathcal{F}}(map (\mymath{\backslash}(i,ip1) -> (replicate i ip1)) (zip arr ip1s)))
+4. in  \mymath{\mathcal{F}}(map (\mymath{\backslash}(z) -> map (+) z) (zip ip1rs iots))
+\end{colorcode}
+
+\end{frame}
+
+
+
+\begin{frame}[fragile,t]
+  \frametitle{How to Flatten? A Relatively Simple Case}
+
+\blue{\bf According to rule (4) iota nested inside a map}\\
+(assuming {\tt arr = [1,2,3,4]}):
+\bigskip
+
+\begin{colorcode}
+2. let iots = \mymath{\mathcal{F}}(map (\mymath{\backslash}i -> iota(i)) arr)
+
+\mymath{\equiv}
+
+inds = sgmScan\mymath{\myindu{exc}} (+) 0 arr -- [0,1,3,6]
+size = (last inds) + (last arr) -- 6 + 4 = 10
+flag = write inds arr 
+             (replicate size 0)
+--           [1, 2, 0, 3, 0, 0, 4, 0, 0, 0]
+tmp  = replicate(size, 1)
+iots = sgmScan\mymath{\myindu{exc}} (+) 0 flag \emp{tmp} \emph{--[0, 0, 1, 0, 1, 2, 0, 1, 2, 3]}
+\end{colorcode}
 
 \end{frame}
 
 
 \begin{frame}[fragile,t]
   \frametitle{How to Flatten? A Relatively Simple Case}
+
+\blue{\bf According to rule (5) replicate nested inside a map}\\
+(assuming {\tt arr = [1,2,3,4]}):
+
 \bigskip
+
 \begin{colorcode}
-\alert{map (\mymath{\backslash}i -> map (+1) [0..i]) [0..n-1]}
+3. let ip1rs= \mymath{\mathcal{F}}(map (\mymath{\backslash}(i,ip1) -> replicate i ip1) (zip arr ip1s)))
+\mymath{\equiv}
+vals = write inds  ip1s (replicate size 0) -- [2, 3, 0, 4, 0, 0, 5, 0, 0, 0]
+ip1rs= sgmScan\mymath{\myindu{inc}} (+) 0 flag \emp{vals}           \emph{-- [2, 3, 3, 4, 4, 4, 5, 5, 5, 5]}
 \end{colorcode}
+
 \bigskip
 
-Any difference between \emph{[0..n-1]} and \emp{[0..i]}?
-How does one write \emp{[0..i]}?
-\pause\bigskip
+\blue{\bf According to rule (2) map nested inside a map}\\
+
+\bigskip
 
 \begin{colorcode}
-\emp{map} (\mymath{\backslash}i -> let ip1 = i + 1
-               tmp1 = \alert{replicate ip1 1}
-               tmp2 = \alert{scan\mymath{\myindu{exc}} (+) 0 tmp1}
-           in         \alert{map (+1) tmp2}     )
-    [0..n-1]
+\mymath{\mathcal{F}}(map (\mymath{\backslash}(z) -> map (+) z) (zip ip1rs iots))
+\mymath{\equiv}
+4. result = map (+) (zip ip1rs iots)
+-- [2, 3, 3, 4, 4, 4, 5, 5, 5, 5]
+-- [0, 0, 1, 0, 1, 2, 0, 1, 2, 3]
+--  +  +  +  +  +  +  +  +  +  +
+---------------------------------
+\emph{-- [2, 3, 4, 4, 5, 6, 5, 6, 7, 8]} \emp{values}
+\emph{-- [1, 2, 0, 3, 0, 0, 4, 0, 0, 0]} \emp{flags}
 \end{colorcode}
 
 \end{frame}
 
-\begin{frame}[fragile,t]
-  \frametitle{How to Flatten? A Relatively Simple Case}
-\vspace{-2ex}
-\begin{colorcode}
-\emph{map} (\mymath{\backslash}i -> let ip1  = i + 1
-               tmp1 = \alert{replicate ip1 1}
-               tmp2 = \alert{scan\mymath{\myindu{exc}} (+) 0 tmp1}
-           in         \alert{map (+1) tmp2}     ) [0..n-1]
-\end{colorcode}
-\begin{columns}
-\column{0.5\textwidth}
-\begin{colorcode}[fontsize=\scriptsize]
-Assume N = 4. Expected Result:
-\emph{[[1],[1,2],[1,2,3],[1,2,3,4]]}\pause
-1. Size of row i is {\tt i+1}, hence
-   array's shape = map (+1) [0..n-1],
-   i.e., shape = [1,2,3,4]
-2. Result Array \# of all elements:
-    flat\_size = \mymath{\sum\myindx{i=0}\myindu{n-1}(i+1)} = 10!
-3. start index of each segment:
-   segm_beg=scan\mymath{\myindu{exc}} (+) 0 shape
-           = [0,1,3,6]
-   shape   = [1,2,3,4]
-4. write ind-val pairs into zero array
-   sizes = [1,2,0,3,0,0,4,0,0,0]
-   flags = [1,1,0,1,0,0,1,0,0,0]
-5. \emph{Distributing map across each stmt:}
-6. tmp1\mymath{\myindu{flat}} = map (replicate ip1 1) = 
-          segmScan\mymath{\myindu{inc}} (+) 0 sizes flags
-   = [1,1,1,1,1,1,1,1,1,1]
-7. tmp2\mymath{\myindu{flat}} = sgmScan\mymath{\myindu{exc}} (+) 0 flags tmp1\mymath{\myindu{flat}}
-   = [0,0,1,0,1,2,0,1,2,3]
-\end{colorcode}
-\column{0.5\textwidth}
-\begin{colorcode}[fontsize=\scriptsize]
-8.  \emp{add 1 to all elements:}
-   vals = map (+1) tmp2\mymath{\myindu{flat}}
-        =  \emph{[1,1,2,1,2,3,1,2,3,4]}
-   \& sizes \emph{[1,2,0,3,0,0,4,0,0,0]}
-9. \alert{What if I want to add i instead of 1?}\pause
-   \emp{iis = write segm_beg [0..n-1] zeros}
-           [0,1,3,6] [0,1,2,3]
-           [0,0,0,0,0,0,0,0,0,0]
-         ------------------------------
-           [0,1,0,2,0,0,3,0,0,0]
-   \emp{diis= sgmScan\mymath{\myindu{inc}} (+) 0 flags iis}
-         [1,1,0,1,0,0,1,0,0,0]
-         [0,1,0,2,0,0,3,0,0,0]
-        -------------------------------
-       = [0,1,1,2,2,2,3,3,3,3]
-   \emp{vals = map (+i) vals0}
-        \emp{= zipWith (+) diis vals0}
-        = [0,1,2,2,3,4,3,4,5,6]
-10. \emp{Flaten op would get rid of the flags}
-\end{colorcode}
-\end{columns}
+%%%%%%%%%%%%%%%%%%%%%
+%%% I AM HERE !!! %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+\subsection{Flattening Prime-Number (Sieve) Computation}
+
+\begin{frame}[fragile]
+	\tableofcontents[currentsubsection]
 \end{frame}
-
-\subsection{Flattening Prime-Number Computation}
 
 \begin{frame}[fragile,t]
   \frametitle{How Does One Flattens Prime Numbers?}
 
-\begin{columns}
-\column{0.52\textwidth}
+\blue{\bf The important bit with nested parallelism:}
 \begin{colorcode}[fontsize=\scriptsize]
-nested = \emp{map} (\mymath{\backslash}\emp{p}->let m = (9 `div` p) 
-                  in  \emp{map} (\mymath{\backslash}j-> j*p)
-                          [2..m]
-             ) \emp{[2,3]}
+sqrt_primes = primesOpt (sqrt (fromIntegral n))
+nested = \emp{map} (\mymath{\backslash}\emp{p} -> let m = (n `div` p)
+                  in  \emp{map} (\mymath{\backslash}j -> j*p) [2..m]
+             ) \emp{sqrt_primes}
 not_primes  = \emph{reduce} (++) [] nested
 \end{colorcode}
-\column{0.48\textwidth}
+
+\bigskip
+\pause
+
+\blue{\bf Normalize the nested map:}
 \begin{colorcode}[fontsize=\scriptsize]
-n = 9, sqrtN = 3.
-mult_lens denotes \# of multi-
-  ples of a given prime upto n.
-mult_lens = [4-1,3-1]=[3,2] i.e., 
-            excludes the prime*1
-mult_scan = [0,3] via scan\mymath{\myindu{exc}} 
-mult_tot_len = 5, total \# of multiples 
-flags     = [1, 0, 0, 1, 0],
-  the segments of the array
-        of prime multiples
-ps        = [2, 0, 0, 3, 0]
-  each segments has its prime
-p_vals    = [2, 2, 2, 3, 3]
-             *  *  *  *  *
-p_inds    = [2, 3, 4, 2, 3]
-             =  =  =  =  =
-not_primes= [4, 6, 8, 6, 9]
-zeros    = [F, F, F, F, F]
-prime_flg=[T,T,T,T,F,T,F,T,F,F]
-  transformed to prime indexes
-primes   =[0,1,2,3,  5,  7    ]
-\alert{Result is:[    2,3,  5,  7]}
+sqrt_primes = primesOpt (sqrt (fromIntegral n))
+nested = \emp{map} (\mymath{\backslash}\emp{p} -> 
+                  let \emph{m   = n `div` p}       in
+                  let \emph{mm1 = m - 1}           in
+                  let \emp{iot = \emp{iota} mm1}        in          \blue{-- \mymath{\mathcal{F}} rule 5}
+                  let \emph{twom= \emp{map} (+2) iot}    in          \blue{-- \mymath{\mathcal{F}} rule 2}
+                  let \purple{rp  = replicate mm1 p} in          \blue{-- \mymath{\mathcal{F}} rule 4}
+                  in  \emph{map} (\mymath{\backslash}(j,p) -> j*p) (zip twom rp) \blue{-- \mymath{\mathcal{F}} rule 2}
+             ) \emp{sqrt_primes}
+not_primes  = \emph{reduce} (++) [] nested
 \end{colorcode}
-\end{columns}
+
 
 \end{frame}
+
 
 \begin{frame}[fragile,t]
-  \frametitle{Prime Numbers: Flattening Nested Parallelism}
-\vspace{-2ex}
-\begin{columns}
-\column{0.63\textwidth}
+  \frametitle{Flattened Prime-Number (Sieve) Computation}
+
 \begin{colorcode}[fontsize=\scriptsize]
-primesFlat :: Int -> [Int]
-primesFlat n = if n <= 2 then [2] else 
- let sqrtN = floor (sqrt (fromIntegral n))
-     sqrt_primes = primesFlat sqrtN
-     mult_lens   = map (\mymath{\backslash}p->(n `div` p)-1) 
-                   sqrt_primes
-     mult_scan   = scanExc (+) 0 mult_lens 
-     mult_tot_len= (last mult_scan) + 
-                   (last mult_lens)
-     flags = write mult_scan 
-          (replicate (length sqrt_primes) 1) 
-          (replicate mult_tot_len 0)
-     ps    = write mult_scan sqrt_primes              
-                  (replicate mult_tot_len 0)
-     p_vals= segmScanInc (+) 0 flags ps
-     p_inds= map (+1) \$ segmScanInc (+) 0 flags 
-                  (replicate mult_tot_len 1)
-     not_primes= zipWith (*) p_inds p_vals
-     zeros = replicate (length p_inds) False 
-     prime_flg  = write not_primes zeros 
-                  (replicate (n+1) True)
-     (primes,_) = unzip \$ filter (\mymath{\backslash}(i,f)->f)) 
-                    \$ zip [0..n] prime_flags
- in drop 2 primes
+sqrt_primes = primesOpt (sqrt (fromIntegral n))
+
+\emph{ms   = map (\mymath{\backslash}p -> n `div` p) sqrt_primes}
+\emph{mm1s = map (-1) ms}
+
+\emp{inds = sgmScan\mymath{\myindu{exc}} (+) 0 mm1s}
+\emp{size = (last inds) + (last mm1s)}
+\emp{flag = write inds nm1s (replicate size 0)}
+\emp{tmp0 = replicate size 1}
+\emp{iots = sgmScan\mymath{\myindu{exc}} (+) 0 flag tmp0}
+
+\emph{twoms= map (+2) iots}
+
+\purple{tmp1 = write inds sqrt_primes (replicate size 0)}
+\purple{rps  = sgmScan\mymath{\myindu{inc}} (+) 0 flag tmp0}
+
+\emph{nested= map (\mymath{\backslash}(j,p) -> j*p) (zip twoms rps)} -- flag array
+
+-- nested is already flattened, hence (\emph{reduce} (++) [] nested) has no effects
+not_primes  = nested 
 \end{colorcode}
-\column{0.37\textwidth}
-\begin{colorcode}[fontsize=\scriptsize]
-Assume n = 9, sqrtN = 3, and 
-that (primesOpt 3) results in 
-sqrt_primes = [2,3].
-mult_lens denotes \# of multi-
-  ples of a given prime upto n.
-mult_lens = [3,2]
-mult_scan = [0,3] start indices.
-mult_tot_len = 5, total \# of 
-  prime multiples.
-flags      = [1, 0, 0, 1, 0],
-  the segments of the array
-        of prime multiples
-ps         = [2, 0, 0, 3, 0]
-  each segments has its prime
-p_vals     = [2, 2, 2, 3, 3]
-              *  *  *  *  *
-p_inds     = [2, 3, 4, 2, 3]
-              =  =  =  =  =
-not_primes = [4, 6, 8, 6, 9]
-zeros     = [F, F, F, F, F]
-prime_flg=[T,T,T,T,F,T,F,T,F,F]
-  transformed to prime indexes
-primes   =[0,1,2,3,  5,  7    ]
-\alert{Result is: [2, 3, 5, 7]}
-\end{colorcode}
-\end{columns}
-\medskip
+
 
 \end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsection{Flattening Quicksort}
 
+\begin{frame}[fragile]
+	\tableofcontents[currentsubsection]
+\end{frame}
+
 \begin{frame}[fragile,t]
-  \frametitle{How to Flatten Quicksort}
+  \frametitle{Recounting Quicksort}
+
+\blue{\bf Recount the classic nested-parallel definition:}
+\bigskip
 
 \begin{colorcode}[fontsize=\scriptsize]
 nestedQuicksort :: [a] -> [a]
@@ -1507,30 +1605,84 @@ nestedQuicksort arr =
       a = arr !! i
       s1 = filter (\mymath{\backslash}x -> (x <  a)) arr
       s2 = filter (\mymath{\backslash}x -> (x >= a)) arr
-      rs = \alert{map nestedQuicksort} [s1, s2]
-  in  (rs !! 0) ++ (rs !! 1)
+  in  \emp{(nestedQuicksort s1) ++ (nestedQuicksort s2)}
+  -- can be re-written as:
+  -- rs = \emph{map nestedQuicksort} [s1, s2]
+  -- in (rs !! 0) ++ (rs !! 1)
 \end{colorcode}
 
-\alert{Key Idea} is to write a function that
-has the semantics of:\\ 
-{\tt~~~~~~~~map nestedQuicksort}\\
-by distributing the map against the bindings $\Rightarrow$\\ 
-\alert{it operates on arrays of arrays!}
-\medskip
-
-{\tt quicksort$^{lift}$ :: [[a]] -> [[a]]} or flattened\\
-\medskip
-
-{\tt flatQuicksort$^{lift}$ :: [Int] -> [a] -> [a]},\\
-where the first arg are the flags and the second the flat data.
-\medskip
-
-\emp{For example, we will have an array of {\tt i}s, an array of {\tt a}s,
-of {\tt s1}s, etc.}
+%{\tt flatQuicksort$^{lift}$ :: [Int] -> [a] -> [a]},\\
+%where the first arg are the flags and the second the flat data.
+%\medskip
+%
+%\emp{For example, we will have an array of {\tt i}s, an array of {\tt a}s,
+%of {\tt s1}s, etc.}
 \end{frame}
 
+
+
 \begin{frame}[fragile,t]
-  \frametitle{Quicksort: Flattened Nested Parallelism}
+  \frametitle{Normalizing Quicksort}
+
+\blue{\bf Key Idea: write a function with the semantics of}\\
+\blue{\tt map nestedQuicksort}, i.e., it operates on array of arrays,
+ and, for simplicity, use
+{\tt parFilter :: $(\alpha\rightarrow Bool)\rightarrow[\alpha]\rightarrow([\alpha],[Int])$}.
+
+\bigskip
+
+\begin{colorcode}[fontsize=\scriptsize]
+quicksort\mymath{\myindu{lift}} :: [[a]] -> [[a]]
+quicksort\mymath{\myindu{lift}} arrofarrs = 
+  map (\mymath{\backslash}arr ->
+          if  (length arr) <= 1 then arr else \purple{-- \mymath{\mathcal{F}} rule 6}
+          let i  = getRand (0, (length arr) - 1)
+              a  = arr !! i
+              (s, flag) = \emp{parFilter} (<a) arr -- \emp{-- \mymath{\mathcal{F}} rule 7}
+              (s1, s2)  = split flag[0] s
+              \alert{rs = quicksort\mymath{\myindu{lift}} [s1, s2]}
+          in  (rs !! 0) ++ (rs !! 1)
+      ) arrofarrs
+\end{colorcode}
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+  \frametitle{Flattened Quicksort}
+
+\blue{Semantically operates on a 2-dim array $\Rightarrow$ requires {\tt sizes} array arg.}
+
+\begin{colorcode}[fontsize=\scriptsize]
+flatQuicksort :: a -> [Int] -> [a] -> [a]
+flatQuicksort sizes arrofarrs = \blue{--Assume sizes=[4,0,0,0], arrofarrs=[3,2,4,1]}
+sizes_distr = sgmScan\mymath{\myindu{inc}} (+) 0 sizes sizes \blue{-- [4,4,4,4]}
+\purple{ais = zip3 arrofarrs sizes_distr sizes (iota (length arrofarrs))}
+\purple{(ais',flg)=\emp{parFilter}(\mymath{\backslash}(_,s,_)->s <= 1) ais}\blue{--[(3,4,0),(2,4,1),(4,4,2),(1,4,3)]}
+\purple{(ais\mymath{\myindu{t}},ais\mymath{\myindu{f}}) = split flg[0] ais'}        \blue{--([],[(3,4,0),(2,4,1),(4,4,2),(1,4,3)])}
+\purple{(arr\mymath{\myindu{t}},sizes\mymath{\myindu{t}},_,inds\mymath{\myindu{t}}) = unzip3 ais\mymath{\myindu{t}}}                 \blue{--([],[],[])}
+\purple{(arr\mymath{\myindu{f}},sizes\mymath{\myindu{f}},_,inds\mymath{\myindu{f}}) = unzip ais\mymath{\myindu{f}}}                 \blue{--([3,2,4,1], [4,0,0,0], [0,1,2,3])}
+\purple{arr\mymath{\myindu{then}} = arr\mymath{\myindu{t}}}
+
+sgm_beg_ind = sgmScan\mymath{\myindu{exc}} (+) 0 sizes\mymath{\myindu{f}}
+\emph{is = map (\mymath{\backslash}(s,j)->getRand j 0 (s-1)) (zip sizes_distr (length arrofarrs))}\blue{--[0]}
+\emph{as = map (\mymath{\backslash} (i,beg_sgm) -> arrofarrs !! (i+beg_sgm)) (zip is sgm_beg_ind)}\blue{--[3]}
+tot_size\mymath{\myindu{f}} = reduce (+) 0 sizes\mymath{\myindu{f}}
+a_distr = sgmScan\mymath{\myindu{inc}} (+) 0 sizes \$ \blue{-- [3,3,3,3]}
+          write sgm_beg_ind as (replicate 0 tot_size\mymath{\myindu{f}}) 
+
+\emp{(sizes\mymath{\myindu{else}},arr\mymath{\myindu{else}}) = segmSpecialFilter (\mymath{\backslash}(r,x)->(x < r))} \blue{-- ([2,1,3,4], [2,0,2,0])}
+                   \emp{sizes\mymath{\myindu{f}} (zip a_distr arr\mymath{\myindu{f}})}
+\alert{arr'\mymath{\myindu{else}} = flatQuicksort sizes\mymath{\myindu{else}} arr\mymath{\myindu{else}}} \blue{[1,2,3,4]}
+\purple{write inds\mymath{\myindu{f}} arr'\mymath{\myindu{else}} (write inds\mymath{\myindu{t}} arr\mymath{\myindu{then}} [0,\mymath{\ldots},0])} \blue{--[1,2,3,4]}
+\end{colorcode}
+
+\end{frame}
+
+
+
+\begin{frame}[fragile,t]
+  \frametitle{Intuitive Flattened Quicksort}
 
 \begin{columns}
 \column{0.59\textwidth}
