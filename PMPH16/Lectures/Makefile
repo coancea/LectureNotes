@@ -6,6 +6,8 @@ default:
 	pdflatex L2-Flatenning.tex
 	pdflatex Lab1-CudaIntro.tex
 	pdflatex Lab1-CudaIntro.tex
+	pdflatex L3-InOrderPipe.tex
+	pdflatex L3-InOrderPipe.tex
 #	pdflatex Processor.tex
 #	pdflatex Processor.tex
 #	pdflatex VLIW.tex
@@ -47,6 +49,10 @@ lab1-cuda:
 	pdflatex Lab1-CudaIntro.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb *~
 
+l3-proc:
+	pdflatex L3-InOrderPipe.tex
+	pdflatex L3-InOrderPipe.tex
+	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb *~
 
 # Lecture 3
 #processor:
