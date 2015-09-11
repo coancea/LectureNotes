@@ -32,6 +32,12 @@ default:
 #	pdflatex TLS.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb *~
 
+# IUP presentation
+iup:
+	pdflatex IUPpres.tex
+	pdflatex IUPpres.tex
+	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb *~
+
 # Lecture 1
 l1-intro:
 	pdflatex L1-Intro-LH.tex
