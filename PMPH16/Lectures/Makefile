@@ -8,6 +8,8 @@ default:
 	pdflatex Lab1-CudaIntro.tex
 	pdflatex L3-InOrderPipe.tex
 	pdflatex L3-InOrderPipe.tex
+	pdflatex L4-VLIW.tex
+	pdflatex L4-VLIW.tex
 #	pdflatex Processor.tex
 #	pdflatex Processor.tex
 #	pdflatex VLIW.tex
@@ -58,6 +60,12 @@ lab1-cuda:
 l3-proc:
 	pdflatex L3-InOrderPipe.tex
 	pdflatex L3-InOrderPipe.tex
+	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb *~
+
+# Lecture 1
+l4-vliw:
+	pdflatex L4-VLIW.tex
+	pdflatex L4-VLIW.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb *~
 
 # Lecture 3
