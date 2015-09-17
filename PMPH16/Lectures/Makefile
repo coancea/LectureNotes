@@ -10,6 +10,8 @@ default:
 	pdflatex L3-InOrderPipe.tex
 	pdflatex L4-VLIW.tex
 	pdflatex L4-VLIW.tex
+	pdflatex L5-LoopParI.tex
+	pdflatex L5-LoopParI.tex
 #	pdflatex Processor.tex
 #	pdflatex Processor.tex
 #	pdflatex VLIW.tex
@@ -62,11 +64,15 @@ l3-proc:
 	pdflatex L3-InOrderPipe.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb *~
 
-# Lecture 1
 l4-vliw:
 	pdflatex L4-VLIW.tex
 	pdflatex L4-VLIW.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb *~
+
+l5-looppar:
+	pdflatex L5-LoopParI.tex
+	pdflatex L5-LoopParI.tex
+	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
 # Lecture 3
 #processor:
@@ -103,10 +109,6 @@ l4-vliw:
 #	pdflatex MemSeqCons.tex
 #	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
-#looppar:
-#	pdflatex LoopParI.tex
-#	pdflatex LoopParI.tex
-#	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
 #locref:
 #	pdflatex LocOfRef.tex

@@ -101,6 +101,9 @@ parFilter cond arr =
         flags = write [0,i] [i,n-i] (replicate n 0)
     in  (permute inds arr, flags)
 
+nestedSpecialFilter :: (a->Bool) -> [[a]] -> [([a],[Int])]
+nestedSpecialFilter p = map (parFilter p) 
+
 segmSpecialFilter :: (a->Bool) -> [Int] -> [a] -> ([Int],[a])
 segmSpecialFilter cond sizes arr = 
     let n   = length arr
@@ -322,6 +325,7 @@ main = do args <- getArgs
           putStrLn ("Written list: " ++show winp)
           putStrLn (" ParFilterOdd(a/2):"++show ( parFilter (\x->odd (x `div` 2)) inp))
           putStrLn (" ParFilterEven:"++show ( parFilter even inp))
+          putStrLn ("NestedParFilter: " ++ show (nestedSpecialFilter (\x->odd (x `div` 2)) [[8,14],[0],[12,4,10,6],[2]]))
           putStrLn ("SegmFilterOdd(a/2):"++show (segmSpecialFilter (\x->odd (x `div` 2)) sizes inp))
           putStrLn ("Primes 32: " ++ show (primes 32))
           putStrLn ("PrimesOpt  49: " ++ show (primesOpt 49))
