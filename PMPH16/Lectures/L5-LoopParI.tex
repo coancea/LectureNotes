@@ -752,7 +752,7 @@ After strip mining all loops with a tile of size {\tt T}:
 \begin{colorcode}[fontsize=\scriptsize]
 \emp{DOALL ii = 1, M, T}
   \emph{DOALL i = ii, MIN(ii+T-1,M), 1}     \blue{// loop}
-    \emp{DOALL jj = 1, N, T}               \blue{// interchange}
+    \emp{DOALL jj = 1, N, T}               \blue{// interchange.} \alert{Why Safe?}
       \emph{DOALL j = jj, MIN(jj+T-1,N), 1}
         float tmp = 0.0
         DO kk = 1, U, T
@@ -763,6 +763,7 @@ After strip mining all loops with a tile of size {\tt T}:
 ENDDO ENDDO ENDDO ENDDO
 \end{colorcode}
 \medskip
+\pause
 
 The second step is to apply loop interchange between the loops 
 of indices {\tt i} and {\tt jj}. This is safe because loop {\tt i}
@@ -792,7 +793,7 @@ ENDDO ENDDO ENDDO ENDDO
 
 \blue{The third step is to summarize the subscripts of {\tt A} and {\tt B}
 read inside the loop of index {\tt k}, for fixed {\tt ii}, {\tt jj} and {\tt kk}}
-({\tt x:y} denotes {\tt [x$\ldots$y]}):
+({\tt x:y} denotes {\tt [x$\ldots$y]}):\pause
 \begin{itemize}
     \item {\tt A} subscripts \blue{\tt[ii~:~MIN(ii+T-1,M), kk~:~MIN(kk+T-1,U)]}
     \item {\tt B} subscripts \blue{\tt[kk~:~MIN(kk+T-1,U), jj~:~MIN(jj+T-1,N)]}
@@ -994,7 +995,7 @@ for(i = 0; i < rowsA; i++) \{
 \end{colorcode}
 \end{columns}
 
-
+\pause
 
 \begin{columns}
 \column{0.5\textwidth}
@@ -1037,15 +1038,15 @@ __global__ void matTranspose(
 \begin{itemize}
     \item Tiled transposition is less that $3\times$ faster
             than the naive version,
-    \item but the motivating example runs more than $8\times$
-            faster when transposition coalesces accesses to arrays 
+    \item but the motivating example runs much faster that that %(on some machines $8\times$)
+            when transposition coalesces accesses to arrays 
             {\tt A} and {\tt B}. \alert{Why?}\pause
     \item \emp{Better to eliminate rather than hide latency.}
             Impact of hardware multi-threading limited  
             by the amount of available resources!\bigskip
 
     \item Generic Array of Tuples using shared memory:\pause requires a class
-            with a ``volatile'' assignment operator [Esben Skaarup]. 
+            with a ``volatile'' assignment operator. [Esben Skaarup]. 
     \item I believe it is safe to ignore the warnings; they can be
             eliminated at the expense of writing awkward code.\bigskip
 
@@ -1256,25 +1257,58 @@ Work Efficient $\sim$ {\tt B} $ \leq $ {\tt N} / {\tt G}.
 \begin{block}{ CUDA Pseudocode; {\tt }, {\tt C} is the number of cooperating threads}
 \begin{colorcode}[fontsize=\scriptsize]
 \emph{__shared__ REAL sh_hist[ 16 * L ];} // L is the size of the block.
-int tid = threadIdx.x;
+int i, tid = threadIdx.x;
 // \emp{init local histogram(s)}
-for( t = tid; t < 16*L; t += L )
-    sh_hist[ t ] = 0.0;  
+for( i = tid; i < 16*L; i += L ) sh_hist[ i ] = 0.0;  
 __syncthreads();
 
 // \emp{2) each thread executes U iterations sequentially.}
 u = blockIdx.x * U * L + tid; 
-for( t = u; t < u+(U*L); t += L ) \{
+for( i = u; i < u+(U*L); i += L ) \{
     (ind, val) = fun(image,i);
-    // we work with the transposed sh_hist
-    ind = ( ind * L / C ) + ( tid / C );  
+
+    \alert{ind = B * (tid/C) + ind;}  
     if ( C > 1 )
          \emph{raw_cas_update( sh_hist, ind, val );}
     else \emph{sh_hist[ ind ] += val;}
 \}  __syncthreads();
 
 // \emp{3) reduce locally across histograms}
-segm_scan_reg_block( sh_hist, B * L / C, L / C );
+\alert{for (i = 1; i < L/C && tid < B; i++)}
+  \alert{sh_hist[tid] += sh_hist[tid + i*B]}
+// \emp{4) commit the resulted local histogram to global storage } ...
+\end{colorcode}
+\end{block} 
+%jhist += get_group_id(0) * B;
+%for(t = TH_ID; t < B; t += L ) 
+%    ghist[ t ] = sh_hist[ t ];   
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+  \frametitle{ When {\tt L / WARP} Histograms Fit in Shared Memory }
+
+\begin{block}{ CUDA Pseudocode; {\tt }, {\tt C} is the number of cooperating threads}
+\begin{colorcode}[fontsize=\scriptsize]
+\emph{__shared__ REAL sh_hist[ 16 * L ];} // L is the size of the block.
+int i, tid = threadIdx.x; 
+// \emp{init local histogram(s)}
+for( i = tid; i < 16*L; i += L ) sh_hist[ i ] = 0.0;  
+__syncthreads();
+
+// \emp{2) each thread executes U iterations sequentially.}
+u = blockIdx.x * U * L + tid; 
+for( i = u; i < u+(U*L); i += L ) \{
+    (ind, val) = fun(image,i);
+    \emphh{// we work with the transposed sh_hist}
+    \emphh{ind = ( ind * L / C ) + ( tid / C );}  
+    if ( C > 1 )
+         \emph{raw_cas_update( sh_hist, ind, val );}
+    else \emph{sh_hist[ ind ] += val;}
+\}  __syncthreads();
+
+// \emp{3) reduce locally across histograms}
+\emphh{segm_scan_reg_block( sh_hist, B * L / C, L / C );}
 // \emp{4) commit the resulted local histogram to global storage } ...
 \end{colorcode}
 \end{block} 
