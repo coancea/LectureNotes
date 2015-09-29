@@ -920,6 +920,7 @@ assuming a broadcast-based interconnect, such as a bus.
 \begin{frame}[fragile,t]
 \frametitle{Informal Definition of Cache Coherence}
 
+\pause
 \begin{definition}[Sequential Cache Coherence]
 A load must return the value of the latest store 
 in process order to the same address. (Simple, but check the write buffers.)
@@ -1014,7 +1015,7 @@ FLAG := 1;
 Simplifying Assumptions:
 \begin{scriptsize}
 \begin{itemize}
-    \item blocking, write-through, write-allocate, single-level private cache as in (b) 
+    \item blocking, write-through, write-allocate, single-level private cache as in (c) 
     \item when granted access, cache controller owns the bus until transaction completes.
 \end  {itemize}
 \end {scriptsize}
@@ -1036,7 +1037,7 @@ other procs can see the new value}.
     \item[Rd Miss] inserted in (request) buffer, V(alid) bit set.
     When bus acquired $\Rightarrow$ {\tt BusRd} request placed on bus \& returns copy of mem block.\pause
 
-    \item[Wr Hit:] value and address inserted in buffer. When acquired, 
+    \item[Wr Hit:] value and address inserted in buffer. \pause When acquired, 
     {\tt BusWrite} request on bus $\Rightarrow$ updates memory AND \alert{invalidates all
     remote copies} (clears V). \emp{Local cache updated just before releasing bus.}
 
@@ -1138,7 +1139,7 @@ FST specifies the \emp{high-level} behavior of cache as a whole.\\
 
 Simple Protocol suffers performance bottlenecks:
 \begin{itemize}
-    \item \alert{All writes launch bus transactions.}
+    \item \alert{All writes launch bus transactions.}\pause
     \item \emph{Key Insight}: most blocks accessed exclusively
             by one processor $\Rightarrow$ accesses to non-shared 
             block cannot interfere with other caches!
@@ -1187,7 +1188,7 @@ Simple Protocol suffers performance bottlenecks:
 \column{0.55\textwidth}
 \begin{scriptsize}
 \begin{itemize}
-    \item[1] \emph{Assume P has the 1 valid copy of block A:}
+    \item[1] \emph{Assume block A not in any cache:}
     \item P reads A: 
     \item P writes A:  
     \item Next reads \& writes of P:\medskip
@@ -1223,7 +1224,7 @@ Simple Protocol suffers performance bottlenecks:
 \column{0.55\textwidth}
 \begin{scriptsize}
 \begin{itemize}
-    \item[1] \emph{Assume P has the 1 valid copy of block A:}
+    \item[1] \emph{Assume block A not in any cache:}
     \item P reads A: I $\rightarrow$ S
     \item P writes A: S $\rightarrow$ M and launches {\tt BusUpgrd} to invalidate remote copies,  
     \item Next reads \& writes of P: execute locally.\medskip
@@ -1436,7 +1437,7 @@ Bandwidth ({\tt B}) for a Write-Run of length N:
 \end{description}
 
 Assuming {\tt B(UPGRADE) $\equiv$ B(UPDATE)} then\\
-\emp{Update outperforms Invalidate when}\\
+\emp{Update outperforms Invalidate when}\\\pause
 \emp{{\tt N < 1 + B(READ MISS)/B(UPDATE)}}
 \medskip
 
@@ -1546,7 +1547,7 @@ Pipelines a sequence of phases in a bus transaction,
 e.g., arbitration, transfer, response.\bigskip
 
 Dividing a transaction into subtransactions $\Rightarrow$
-Tradeoff between additional latency (repeated bus arbitration) and better bandwidth.\bigskip
+Tradeoff between \pause additional latency (repeated bus arbitration) and better bandwidth.\bigskip
 
 Pipeline stages must be balanced to maximize throughput.\bigskip
 
@@ -1561,7 +1562,7 @@ they can only be pipelined:
 \begin{frame}[fragile,t]
 \frametitle{Access Races on Split-Transaction Buses}
 
-Are dealt via transient states, but additional issues are:
+Are dealt via transient states, a ``simple'' implementation is: %but additional issues are:
 \begin{itemize}
     \item[1] \emp{Resolve conflicting requests (to the same address):}\\
             \begin{itemize} 
@@ -1606,7 +1607,7 @@ Adding another level of private cache offers benefits:
 Write Policy is important to reduce snoop overhead:
 \begin{itemize}
     \item If L1 is write-back Then L2's copy is inconsistent and
-            dirty miss requests must be serviced by L1.
+            dirty miss requests must be serviced by L1.\pause
     \item \emph{If L1 is write-through and inclusion is maintained $\Rightarrow$
                 L2 is consistent and can service all miss requests from
                 other processors,}
