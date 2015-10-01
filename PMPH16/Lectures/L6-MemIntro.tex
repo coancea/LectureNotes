@@ -1050,7 +1050,7 @@ other procs can see the new value}.
 \end{frame}
 
 \begin{frame}[fragile,t]
-\frametitle{Specify Behavior via Finite State Machine (FST)}
+\frametitle{Specify Behavior via Finite State Machine (FSM)}
 
 %%Assumptions: no-allocate on store miss, all store and loads propagate on bus,
 %% store may update or invalidate caches.
@@ -1176,7 +1176,8 @@ Simple Protocol suffers performance bottlenecks:
 \frametitle{MSI Protocol: Examples}
 
 \begin{itemize}
-    \item \emph{\tt BusRd(X)} requests copy with (no) intent to modify.
+    \item \emph{\tt BusRd} requests a copy with no intent to modify.
+    \item \emph{\tt BusRdX} requests a copy with intent to modify (and invalidates remote copies).
     \item \emph{\tt BusUpgr} invalidate remote copies.  
     \item \emph{\tt Flush} forward copy to requester \& update memory.
 \end{itemize} 

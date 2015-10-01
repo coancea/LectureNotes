@@ -14,6 +14,8 @@ default:
 	pdflatex L5-LoopParI.tex
 	pdflatex L6-MemIntro.tex
 	pdflatex L6-MemIntro.tex
+	pdflatex L7-Interconnect.tex
+	pdflatex L7-Interconnect.tex
 #	pdflatex Processor.tex
 #	pdflatex Processor.tex
 #	pdflatex VLIW.tex
@@ -79,6 +81,11 @@ l5-looppar:
 l6-memintro:
 	pdflatex L6-MemIntro.tex
 	pdflatex L6-MemIntro.tex
+	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
+
+l7-interconnect:
+	pdflatex L7-Interconnect.tex
+	pdflatex L7-Interconnect.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
 # Lecture 3
