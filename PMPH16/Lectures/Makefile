@@ -88,6 +88,12 @@ l7-interconnect:
 	pdflatex L7-Interconnect.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
+proj:
+	pdflatex Project.tex
+	pdflatex Project.tex
+	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
+
+
 # Lecture 3
 #processor:
 #	pdflatex Processor.tex
