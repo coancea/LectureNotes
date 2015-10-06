@@ -111,10 +111,13 @@
     \item{Large:} OUTER=128, NUM\_X=256, NUM\_Y=256, NUM\_T=128
 \end{itemize}\bigskip
 
-It is perfectly fine to parallelize the two outermost parallel loops
-(and optimize such that all accesses are coalesced.)\medskip
+The goal is to parallelize all three parallel dimensions, i.e., {\sc tridag}
+can be re-written based on segmented {\tt scan}s.  
+Also optimize such that all accesses to global memory are coalesced.\medskip
 
-This corresponds to efficient execution of the \emp{large dataset}!
+\medskip 
+Target primarily the {\em small} dataset, which, otherwise, does not has enough 
+parallelism to fully utilize the hardware.
 
 \end{frame}
 
@@ -268,20 +271,7 @@ will NOT validate).
 \begin{frame}[fragile,t]
   \frametitle{Reasoning About Parallelism: Privatization} % of CPU, Multicores, GPGPU
 
-
-\begin{itemize}
-\item The outermost loop of index {\tt i} is NOT parallel as it is,
-because all its iterations write and read all indices of
-array {\tt A}.\smallskip
-
-\item However, the  iteration reads (is covered by) what was 
-written in the same iteration, a.k.a., array {\tt A} can be privatized.
-
-\item Privatization can be achieved by moving the
-declaration of {\tt a} inside the outermost loop
-(each iteration works with its own private version of {\tt A}).
-\end{itemize}
-
+\vspace{-1ex}
 \begin{block}{Parallelizing the Outermost Loop Via Privatization}
 \begin{columns}
 \column{0.47\textwidth}
@@ -313,26 +303,25 @@ float A[N];
 \end{columns}
 \end{block} 
 
+\begin{itemize}
+\item The outermost loop of index {\tt i} is NOT parallel as it is,
+because all its iterations write and read all indices of
+array {\tt A}.\smallskip
+
+\item However, the  iteration reads (is covered by) what was 
+written in the same iteration, a.k.a., array {\tt A} can be privatized.
+
+\item Privatization can be achieved by moving the
+declaration of {\tt a} inside the outermost loop
+(each iteration works with its own private version of {\tt A}).
+\end{itemize}
+
 \end{frame}
 
 \begin{frame}[fragile,t]
   \frametitle{Array Expansion} % of CPU, Multicores, GPGPU
 
-
-\begin{itemize}
-\item In CUDA it is preferable that all memory is allocated
-        before the kernel starts, hence making array {\tt A}
-        local would not work.\smallskip
-
-\item Instead, expand array {\tt A} with an extra (outermost) dimension,
-        whose size is the count of the outermost loop. 
-
-\item Now iteration {\tt i} has exclusive access, i.e., writes to and 
-        reads from,  row {\tt i} of expanded array {\tt A}.
-
-\item The two versions of code below are \emp{semantically equivalent!}
-\end{itemize}
-
+\vspace{-1ex}
 \begin{block}{Semantically Equivalent: Privatized {\em vs} Expanded {\tt A}}
 \begin{columns}
 \column{0.47\textwidth}
@@ -363,6 +352,21 @@ float A[N];
 \end{colorcode}
 \end{columns}
 \end{block} 
+
+\begin{itemize}
+\item In CUDA it is preferable that all memory is allocated
+        before the kernel starts, hence making array {\tt A}
+        local would not work.\smallskip
+
+\item Instead, expand array {\tt A} with an extra (outermost) dimension,
+        whose size is the count of the outermost loop. 
+
+\item Now iteration {\tt i} has exclusive access, i.e., writes to and 
+        reads from,  row {\tt i} of expanded array {\tt A}.
+
+\item The two versions of code below are \emp{semantically equivalent!}
+\end{itemize}
+
 
 \end{frame}
 
