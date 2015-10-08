@@ -16,6 +16,9 @@ default:
 	pdflatex L6-MemIntro.tex
 	pdflatex L7-Interconnect.tex
 	pdflatex L7-Interconnect.tex
+	pdflatex L8-LocOfRef.tex
+	pdflatex L8-LocOfRef.tex
+
 #	pdflatex Processor.tex
 #	pdflatex Processor.tex
 #	pdflatex VLIW.tex
@@ -87,6 +90,12 @@ l7-interconnect:
 	pdflatex L7-Interconnect.tex
 	pdflatex L7-Interconnect.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
+
+l8-locref:
+	pdflatex L8-LocOfRef.tex
+	pdflatex L8-LocOfRef.tex
+	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
+
 
 proj:
 	pdflatex Project.tex
