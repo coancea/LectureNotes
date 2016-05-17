@@ -16,6 +16,9 @@ int main(int argc, char** argv) {
     const unsigned int block_size     = 256;
 
     scanExcTest();
+
+    scanIncTest();
+
     MsspProblem(block_size, mssp_list_size);
     SparseMatVctMult(block_size, matrix_row_num, vct_size);
 }
