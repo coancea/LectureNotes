@@ -30,7 +30,11 @@ void matMult(T* A, T* B, T* C, int colsA, int rowsA, int colsB) {
     for(int j = 0; j < colsB; j++) {
       float sum = 0.0;
       for(int k = 0; k < colsA; k++) {
+#if 1
         sum += A[i*colsA + k] * B[k * colsB + j];
+#else 
+        sum += A[i*colsA + k] * B[j * colsB + k];
+#endif
       }
       C[i * colsB + j] = sum;
     }
