@@ -18,19 +18,19 @@ void transpose( float*             inp_d,
    dim3 grid (dimx, dimy, 1);
  
    //2. execute the kernel
-   //matTransposeTiledKer<float,tile> <<< grid, block >>>
-   //                    (inp_d, out_d, height, width); 
-   matTransposeKer<float> <<< grid, block >>>
-                       (inp_d, out_d, height, width);
+   matTransposeTiledKer<float,tile> <<< grid, block >>>
+                       (inp_d, out_d, height, width); 
+   //matTransposeKer<float> <<< grid, block >>>
+   //                    (inp_d, out_d, height, width);
    
     cudaThreadSynchronize();
 }
 
-#define VERSION 3
+#define VERSION 1
 
 int main() {
    // set seed for rand()
-   srand(2006); 
+   srand(2006);
  
    // 1. allocate host memory for the two matrices
    size_t size_A = WIDTH_A * HEIGHT_A;

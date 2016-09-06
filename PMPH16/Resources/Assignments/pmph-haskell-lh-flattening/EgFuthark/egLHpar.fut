@@ -12,7 +12,7 @@ fun max (x: int) (y: int) : int =
 --------------------
 fun len (a : [n]int) : int =
   -- ( reduce (+) 0 ) . ( map (\_ -> 1) )
-  let x = map (fn el => 1) a
+  let x = map (fn _ => 1) a
   in  reduce (+) 0 x
 
 --------------------

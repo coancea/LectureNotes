@@ -20,10 +20,8 @@ fun primesFlat (n : int) : ([]int, int) =
        let mult_tot_len = mult_scan[num_primes-1]
        let mult_scan = zipWith (fn i => if i > 0 then unsafe mult_scan[i-1] else 0) (iota num_primes)
 
-       let zeros1 = replicate mult_tot_len 0
-       let flags = write mult_scan (replicate num_primes 1) zeros1
-       let zeros2 = copy(replicate mult_tot_len 0)
-       let ps    = write mult_scan sq_primes                zeros2
+       let zeros = replicate mult_tot_len (0,0)
+       let (ps,flags) = unzip (write mult_scan (zip sq_primes (replicate num_primes 1)) zeros)
     
        -- let prime_vals= segmScanInc (+) 0 flags ps
        -- prime_inds= segmScanInc (+) 0 flags (replicate mult_tot_len 1)
