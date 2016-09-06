@@ -582,12 +582,14 @@ Present at many layers:
                         $P_{dynamic} = \alpha C V^2 f$ 
                         consumed by a gate when it switches state\\
                         $P_{static}  = V I_{sub} \sim V e^{-k V_T / T}$ 
-                        (caches)\medskip
+                        (caches)\\
+    {\tiny $V$ supply voltage, $f$ clock rate, $\alpha$ activity factor, $\alpha f$ the rate at which gates switch, $T$ temperature}\medskip
+            
 
     \item Dynamic power 
             favors parallel processing over higher clock rate
             \begin{itemize}
-                \item $P_{dynamic} \sim F^3$ mostly dissipated in processor\pause
+                \item $P_{dynamic} \sim f^3$ mostly dissipated in processor\pause
                 \item increase clock freq $4\times$ $\Rightarrow$ \pause
                         $4\times$ speedup @ $64\times$ dynamic power!
                 \item replicate a uniprocessor $4\times$ $\Rightarrow$ 
@@ -595,8 +597,9 @@ Present at many layers:
             \end  {itemize}\medskip
 
     \item Static Power: dissipated in all circuits,  
-                at all time, nomatter of frequency and whether
-                it switches or not.
+                at all time, no matter of frequency and whether
+                it switches or not.\\ 
+            {\tiny Proportional to the area of circuit but independent of clock rates and circuit activity.}
             \begin{itemize}
                 \item negligible 15 years ago, but as feature size 
                         decreased so did the threshold voltage $V_T$ 
