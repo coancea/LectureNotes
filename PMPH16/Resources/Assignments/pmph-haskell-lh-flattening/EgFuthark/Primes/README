@@ -26,3 +26,5 @@ This folder contains Futhark code for three versions of prime number computation
 
 Files time-naive, time-opt and time-flat report runtime in microseconds.
 
+To validate it (on the default small dataset) just try for example:
+    $ futhark-test primes-naive.fut

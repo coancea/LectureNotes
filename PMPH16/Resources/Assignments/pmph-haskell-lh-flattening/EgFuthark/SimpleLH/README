@@ -26,3 +26,6 @@ Do not try to run egLHseq.fut on GPGPU, i.e., to compile it with futhark-opencl,
 because it will take a very long time to run. The reason is that the code is
 sequential, but all arrays are migrated to GPU, hence every access to an array
 would move from GPU to CPU space.
+
+To validate it (on the default small dataset) just try for example:
+    $ futhark-test egLHseq.fut
