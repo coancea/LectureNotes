@@ -58,7 +58,7 @@ fun maxEl (a : [n]int) : int =
 ----------------------------------------
 --- MAIN                             ---
 ----------------------------------------
-fun main (a : [n]int) : (int, f32,bool,int) =
+fun main (a : []int) : (int, f32,bool,int) =
   let l = len   a
   let f = flatten (replicate 4 a) 
   let p = alln  a

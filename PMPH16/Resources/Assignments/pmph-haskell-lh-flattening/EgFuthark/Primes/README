@@ -1,0 +1,28 @@
+This folder contains Futhark code for three versions of prime number computation:
+1. primes-naive.fut is the naive version, which is NOT work efficient.
+   Compile with:
+        $ futhark-opencl primes-naive.fut
+   OR with
+        $ futhark-c primes-naive.fut
+   for the GPU or CPU execution.
+   RUN with:
+        $ ./primes-naive -t time-naive < data/primes-large.in > /dev/null
+   (We redirect to /dev/null since the list of prime numbers up to n is about (n/log n) which is too big!)
+
+2. primes-opt.fut is an optimized sequential version implemented with loops.
+   In principle, this can be written with nested but irregular parallelism.
+   Since Futhark does not supports irregular multi-dim arrays, i.e., rows of
+   a matrix have different size, we implemented it as a loop nest, and 
+   Haskell-like nested code is provided as comments. 
+   Hence compile with:
+        $ futhark-c primes-opt.fut
+   and RUN with
+        $ ./primes-opt -t time-opt < data/primes-large.in > /dev/null
+
+3. primes-flat.fut is the flat-parallel version of the code.
+   You may compile with both futhark-opencl and futhark-c for GPU and CPU execution, respectivelly.
+   RUN with
+        $ ./primes-flat -t time-flat < data/primes-large.in > /dev/null
+
+Files time-naive, time-opt and time-flat report runtime in microseconds.
+

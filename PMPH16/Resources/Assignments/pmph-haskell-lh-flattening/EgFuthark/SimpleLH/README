@@ -1,0 +1,28 @@
+This folder contains Futhark code for the simple examples of the introductory (first) lecture L1-Intro-LH.pdf:
+    1. egLHseq.fut contains the List-Homomorphic (LH) form  
+    2. egLHpar.fut contains the Map-Reduce (MR) form
+    3. gen-large-inp.fut is code that produces an array of random integers.
+
+To create a large dataset:
+    $ futhark-c gen-large-inp.fut
+    $ ./gen-large-inp < data/arr_size.in > data/egLH-large.in
+
+To compile to a sequential-C version and then run on CPU the LH form:
+    $ futhark-c egLHseq.fut
+    $ ./egLHseq -t time1 < data/egLH-large.in
+
+To compile to a sequential-C version and then run on CPU the MR form:
+    $ futhark-c egLHpar.fut
+    $ ./egLHpar -t time2 < data/egLH-large.in
+
+To compile to a OpenCL-C version and then run on GPGPU the MR form:
+    $ futhark-opencl egLHpar.fut
+    $ ./egLHpar -t time3 < data/egLH-large.in
+
+Files time1, time2 and time3 report runtime in microseconds.
+
+HINT: 
+Do not try to run egLHseq.fut on GPGPU, i.e., to compile it with futhark-opencl,
+because it will take a very long time to run. The reason is that the code is
+sequential, but all arrays are migrated to GPU, hence every access to an array
+would move from GPU to CPU space.
