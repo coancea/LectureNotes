@@ -1,0 +1,25 @@
+This folder contains Futhark code:
+    1. lssp.fut: YOU are supposed to implement it by filling the blanks as part of Assignment 1.
+    1. mssp.fut is the map-reduce (MR) implementation of the maximal segment sum problem (MSSP)  
+    3. gen-large-inp.fut is code that produces an array of random integers.
+
+After you implement, you may test if it validates on the default dataset, provided at the 
+beginning of the file by:
+    $ futhark-test lssp.fut
+
+To create a large dataset:
+    $ futhark-c gen-large-inp.fut
+    $ ./gen-large-inp < data/arr_size.in > data/large.in
+
+To compile to a sequential-C version and then run on CPU:
+    $ futhark-c lssp.fut
+    $ ./lssp -t time1 < data/large.in
+
+To compile to a OpenCL-C version and then run on GPGPU:
+    $ futhark-opencl lssp.fut
+    $ ./lssp -t time2 < data/large.in
+
+The results will be displayed after each run.
+
+Files time1 and time2 report runtimes in microseconds.
+
