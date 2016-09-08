@@ -92,12 +92,12 @@
 
 \title[Intro]{Parallel Basic Blocks and\\ Flattening Nested Parallelism}
 
-\author[C.~Oancea]{Cosmin E. Oancea and Troels Henriksen\\{\tt [cosmin.oancea,athas]@diku.dk}}
+\author[C.~Oancea]{Cosmin E. Oancea\\{\tt cosmin.oancea@diku.dk}}
 
 \institute{Department of Computer Science (DIKU)\\University of Copenhagen}
 
 
-\date[Sept 2015]{September 2015 PMPH Lecture Notes}
+\date[Sept 2016]{September 2016 PMPH Lecture Notes}
 
 
 
@@ -134,7 +134,7 @@
   \frametitle{Almost Homomorphisms (Gorlatch)}
 
 \emp{``Systematic Extraction and Implementation of Divide-and-Conquer Parallelism'', Sergei Gorlatch, 1996.} 
-(attached in TeachingMaterial/AdditionalMaterial/ListHom-Flattening).
+(attached under module Additional Teaching Material).
 \bigskip
 
 \emph{Intuition}: a non-homomorphic function $g$ can be sometimes ``lifted'' 
@@ -262,11 +262,11 @@ Extra Baggage:
     \item As before, the \emp{length} of the longest initial/concluding  satisfying segments ({\tt lis}/{\tt lcs}),
             and the total list length ({\tt tl}).
     \item When considering the concatenation of the {\tt (lcs, lis)} pair, it is not guaranteed that the
-            result satisfies the predicate \\
-            e.g., {\tt (sorted x) $\wedge$ (sorted y) $\not\Rightarrow$ sorted x++y}.  
+            result satisfies the predicate, e.g., 
+            {\tt (sorted x) $\wedge$ (sorted y) $\not\Rightarrow$ sorted x++y}. \pause  
     \item We also need the {\em last} element of {\tt lcs} and the {\em first} elem of {\tt lis},
     \item in order to compute whether {\tt (lcs x)} is {\em connected} to {\tt (lis y)}, \\ i.e., {\tt p [lastx,firsty] == True}
-    \item Boolean indicating whether the whole list satisfies {\tt p} ({\tt ok}).
+%    \item Boolean indicating whether the whole list satisfies {\tt p} ({\tt ok}).
 \end{itemize}
 \end{frame}
 
@@ -275,24 +275,25 @@ Extra Baggage:
 
 \begin{block}{Exercise: fill in the blanks, test in Haskell for zeros/same/sorted}
 \begin{colorcode}
-(lssx, lisx, lcsx, tlx, firstx, lastx, okx) \mymath{\odot}
-(lssy, lisy, lcsy, tly, firsty, lasty, oky) 
+(lssx, lisx, lcsx, tlx, firstx, lastx) \mymath{\odot}
+(lssy, lisy, lcsy, tly, firsty, lasty) 
 
-  = (newlss, newlis, newlcs, tlx+tly, firstx, lasty, newok)
+  = (newlss, newlis, newlcs, tlx+tly, first, last)
      where
         connect = ...
         newlss  = ...
         newlis  = ... 
         newlcs  = ... 
-        newok   = ...
+        first   = if tlx == 0 then firsty else firstx
+        last    = if tly == 0 then lastx  else lasty
 
-f x = (xmatch, xmatch, xmatch, 1, x, x, p [x])
+f x = (xmatch, xmatch, xmatch, 1, x, x)
     where xmatch = if (p [x]) then 1 else 0
 
-\emph{elss = (reduce (\mymath{\odot}) (0,0,0,0,0,0,True)) . (map f)}
+\emph{elss = (reduce (\mymath{\odot}) (0,0,0,0,0,0)) . (map f)}
 
 \emp{lss  = \mymath{\pi\myindx{1}} . elss}
-       where \mymath{\pi\myindx{1}} (a, _, _, _, _, _, _) = a         
+       where \mymath{\pi\myindx{1}} (a, _, _, _, _, _) = a         
 \end{colorcode}
 \end{block} 
 
@@ -764,12 +765,6 @@ Output: B = \mymath{[0, a\myindx{1}, a\myindx{1}\oplus{}a\myindx{2},\ldots,\oplu
   \frametitle{Permute, Write, Split, Filter}
 
 \begin{itemize}
-    \item Operator to \emph{permute in parallel} based on a set (array) of indices:\\
-          \emph{permute :: [Int] $\rightarrow$ [$\alpha$] $\rightarrow$ [$\alpha$]}, e.g.,\\
-           A (data vector) {\tt~= [a0,~a1,~a2,~a3,~a4,~a5]}\\
-           I (index vector){\tt~~= [3,~~2,~~0,~~4,~~1,~~5~]}\\
-           \emp{permute I A     {\tt~~~~= [a2,~a4,~a1,~a0,~a3,~a5]}}\bigskip
-
     \item Operator to \emph{write in parallel} a set of values to 
             correspond indices:\\
           \emph{write :: [Int] $\rightarrow$ [$\alpha$] $\rightarrow$ [$\alpha$] $\rightarrow$ [$\alpha$]}\\
@@ -777,6 +772,13 @@ Output: B = \mymath{[0, a\myindx{1}, a\myindx{1}\oplus{}a\myindx{2},\ldots,\oplu
           I (index vector){\tt~~=[2,~~4,~~1]}\\
           X (input array) {\tt~=[a0,~a1,~a2,~a3,~a4,~a5]}\\
           \emp{write I A X     {\tt~~~~=[a0,~b2,~b0,~a3,~b1,~a5]}}\bigskip
+
+    \item Operator to \emph{permute in parallel} based on a set (array) of indices:\\
+          \emph{permute::[Int]$\rightarrow$[$\alpha$]$\rightarrow$[$\alpha$]}. {\small~\blue{\tt permute~I~A~$\equiv$~write~I~A~(copy~A)}}\\
+           A (data vector) {\tt~= [a0,~a1,~a2,~a3,~a4,~a5]}\\
+           I (index vector){\tt~~= [3,~~2,~~0,~~4,~~1,~~5~]}\\
+           \emp{permute I A     {\tt~~~~= [a2,~a4,~a1,~a0,~a3,~a5]}}\\\bigskip
+           
 
     \item %Operator to {\tt split} a list (array) at a certain index:\\
           \emph{\tt split :: Int $\rightarrow$ [$\alpha$] $\rightarrow$ ([$\alpha$],[$\alpha$])}\\
@@ -990,11 +992,11 @@ Output: B = segmented scan of 2-dim array A
   \frametitle{Computing Prime Numbers: First Attempt}
 
 See also "Scan as Primitive Parallel Operation" [Bleelloch]\\
-(attached in TeachingMaterial/AdditionalMaterial/ListHom-Flattening).
+(attached in Additional Teaching Material module).
 
 \medskip
 
-Start with an array of size $n$ filled intially with $1$,
+Start with an array of size $n$ filled initially with $1$,
 i.e., all are primes, and iteratively zero out all multiples
 of numbers up to $\sqrt{n}$.
 \bigskip
@@ -1035,14 +1037,14 @@ primes n =
   where
     primesHelp :: Int -> Int -> Int 
                -> [Int] -> [Int]
-    primesHelp i a = 
+    primesHelp i n sqrtN a = 
       if i > sqrtN then a
       else let m    = (n `div` i) - 1
                inds = \emph{map (\mymath{\backslash}k -> (k+2)*i)} 
                           \emph{[0..m-1]} --(iota m)
                vals = \emph{replicate m 0}
                a'   = \emph{write inds vals a}
-           in  primesHelp (i+1) a'
+           in  primesHelp (i+1) n sqrtN a'
 \end{colorcode}
 \column{0.4\textwidth}
 \begin{colorcode}[fontsize=\scriptsize]
@@ -1080,7 +1082,7 @@ If we have all primes from $2$ to $\sqrt{n}$ we could
 generate all multiples of these primes at once:
 \emp{\tt \{[2*p:n:p]: p in sqr\_primes\}} in NESL.
 \blue{Also call algorithm recursively on $\sqrt{n}$ $\Rightarrow$ Depth: $O(lg \ lg \ n)$!}\\
-(solution of $n^{(1/2)^{m}}=2$).
+(solution of $n^{(1/2)^{depth}}=2$).
 \pause
 \begin{columns}
 \column{0.59\textwidth}
@@ -1548,38 +1550,38 @@ nested = \emp{map} (\mymath{\backslash}\emp{p} ->
 not_primes  = \emph{reduce} (++) [] nested
 \end{colorcode}
 
+\alert{Flattening {\tt PrimeOpt} is part of Weekly Assignment 1!}
 
 \end{frame}
 
 
-\begin{frame}[fragile,t]
-  \frametitle{Flattened Prime-Number (Sieve) Computation}
-
-\begin{colorcode}[fontsize=\scriptsize]
-sqrt_primes = primesOpt (sqrt (fromIntegral n))
-
-\emph{ms   = map (\mymath{\backslash}p -> n `div` p) sqrt_primes}
-\emph{mm1s = map (-1) ms}
-
-\emp{inds = sgmScan\mymath{\myindu{exc}} (+) 0 mm1s}
-\emp{size = (last inds) + (last mm1s)}
-\emp{flag = write inds nm1s (replicate size 0)}
-\emp{tmp0 = replicate size 1}
-\emp{iots = sgmScan\mymath{\myindu{exc}} (+) 0 flag tmp0}
-
-\emph{twoms= map (+2) iots}
-
-\purple{tmp1 = write inds sqrt_primes (replicate size 0)}
-\purple{rps  = sgmScan\mymath{\myindu{inc}} (+) 0 flag tmp0}
-
-\emph{nested= map (\mymath{\backslash}(j,p) -> j*p) (zip twoms rps)} -- flag array
-
--- nested is already flattened, hence (\emph{reduce} (++) [] nested) has no effects
-not_primes  = nested 
-\end{colorcode}
-
-
-\end{frame}
+%\begin{frame}[fragile,t]
+%  \frametitle{Flattened Prime-Number (Sieve) Computation}
+%
+%\begin{colorcode}[fontsize=\scriptsize]
+%sqrt_primes = primesOpt (sqrt (fromIntegral n))
+%
+%\emph{ms   = map (\mymath{\backslash}p -> n `div` p) sqrt_primes}
+%\emph{mm1s = map (-1) ms}
+%
+%\emp{inds = sgmScan\mymath{\myindu{exc}} (+) 0 mm1s}
+%\emp{size = (last inds) + (last mm1s)}
+%\emp{flag = write inds nm1s (replicate size 0)}
+%\emp{tmp0 = replicate size 1}
+%\emp{iots = sgmScan\mymath{\myindu{exc}} (+) 0 flag tmp0}
+%
+%\emph{twoms= map (+2) iots}
+%
+%\purple{tmp1 = write inds sqrt_primes (replicate size 0)}
+%\purple{rps  = sgmScan\mymath{\myindu{inc}} (+) 0 flag tmp0}
+%
+%\emph{nested= map (\mymath{\backslash}(j,p) -> j*p) (zip twoms rps)} -- flag array
+%
+%-- nested is already flattened, hence (\emph{reduce} (++) [] nested) has no effects
+%not_primes  = nested 
+%\end{colorcode}
+%
+%\end{frame}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

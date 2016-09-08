@@ -5,6 +5,8 @@ import Debug.Trace
 import System.IO.Unsafe  -- be careful!
 import System.Random
 
+import qualified Data.List as DL
+
 import Helpers
 
 ------------------------------------
@@ -44,8 +46,8 @@ segmScanExc myop ne flags arr =
 -----------------------------------
 --- Filter and Segmented Filter ---
 -----------------------------------
-parFilter :: (a->Bool) -> [a] -> ([a], [Int])
-parFilter cond arr =
+filter2 :: (a->Bool) -> [a] -> ([a], [Int])
+filter2 cond arr =
     let n   = length arr
         cs  = map cond arr
         tfs = map (\f -> if f then 1
@@ -62,6 +64,66 @@ parFilter cond arr =
                   (zip3 cs isT isF)
         flags = write [0,i] [i,n-i] (replicate n 0)
     in  (permute inds arr, flags)
+
+nestedSgmFilter2 :: (a->Bool) -> [[a]] -> [([a],[Int])]
+nestedSgmFilter2 p = map (filter2 p) 
+
+-----------------------------------------------------
+---  Intuitive Semantics:                         ---
+---   flatSgmFilter2 odd [2,0,2,0] [4,1,3,3]   ---
+---        gives ([1,1,2,0],[1,4,3,3])            ---
+---          [2,0,2,0] are the flags
+---          [4,1,3,3] are the data
+---        The first segment consists of elements ---
+---          [4,1] and filtering with odd will    ---
+---          break it into two segments, one of   ---
+---          odd numbers, occuring first, and one ---
+---          for even numbers. Hence the flag is  ---
+---          modified to [1,1] and data is        ---
+---          permuted to [1,4]!                   ---
+---        The second segment consist of elements ---
+---          [3,3], which are both odd, hence their--
+---          flags and data remain as provided,   ---
+---          i.e., [2,0] and [3,3], respectivelly.---
+---
+---        It follows the final result should be: ---
+---          (flags,data): ([1,1,2,0], [1,4,3,3]) ---
+---                                               ---
+--- This is used by flatQuicksort!                ---
+-----------------------------------------------------
+
+flatSgmFilter2 :: (a->Bool) -> [Int] -> [a] -> ([Int],[a])
+flatSgmFilter2 cond sizes arr = 
+    let n   = length arr
+        cs  = map cond arr
+        ssi = segmScanInc (+) 0 sizes sizes
+        si  = scanInc (+) 0 sizes 
+      
+        tfs = map (\f -> if f then 1 
+                              else 0) cs
+        isT = segmScanInc (+) 0 sizes tfs
+        lis = map (\s->(isT !! (s-1))) si
+
+        ffs = map (\f->if f then 0 
+                            else 1) cs
+        tmp = segmScanInc (+) 0 sizes ffs
+        isF = zipWith (\ li ff -> li + ff) lis tmp
+
+        diff= zipWith (-) si ssi
+        inds= DL.zipWith4 (\ c iT iF d -> 
+                            if c then iT-1+d else iF-1+d
+                       ) cs isT isF diff
+
+        iotas = segmScanInc (+) 0 sizes (replicate n 1)
+        sizes'= DL.zipWith4 (\ f i s li -> 
+                              if f > 0 
+                              then if li > 0 then li else f
+                              else if (i-1) == li
+                                   then s - li else 0
+                         ) sizes iotas ssi lis
+--        inds' = trace (show inds ++ " cs:" ++ show cs ++ " isT: " ++ show isT ++ " isF" ++ show isF ++ "difs: " ++ show diff ++ " lis: "++show lis) inds
+    in  (sizes', permute inds arr)
+
 
 -----------------------------------
 --- Computing the prime numbers ---
@@ -104,29 +166,22 @@ primesOpt n =
                               show composite ++ " "++ show primes) primes
           in drop 2 primes
 
+
+-----------------------------------------------------
+--- ASSIGNMENT 1, Task 3, the flat-parallel version--
+---    of prime-number computation (sieve).       ---
+---    See L2-Flatenning lecture sliedes for help,---
+---    for example, slide 66 out of 74.           ---
+-----------------------------------------------------
+
+-- Should result in a list containing all the prime numbers up to n!
+-- The current dummy implementation just knows 2 and 3 as prime numbers,
+-- please give a valid solution instead!
 primesFlat :: Int -> [Int]
 primesFlat n =
     if n <= 2 then [2]
-    else let sqrtN = floor (sqrt (fromIntegral n))
-             sqrt_primes = primesFlat sqrtN
-             num_primes  = length sqrt_primes
-             mult_lens   = map (\p -> (n `div` p) - 1) sqrt_primes
-             mult_scan   = scanExc (+) 0 mult_lens
-             mult_tot_len= (last mult_scan) + (last mult_lens)
-
-             flags = write mult_scan (replicate num_primes 1) (replicate mult_tot_len 0)
-             ps    = write mult_scan sqrt_primes              (replicate mult_tot_len 0)
-             prime_vals= segmScanInc (+) 0 flags ps
-             prime_inds= segmScanInc (+) 0 flags (replicate mult_tot_len 1)
-             not_primes= zipWith (\i v->(i+1)*v) prime_inds prime_vals
-
-             zero_array = replicate (length not_primes) False
-             prime_flags= write not_primes zero_array (replicate (n+1) True)
-             (primes,_)= ( unzip . filter (\(i,f) -> f) ) (zip (iota (n+1)) prime_flags)
-             primes' = trace (show n ++ " " ++ show sqrt_primes ++ " " ++
-                              show not_primes ++ " "++ show primes) primes
-          in drop 2 primes
-
+    else [2,3] 
+    
 
 -----------------
 --- QuickSort ---
@@ -169,51 +224,17 @@ flatQuicksort ne sizes arr =
 
              rands = segmScanInc (+) ne sizes r_inds
 
-             (sizes', arr_rands) = segmSpecialFilter (\(r,x) -> (x <  r)) sizes (zip rands arr)
+             (sizes', arr_rands) = flatSgmFilter2 (\(r,x) -> (x <  r)) sizes (zip rands arr)
              (_,arr') = unzip arr_rands
 
 --             arr'' = trace (show arr ++ " " ++ show sizes ++ " " ++ " " ++ show rands ++ " " ++ show arr' ++ " " ++ show sizes') arr'
 
          in  flatQuicksort ne sizes' arr'
 
------------------------------------------------------
---- ASSIGNMENT 1: implement this function (below) ---
----    TASK 3.    (the current implementation is  ---
----                bogus, i.e., just to compile)  ---
----                                               ---
----  Intuitive Semantics:                         ---
----   segmSpecialFilter odd [2,0,2,0] [4,1,3,3]   ---
----        gives ([1,1,2,0],[1,4,3,3])            ---
----          [2,0,2,0] are the flags
----          [4,1,3,3] are the data
----        The first segment consists of elements ---
----          [4,1] and filtering with odd will    ---
----          break it into two segments, one of   ---
----          odd numbers, occuring first, and one ---
----          for even numbers. Hence the flag is  ---
----          modified to [1,1] and data is        ---
----          permuted to [1,4]!                   ---
----        The second segment consist of elements ---
----          [3,3], which are both odd, hence their--
----          flags and data remain as provided,   ---
----          i.e., [2,0] and [3,3], respectivelly.---
----
----        It follows the final result should be: ---
----          (flags,data): ([1,1,2,0], [1,4,3,3]) ---
----                                               ---
---- IF YOU GET IT RIGHT flatQuicksort should WORK!---
------------------------------------------------------
-segmSpecialFilter :: (a->Bool) -> [Int] -> [a] -> ([Int],[a])
-segmSpecialFilter cond sizes arr =
-    ------------------------------------------------
-    --- Implementation is Bogus, write your own! ---
-    ------------------------------------------------
-    if null arr then (sizes,arr) else
-    (replicate (length arr) 1, replicate (length arr) (head arr))
 
 -----------------------------------------------------
---- ASSIGNMENT 1: implement sparse matrix-vector  ---
----    TASK 4a.   multiplication with nested      ---
+--- ASSIGNMENT 2: implement sparse matrix-vector  ---
+---    TASK I.3.  multiplication with nested      ---
 ---               parallelism \& test it!         ---
 ---               Matrix:                         ---
 ---              [ 2.0, -1.0,  0.0, 0.0]          ---
@@ -257,8 +278,8 @@ nestSparseMatVctMult mat x =
 
 
 -----------------------------------------------------------
---- ASSIGNMENT 1: implement sparse matrix-vector        ---
----    TASK 4b.   multiplication with flat parallelism! ---
+--- ASSIGNMENT 2: implement sparse matrix-vector        ---
+---    TASK I.3   multiplication with flat parallelism! ---
 ---               Same matrix as before has a flat      ---
 ---               representation: flag vector (flags) & ---
 ---                               data vector (mat  )   ---
@@ -303,8 +324,8 @@ main = do args <- getArgs
           putStrLn ("SegmScanExcl: "++ show (segmScanExc (+) 0 sizes inp))
           putStrLn ("Permuted list: "++show pinp)
           putStrLn ("Written list: " ++show winp)
-          putStrLn (" ParFilterOdd(a/2):"++show ( parFilter (\x->odd (x `div` 2)) inp))
-          putStrLn ("SegmFilterOdd(a/2):"++show (segmSpecialFilter (\x->odd (x `div` 2)) sizes inp))
+          putStrLn (" filter2Odd(a/2):"++show ( filter2 (\x->odd (x `div` 2)) inp))
+          putStrLn ("SegmFilterOdd(a/2):"++show (flatSgmFilter2 (\x->odd (x `div` 2)) sizes inp))
           putStrLn ("Primes 32: " ++ show (primes 32))
           putStrLn ("PrimesOpt  49: " ++ show (primesOpt 49))
           putStrLn ("PrimesOpt  9: " ++ show (primesOpt 9))

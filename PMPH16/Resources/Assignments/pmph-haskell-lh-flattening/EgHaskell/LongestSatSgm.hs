@@ -45,24 +45,25 @@ mss xs =  let first (x,_,_,_) = x
 --       See lecture notes          --
 --------------------------------------
 
-elss :: Integral a => ([a] -> Bool) -> [a] -> (a,a,a,a,a,a,Bool)
+elss :: Integral a => ([a] -> Bool) -> [a] -> (a,a,a,a,a,a)
 elss p xs =
-    let -- lssop :: Integral a => (a,a,a,a,a,a,Bool) -> (a,a,a,a,a,a,Bool) -> (a,a,a,a,a,a,Bool)
-        lssop (lssx, lisx, lcsx, tlx, firstx, lastx, okx)
-              (lssy, lisy, lcsy, tly, firsty, lasty, oky) =
-          (newlss, newlis, newlcs, tlx+tly, firstx, lasty, newok)
+    let -- lssop :: Integral a => (a,a,a,a,a,a) -> (a,a,a,a,a,a) -> (a,a,a,a,a,a)
+        lssop (lssx, lisx, lcsx, tlx, firstx, lastx)
+              (lssy, lisy, lcsy, tly, firsty, lasty) =
+          (newlss, newlis, newlcs, tlx+tly, first, last)
                 where
-                  connect = False -- ... fill in the blanks (rewrite this line)
+                  connect = False -- ... fill in the blanks (rewrite this line) ... should use p
                   newlss  = 0     -- ... fill in the blanks (rewrite this line)
                   newlis  = 0     -- ... fill in the blanks (rewrite this line)
                   newlcs  = 0     -- ... fill in the blanks (rewrite this line)
-                  newok   = False -- ... fill in the blanks (rewrite this line)
-        f x = (xmatch, xmatch, xmatch, 1, x, x, p [x])
+                  first   = if tlx == 0 then firsty else firstx
+                  last    = if tly == 0 then lastx  else lasty
+        f x = (xmatch, xmatch, xmatch, 1, x, x)
                   where xmatch = if (p [x]) then 1 else 0
-    in ((reduce lssop (0,0,0,0,0,0,True)) . (map f)) xs
+    in ((reduce lssop (0,0,0,0,0,0)) . (map f)) xs
 
 lss :: Integral a => ([a] -> Bool) -> [a] -> a
-lss p xs = let first (x,_,_,_,_,_,_) = x
+lss p xs = let first (x,_,_,_,_,_) = x
            in  first (elss p xs)
 
 
