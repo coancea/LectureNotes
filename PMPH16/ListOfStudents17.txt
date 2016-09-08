@@ -29,3 +29,5 @@
 29. Christian Stenderup 	lwf762@alumni.ku.dk 	410290 	
 30. Hans Jacob Teglbjærg Stephensen 	xkv467@alumni.ku.dk 	433744 	
 31. Dandan Xue 	lzg167@alumni.ku.dk 	524959 	
+32. Morten Poulsen  	    snq880@alumni.ku.dk 
+33. Alexander Carlqvist     krt300@alumni.ku.dk
