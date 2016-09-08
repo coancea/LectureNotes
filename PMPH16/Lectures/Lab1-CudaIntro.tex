@@ -84,13 +84,13 @@
 
 \title[Intro]{Lab 1: A Gentle Introduction to CUDA}
 
-\author[C.~Oancea]{Cosmin E. Oancea and Troels Henriksen\\{\tt [cosmin.oancea,athas]@diku.dk}\\
+\author[C.~Oancea]{Cosmin E. Oancea\\{\tt cosmin.oancea@diku.dk}\\
 \emp{After previous year slides of Rasmus Fonseca!}}
 
 \institute{Department of Computer Science (DIKU)\\University of Copenhagen}
 
 
-\date[Sept 2015]{September 2015 PMPH Lab Notes}
+\date[Sept 2016]{September 2016 PMPH Lab Notes}
 
 
 \begin{document}
@@ -128,6 +128,7 @@ Option 2: Using gpu-servers:
         \begin{itemize}
             \item {\tt \$ export PATH=/usr/local/cuda-6.0/bin:\$PATH}
             \item {\tt \$ export LD\_LIBRARY\_PATH=/usr/local/cuda-6.0/lib64:\$LD\_LIBRARY\_PATH}
+            \item {\tt \$ export LIBRARY\_PATH=\$LD\_LIBRARY\_PATH:\$LIBRARY\_PATH}
         \end{itemize}
     \item And you are ready to go:\\{\tt \$ nvcc ... }
 \end{itemize}
