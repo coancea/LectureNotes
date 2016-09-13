@@ -126,8 +126,8 @@ Option 2: Using gpu-servers:
     \item Password:
     \item Add the following to your {\tt .bashrc} file:
         \begin{itemize}
-            \item {\tt \$ export PATH=/usr/local/cuda-6.0/bin:\$PATH}
-            \item {\tt \$ export LD\_LIBRARY\_PATH=/usr/local/cuda-6.0/lib64:\$LD\_LIBRARY\_PATH}
+            \item {\tt \$ export PATH=/usr/local/cuda/bin:\$PATH}
+            \item {\tt \$ export LD\_LIBRARY\_PATH=/usr/local/cuda/lib64:\$LD\_LIBRARY\_PATH}
             \item {\tt \$ export LIBRARY\_PATH=\$LD\_LIBRARY\_PATH:\$LIBRARY\_PATH}
         \end{itemize}
     \item And you are ready to go:\\{\tt \$ nvcc ... }
@@ -135,35 +135,35 @@ Option 2: Using gpu-servers:
 
 \end{frame}
 
-\begin{frame}[fragile,t]
-\frametitle{Setting up No-Password SSH}
-
-\emp{On your local machine, add an entry in {\tt .ssh/config}\\ for each gpu01..4:}\\
-\medskip
-
-\begin{scriptsize}
-{\tt Host gpu01-diku-apl}\\
-{\tt ProxyCommand ssh -q <user-name>@ssh-diku-apl.science.ku.dk nc -q0 gpu01-diku-apl 22}\\
-{\tt user <user-name>}
-\end{scriptsize}
-\bigskip
-
-\emp{On each gpu server copy-past your local-machine {\tt id\_rsa.pub} into
-the {\tt .ssh/authorized\_keys} file.}
-
-\medskip
-
-Now you should be able to log in from your local machine with:\\
-{\tt\$ ssh gpu01-diku-apl}
-
-\end{frame}
+%\begin{frame}[fragile,t]
+%\frametitle{Setting up No-Password SSH}
+%
+%\emp{On your local machine, add an entry in {\tt .ssh/config}\\ for each gpu01..4:}\\
+%\medskip
+%
+%\begin{scriptsize}
+%{\tt Host gpu01-diku-apl}\\
+%{\tt ProxyCommand ssh -q <user-name>@ssh-diku-apl.science.ku.dk nc -q0 gpu01-diku-apl 22}\\
+%{\tt user <user-name>}
+%\end{scriptsize}
+%\bigskip
+%
+%\emp{On each gpu server copy-past your local-machine {\tt id\_rsa.pub} into
+%the {\tt .ssh/authorized\_keys} file.}
+%
+%\medskip
+%
+%Now you should be able to log in from your local machine with:\\
+%{\tt\$ ssh gpu01-diku-apl}
+%
+%\end{frame}
 
 
 \begin{frame}[fragile,t]
 \frametitle{Let's Try it Out:}
 
 {\tt \$ ssh gpu01}\medskip\\
-{\tt \$ cp -r /usr/local/cuda-6.0/samples .}\medskip\\
+{\tt \$ cp -r /usr/local/cuda/samples .}\medskip\\
 {\tt \$ cd samples/1\_Utilities/deviceQuery}\medskip\\
 {\tt \$ make}\medskip\\
 {\tt \$ ./deviceQuery}\medskip\\
