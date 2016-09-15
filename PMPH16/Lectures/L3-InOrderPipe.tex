@@ -82,11 +82,11 @@
 
 \title[Processor]{Processor Architecture: In-Order Pipelines}
 
-\author[C.~Oancea]{Cosmin E. Oancea and Troels Henriksen\\{\tt [cosmin.oancea,athas]@diku.dk}}
+\author[C.~Oancea]{Cosmin E. Oancea {\tt cosmin.oancea@diku.dk}}
 
 \institute{Department of Computer Science (DIKU)\\University of Copenhagen}
 
-\date[Sept 2015]{September 2015 PMPH Lecture Notes}
+\date[Sept 2016]{September 2016 PMPH Lecture Notes}
 
 
 \begin{document}
@@ -427,9 +427,9 @@ JAL          & 1\%      & low  \\
 \hline
 Instruction   & I-Fetch {\sc if} & I-Decode {\sc id} & Execute {\sc ex} & Memory {\sc me} & WriteBack {\sc wb} \\\hline
 LW R1,20(R2)  & fetch;       & decode; fetch R2 & compute addr & read mem    & write in R1    \\
-              & PC+=4        &                  & minus(R2+20) &             &                \\\hline
+              & PC+=4        &                  & (R2)+20 &             &                \\\hline
 SW R1,20(R2)  & fetch;       & decode; fetch R1 & compute addr & write mem   & -              \\
-              & PC+=4        & and R2           & minus(R2+20) &             &                \\\hline
+              & PC+=4        & and R2           & (R2)+20 &             &                \\\hline
 ADD R1,R2,R3  & fetch;       & decode; fetch R2 & compute      & -           & write in R1    \\
               & PC+=4        & and R3           & (R2+R3)      &             &                \\\hline
 ADDI R1,R2,imm& fetch;       & decode; fetch R2 & compute      & -           & write in R1    \\

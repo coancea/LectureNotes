@@ -1294,7 +1294,7 @@ map (\mymath{\backslash}(n,m) -> replicate n m) \emp{[(1,7),(3,8),(2,9)]} \mymat
 
 \begin{colorcode}[fontsize=\scriptsize]
 1. (ns, ms)  = unzip([(1,7), (3,8), (2,9)]
-2. inds = sgmScan\mymath{\myindu{exc}} (+) 0 ns                   -- [0,1,4]
+2. inds = scan\mymath{\myindu{exc}} (+) 0 ns                       -- [0,1,4]
 3. size = (last inds) + (last ns)               -- 4 + 2 = 6
 4. flag = write inds  ns  (replicate size 0)    -- [1, 3, 0, 0, 2, 0]
 5. vals = write inds  ms  (replicate size 0)    -- [7, 8, 0, 0, 9, 0]
@@ -1331,7 +1331,7 @@ map (\mymath{\backslash}i -> iota i) \emp{[1,3,2]} \mymath{\equiv}
 
 \begin{colorcode}[fontsize=\scriptsize]
 1. arr  = [1, 3, 2]
-2. inds = sgmScan\mymath{\myindu{exc}} (+) 0 arr      -- [0,1,4]
+2. inds = scan\mymath{\myindu{exc}} (+) 0 arr         -- [0,1,4]
 3. size = (last inds) + (last arr) -- 4 + 2 = 6
 4. flag = write inds  -- \emp{[0,1,4]}
                 arr   -- \emp{[1,3,2]}

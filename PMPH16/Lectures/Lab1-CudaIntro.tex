@@ -393,8 +393,7 @@ This shouldn't be a problem given the shown program
     unsigned int num_threads = 32757;
     unsigned int mem_size    = num_threads*sizeof(float);
     unsigned int block_size  = 256;
-    unsigned int num_blocks  = ((num_threads + (block_size - 1)) / block_size) 
-                               * block_size;
+    unsigned int num_blocks  = ((num_threads + (block_size - 1)) / block_size);
 
     \blue{// execute the kernel}
     squareKernel<<< num_blocks, block_size>>>(d_in, d_out, num_threads);
