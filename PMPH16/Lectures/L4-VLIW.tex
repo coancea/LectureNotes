@@ -86,7 +86,7 @@
 
 \institute{Department of Computer Science (DIKU)\\University of Copenhagen}
 
-\date[Sept 2015]{September 2015 PMPH Lecture Notes}
+\date[Sept 2016]{September 2016 PMPH Lecture Notes}
 
 
 \begin{document}
@@ -119,7 +119,7 @@ by Michel Dubois, Murali Annavaram and Per Stenstrom.
 
 \begin{itemize}
     \item {Dynamic} by hardware: the ever-wider dispatch width
-            ($\uparrow$ IPC) $\Rightarrow$ 
+            $\Rightarrow$ 
             more \& more complex, slower, and power-hungry hardware. \smallskip
  
     \item {\em Static} by compiler: instruction reordering aimed at
@@ -580,10 +580,10 @@ but each corresponds to a different iteration of the original loop.
 
 \begin{scriptsize}
 \begin{itemize}
-\item Intra-Iter Producer-Consumer Relation 
+\item Assume Intra-Iteration Producer-Consumer Relation 
 \begin{scriptsize}{\tt A(i)$\Rightarrow$B(i)$\Rightarrow\ldots \Rightarrow$F(i)}\end{scriptsize}
 %$C(i)$\Rightarrow$D(i)$\Rightarrow$E(i)$
-\item NO Cross-Iter dependencies ({\tt A(i+1)} does not depend on {\tt B(i)}),
+\item NO Cross-Iteration dependencies ({\tt A(i+1)} does not depend on {\tt B(i)}),
 \end{itemize}
 \end{scriptsize}
 
