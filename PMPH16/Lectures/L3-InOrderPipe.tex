@@ -1220,7 +1220,7 @@ Figure shows a 5-stage pipeline which 128 {\sc htc}s, which can
     \begin{scriptsize}
         \item[1] with current technology 1000s of threads would be needed
                  in workload and such hardware replication would be prohibitive,
-        \item[2] memory wall gets larger and larger, 
+        \item[2] memory wall was getting larger and larger, 
         \item[3] too different from legacy code
         \item[4] if num running threads $<$ 5 $\Rightarrow$ NOOPs inserted $\Rightarrow$
                     slow sequential execution.\smallskip
@@ -1423,12 +1423,12 @@ Memory is heavily interleaved: hundreds of memory modules:
     \item They can be chained when there are dependencies. 
             Consider\\ {\tt Y = aX + Y}, where vector length is N:\smallskip
 
-    \item Execution Time (One Vector Op at a time):\\
-            {\tt 2*startup(load) + startup(multv) + startup(addv) + 
-                    startup(store) + 5*N}\smallskip
+    \item Execution Time (One Vct Op at a time):
+            {\tt 2*startup(load) + startup(multv)+startup(addv)+startup(store) + 5*N}\smallskip
 
     \item Execution Time (Chaining and Parallel):\\
-            {\tt startup(load) + startup(addv) + startup(store) + N} 
+            {\tt startup(load) + startup(multv) + startup(addv) + startup(store) + N}
+            (assuming the {\tt load}s go in parallel)
 \end  {itemize}
 
 \includegraphics[width=59ex]{Figures/VectChaining}
@@ -1496,7 +1496,7 @@ Scatter/Gather Operations:
 \begin{colorcode}[fontsize=\scriptsize]
 L.V   Vk,0(R1),R6  //loads vector K in Register Vk
 LI.V  Va,Vk,0(R2)  //gather: loads A(K(i)) into Va
-SI.V  Vb,0(R2),Vk  //scatter: stores A(K(i))
+SI.V  Va,0(R2),Vk  //scatter: stores A(K(i))
 \end{colorcode}
 
 
