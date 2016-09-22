@@ -86,7 +86,7 @@
 
 \institute{Department of Computer Science (DIKU)\\University of Copenhagen}
 
-\date[Sept 2015]{September 2015 PMPH Lecture Notes}
+\date[Sept 2016]{September 2016 PMPH Lecture Notes}
 
 
 \begin{document}
@@ -297,7 +297,7 @@ S1    A[i,j]=A[i-1,j+1]...
     ENDDO
   ENDDO
 For S1\mymath{\rightarrow}S1: 
-    (i1,j1) = (i1-1,j2+1)
+    (i1,j1) = (i2-1,j2+1)
     i1 \emp{<} i2 \& j1 \emp{>} j2
 
 Direction matrix:
@@ -508,7 +508,7 @@ Distribution requires array expansion of the scalar {\tt tmp}.
 
     \item \emp{Cross-Iteration WAW Dependencies (WAW)}:\\
         If they correspond to the case in which every \emp{\bf read} from
-        an scalar or array location is covered by a \emp{\bf previous same-iteration write}
+        a scalar or array location is covered by a \emp{\bf previous same-iteration write}
         %a re-writing the same array elements
         %in different iterations 
         $\Rightarrow$ can be eliminated \emph{\bf privatization (renaming)},
