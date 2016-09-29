@@ -961,10 +961,11 @@ B = transpose(B')
 
 \emp{The transformed program performs about twice the number of
 accesses to global memory than the original.}  
-\bigskip
+\medskip
 
-\emph{But exhibits only coalesced accesses!}
-\bigskip
+\emph{But exhibits only coalesced accesses!}\\
+\textbf{Coalesced Access:} a (half) warp accesses in a {\sc simd} instruction consecutive memory (word) locations. 
+\medskip
 
 \alert{What else could we have done to achieve the same effect?}\\\pause
 \emph{Loop Interchange. Does it works in general?}
@@ -1235,17 +1236,16 @@ Differences:
             using compare-and-swap {\sc cas} like locking.\bigskip
     \item In general if $16 <${\tt B} $\leq 32*8 = 512$ then up to $32$ (warp size)
             threads cooperate at building a histogram.\bigskip
-    \item \emp{Difficulty:} up to {\tt B}$=16\times128$ one workgroup 
-            builds a histogram; unfortunately no efficient 
-            {\sc cas}-like sync. at workgroup level.\bigskip
-    \item \emp{Difficulty:} for {\tt B}$\geq 64*64$ need to keep the 
+    \item If {\tt B}$<=1024*8$ one CUDA block can cooperate at building
+            a histogram -- must use CUDA atomic update instructions.\bigskip
+    \item \emp{Difficulty:} for {\tt B}$\geq 1024*8$ need to keep the 
             histogram in global memory: prohibitively expensive
             due to irregular accesses.
 \end{itemize}   
 
 
-For simplicity use fix $L = 128$ the size of the local workgroup,
-$G = 512$ the number of workgroups, and unroll the loop: $N / (L\times G)$.
+For simplicity use fix $L = 128$ the size of the CUDA block,
+$G = 512$ the number of CUDA blocks, and unroll the loop: $N / (L\times G)$.
 Work Efficient $\sim$ {\tt B} $ \leq $ {\tt N} / {\tt G}.
   
 \end{frame}
