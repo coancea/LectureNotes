@@ -839,15 +839,15 @@ __global__ void matMultTiledKer( ... ) \{
   float tmp = 0.0;
 
   for(int kk=0; kk<U; kk+=T) \{
-    \alert{Ash[tidy,tidx] = (i<M && kk+tidx<U) ?} 
-                     \alert{A[i,kk+tidx] : 0.0 ;}
-    \alert{Bsh[tidy,tidx] = (j<N && kk_tidy<U) ?} 
-                     \alert{B[kk+tidy,j] : 0.0 ;}
+    \alert{Ash[tidy][tidx] = (i<M && kk+tidx<U) ?} 
+                  \alert{A[i*U + (kk+tidx)] : 0.0;}
+    \alert{Bsh[tidy][tidx] = (j<N && kk_tidy<U) ?} 
+                  \alert{B[(kk+tidy)*N + j] : 0.0;}
     \blue{__syncthreads();}
     \blue{for(int k=0; k<T; k++) \{}
       \blue{tmp += Ash[tidy][k] * Bsh[k][tidx]}
     \blue{\} __syncthreads();}
-  \} if (i<M && j<N) C[i,j] = tmp;
+  \} if (i<M && j<N) C[i*N + j] = tmp;
 \}
 \end{colorcode} 
 \end{columns}
@@ -899,15 +899,15 @@ __global__ void matMultTiledKer( ... ) \{
   float tmp = 0.0;
 
   for(int kk=0; kk<U; kk+=T) \{
-    \alert{Ash[tidy,tidx] = (i<M && kk+tidx<U) ?} 
-                     \alert{A[i,kk+tidx] : 0.0 ;}
-    \alert{Bsh[tidy,tidx] = (j<N && kk_tidy<U) ?} 
-                     \alert{B[kk+tidy,j] : 0.0 ;}
+    \alert{Ash[tidy][tidx] = (i<M && kk+tidx<U) ?} 
+                  \alert{A[i*U + (kk+tidx)] : 0.0;}
+    \alert{Bsh[tidy][tidx] = (j<N && kk_tidy<U) ?} 
+                  \alert{B[(kk+tidy)*N + j] : 0.0;}
     \blue{__syncthreads();}
     \blue{for(int k=0; k<T; k++) \{}
       \blue{tmp += Ash[tidy][k] * Bsh[k][tidx]}
     \blue{\} __syncthreads();}
-  \} if (i<M && j<N) C[i,j] = tmp;
+  \} if (i<M && j<N) C[i*N + j] = tmp;
 \}
 \end{colorcode} 
 \end{columns}
@@ -1004,7 +1004,7 @@ for(i = 0; i < rowsA; i++) \{
 __global__ void matTranspose(
         float* A,  float* trA, 
         int rowsA, int colsA  ) \{
-  __shared__ float tile[T][\alert{T}];
+  __shared__ float tile[T][\alert{T}+1];
   int tidx = threadIdx.x;
   int tidy = threadIdx.y;
   int j    = blockIdx.x*T + tidx;
