@@ -111,13 +111,22 @@
     \item{Large:} OUTER=128, NUM\_X=256, NUM\_Y=256, NUM\_T=128
 \end{itemize}\bigskip
 
-The goal is to parallelize all three parallel dimensions, i.e., {\sc tridag}
-can be re-written based on segmented {\tt scan}s.  
-Also optimize such that all accesses to global memory are coalesced.\medskip
-
 \medskip 
-Target primarily the {\em small} dataset, which, otherwise, does not has enough 
+Target primarily the {\em large} dataset, in which the map-like parallel 
+dimensions ({\tt OUTER} and ({\tt NUM\_X} or {\tt NUM\_Y})) offer enough 
 parallelism to fully utilize the hardware.
+
+\medskip
+
+As time permits, have a go to parallelizing all three parallel dimensions, 
+i.e., {\sc tridag} can be re-written based on segmented {\tt scan}s.  
+The target for this is the {\em small} dataset, which, otherwise, does not 
+has enough parallelism to fully utilize the hardware.
+
+\medskip
+
+\alert{Make sure to optimize global-memory accesses such that they are either {\em coalesced},
+or efficiently cached (if applicable). This is paramount for achieving good performance!}
 
 \end{frame}
 

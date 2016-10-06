@@ -27,3 +27,4 @@ Folder `include' contains
     -- `TestCudaUtil.cu'  a simple tester for 
                         transposition and scan.
 
+Folder `ParTridagCuda` contains code that demonstrates how TRIDAG can be parallelized by intra-block scans, i.e., it assumes that NUM_X, NUM_Y are a power of 2 less than or equal to 1024.
