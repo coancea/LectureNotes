@@ -43,6 +43,11 @@ default:
 #	pdflatex TLS.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb *~
 
+fabian:
+	pdflatex Fabian-Intro-Futhark.tex
+	pdflatex Fabian-Intro-Futhark.tex
+	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb *~
+
 # IUP presentation
 iup:
 	pdflatex IUPpres.tex
