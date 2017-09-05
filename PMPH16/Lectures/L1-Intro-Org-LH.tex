@@ -1107,6 +1107,58 @@ all\mymath{\myindx{p}} \mymath{\equiv}\pause    reduce(&&, True) \mymath{\circ}
 \end{frame}
 
 
+\begin{frame}[fragile,t]
+  \frametitle{List Homomorphism Invariants}
+
+\begin{mytheo}[List-Homomorphism Promotions]\label{LHomInv}
+Given unary functions $f$, $g$ and an associative binary operator $\odot$ then:\\
+%$\mbox{ }$ \\
+\emp{1.}$\ \ ({\tt map} \ f) \ . \ ({\tt map} \ g) \ \ \equiv \ \ {\tt map} \ (f \ . \ g)$\\
+$\mbox{ }$ \\
+\emp{2.}$\ \ ({\tt map} \ f) \ . \ ({\tt reduce} \ ({\tt ++}) \ []) \ \equiv \ ({\tt reduce} \ ({\tt ++}) \ []) \ . \ ({\tt map} \ ({\tt map} \ f) )$ \\
+$\mbox{ }$ \\
+\emp{3.}$\ \ ({\tt reduce} \ \odot \ e_{\odot}) \ . \ ({\tt reduce} \ (++) \ []) \ \equiv$\\
+$ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \
+({\tt reduce} \ \odot \ e_{\odot}) \ . \ ({\tt map} \ ({\tt reduce} \ \odot \ e_{\odot}) )$
+\end{mytheo}
+
+%  
+
+\begin{itemize}
+    \item \emp{2. 3. $\Rightarrow$ code generation:} list is segmented, 
+            segments are distributed on different processors, 
+            computation proceeds locally on each processor, 
+            and the local results are reduced. 
+    \item \emph{2. 3. $\Leftarrow$ flattening optimization}: 
+            uncovers more parallelism
+    \item e.g., map f [1..4] = (map f) . (red ++) [[1,2],[3,4]] =$^{prom2}$ \alert{?}           
+%(red ++) . (map (map f)) [[1,2], [3,4]] = \\red ++ [map f [1,2], map f [3,4]]
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[fragile,t]
+  \frametitle{Optimizing Map-Reduce Computation (\alert{Exercise})}
+
+\begin{mytheo}[Optimized Map Reduce]\label{MapRed}
+Assume {\tt distr$_p :: [\alpha] \rightarrow [[\alpha]]$}
+distributes a list into $p$ sublists, each containing about 
+the same number of elements. Denoting  
+${\tt redomap }\ \odot \ f \ e_{\odot} \ \equiv \ ({\tt reduce} \ \odot \ e_{\odot}) \ . \ (map \ f)$, the equality holds:\\\bigskip
+
+\emp{${\tt redomap} \ \odot \ f \ e_{\odot} \ \ \equiv$}\\
+\emp{$\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ({\tt reduce} \ \odot \ e_{\odot}) \ . \ ({\tt map} \ ({\tt redomap} \ \odot \ f \ e_{\odot})) \ . \ {\tt distr}_p$}
+\end{mytheo}
+
+\begin{itemize}
+    \item \alert{Prove it using the promotion Lemmas before!}
+    \item \emph{Hint: $({\tt reduce} \ (++) \ []) \ . \ {\tt distr}_p \ \ \equiv \ \ id$, hence}
+    \item \emph{${\tt redomap }\ \odot \ f \ e_{\odot} \ \equiv$\\ $\ \ \ \ ({\tt reduce} \ \odot \ e_{\odot}) \ . \ (map \ f) \ . \ ({\tt reduce} \ (++) \ []) \ . \ {\tt distr}_p$}
+\end  {itemize}
+
+\end{frame}
+
 \subsection{Almost Homomorphisms Gorlatch'96}
 
 %\begin{frame}[fragile]
