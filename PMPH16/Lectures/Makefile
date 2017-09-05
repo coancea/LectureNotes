@@ -43,6 +43,11 @@ default:
 #	pdflatex TLS.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb *~
 
+teaser:
+	pdflatex Teaser-2-slides.tex
+	pdflatex Teaser-2-slides.tex
+	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb *~
+
 fabian:
 	pdflatex Fabian-Intro-Futhark.tex
 	pdflatex Fabian-Intro-Futhark.tex
@@ -52,6 +57,12 @@ fabian:
 iup:
 	pdflatex IUPpres.tex
 	pdflatex IUPpres.tex
+	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb *~
+
+# Lecture 0
+l1-org-hwd-lh:
+	pdflatex L1-Intro-Org-LH.tex
+	pdflatex L1-Intro-Org-LH.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb *~
 
 # Lecture 1

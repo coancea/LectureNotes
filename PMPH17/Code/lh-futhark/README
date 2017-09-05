@@ -1,0 +1,48 @@
+This folder contains Futhark code for the simple examples of the 
+introductory (first) lecture L1-Intro-Org-LH.pdf:
+
+    1. simpleLH.fut contains the Map-Reduce (MR) form of the simple 
+       list homomorphism taught in class
+
+    2. mssp.fut contains the maximum-segment sum implementation
+
+    3. lssp contains a dummy longest-satisfying segment implementation;
+       one of the task for weekly-assignment one will be to fill in the 
+       blanks in order to provide a correct implementation 
+       (but you are encouraged to start in advance)
+
+    4. gen-large-inp.fut is sample code that produces an array of random 
+       integers; you may extend/customize it to suit your needs, in case 
+       you need a not-so-random dataset.
+
+To compile to a sequential-C version the simple list-homomorphisms in MR form:
+    $ futhark-c simpleLH.fut
+The above will generate an executable names "simpleLH"
+
+To run the sequential-C version of the simple list homomorphisms on
+an array of 10000 32-bit integers with random values between -50 and 50:
+    $ futhark-dataset --i32-bounds=-50:50 -g [10000]i32 | ./simpleLH
+
+To compile to GPU code the simple list-homomorphisms in MR form:
+    $ futhark-opencl simpleLH.fut
+
+and then run as before. If you add the option "-s" at the very end it
+will print a summary of the GPU kernel times. If you add the option 
+"-t time_gpu" it will print the total gpu runtime in microseconds in 
+file "time_gpu",
+i.e., total runtime from which is substracted the time taken to initialize
+the gpu context and to transfer the main's input from cpu to gpu and the
+main's result from gpu to cpu.
+
+
+To validate it (on the default small dataset in folder "data") just try:
+    $ futhark-test simpleLH.fut
+
+Similarly, you may compile for example for gpu execution as before
+    $ futhark-opencl simpleLH.fut
+
+and run the dataset from "data/simpleLH.in" by:
+    $ ./simpleLH -t time_gpu < data/simpleLH.in
+
+Same considerations apply for mssp.fut and lssp.fut
+

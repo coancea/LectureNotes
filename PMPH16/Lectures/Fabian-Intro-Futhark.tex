@@ -347,7 +347,7 @@ let nearestNeigbor (k: i32) (current_point: (f32,f32))
   \begin{enumerate}
   \item Create Futhark program \texttt{sum.fut}:
     \begin{lstlisting}
-      entry int sum(int n) = reduce(+, 0, iota(n))
+      entry int sum(int n) = reduce(+) 0 (iota n)
     \end{lstlisting}
   \item Compile it:\\
 \begin{tinycode}
