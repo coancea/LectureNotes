@@ -1184,7 +1184,7 @@ map (\mymath{\backslash}(n,m) -> replicate n m) \emp{[(1,7),(3,8),(2,9)]} \mymat
 \bigskip
 
 \begin{colorcode}[fontsize=\scriptsize]
-1. (ns, ms)  = unzip([(1,7), (3,8), (2,9)]
+1. (ns, ms)  = unzip([(1,7), (3,8), (2,9)]      -- ([1,3,2], [7,8,9])
 2. inds = scan\mymath{\myindu{exc}} (+) 0 ns                       -- [0,1,4]
 3. size = (last inds) + (last ns)               -- 4 + 2 = 6
 4. flag = write inds  ns  (replicate size 0)    -- [1, 3, 0, 0, 2, 0]
@@ -1351,12 +1351,13 @@ Normalize the code:
 map (\mymath{\backslash}i -> let ip1 = i+1 in
            let iot = (iota i) in
            let ip1r= (replicate i ip1) in
-           map (+) (zip ip1r iot)            ) arr
+           map (+) ip1r iot            ) arr
 \end{colorcode}
 \bigskip
 
 \blue{Distribute the map over every instruction in the body}\\
-(bottom-up if nest $>$ 2), where $\mathcal{F}$ denotes the flattening transf:
+(bottom-up if nest $>$ 2), where $\mathcal{F}$ denotes the flattening transf,\\
+and modify the inputs (results) accordingly.
 \bigskip
 \pause
 
@@ -1365,7 +1366,7 @@ map (\mymath{\backslash}i -> let ip1 = i+1 in
 1. let ip1s = map (\mymath{\backslash}i -> i+1) arr in -- [2, 3, 4, 5]
 2. let iots = \mymath{\mathcal{F}}(map (\mymath{\backslash}i -> (iota i)) arr)) in
 3. let ip1rs= \mymath{\mathcal{F}}(map (\mymath{\backslash}(i,ip1) -> (replicate i ip1)) (zip arr ip1s)))
-4. in  \mymath{\mathcal{F}}(map (\mymath{\backslash}(z) -> map (+) z) (zip ip1rs iots))
+4. in  \mymath{\mathcal{F}}(map (\mymath{\backslash}(z) -> map (+) z) ip1rs iots)
 \end{colorcode}
 
 \end{frame}
@@ -1389,7 +1390,7 @@ size = (last inds) + (last arr) -- 6 + 4 = 10
 flag = write inds arr 
              (replicate size 0)
 --           [1, 2, 0, 3, 0, 0, 4, 0, 0, 0]
-tmp  = replicate(size, 1)
+tmp  = replicate size 1
 iots = sgmScan\mymath{\myindu{exc}} (+) 0 flag \emp{tmp} \emph{--[0, 0, 1, 0, 1, 2, 0, 1, 2, 3]}
 \end{colorcode}
 
@@ -1420,7 +1421,7 @@ ip1rs= sgmScan\mymath{\myindu{inc}} (+) 0 flag \emp{vals}           \emph{-- [2,
 \begin{colorcode}
 \mymath{\mathcal{F}}(map (\mymath{\backslash}(z) -> map (+) z) (zip ip1rs iots))
 \mymath{\equiv}
-4. result = map (+) (zip ip1rs iots)
+4. result = map (+) ip1rs iots
 -- [2, 3, 3, 4, 4, 4, 5, 5, 5, 5]
 -- [0, 0, 1, 0, 1, 2, 0, 1, 2, 3]
 --  +  +  +  +  +  +  +  +  +  +
@@ -1452,7 +1453,7 @@ ip1rs= sgmScan\mymath{\myindu{inc}} (+) 0 flag \emp{vals}           \emph{-- [2,
 \begin{colorcode}[fontsize=\scriptsize]
 sqrt_primes = primesOpt (sqrt (fromIntegral n))
 nested = \emp{map} (\mymath{\backslash}\emp{p} -> let m = (n `div` p)
-                  in  \emp{map} (\mymath{\backslash}j -> j*p) [2..m]
+                     in  \emp{map} (\mymath{\backslash}j -> j*p) [2..m]
              ) \emp{sqrt_primes}
 not_primes  = \emph{reduce} (++) [] nested
 \end{colorcode}
@@ -1561,19 +1562,22 @@ nestedQuicksort arr =
 quicksort\mymath{\myindu{lift}} :: [[a]] -> [[a]]
 quicksort\mymath{\myindu{lift}} arrofarrs = 
   map (\mymath{\backslash}arr ->
-          if  (length arr) <= 1 then arr else \purple{-- \mymath{\mathcal{F}} rule 6}
+          if  \alert{(length arr) < 2} then arr else \purple{-- \mymath{\mathcal{F}} rule 6}
           let i  = getRand (0, (length arr) - 1)
               a  = arr !! i
               (s, flag) = \emp{parFilter} (<a) arr
               (s1, s2)  = split flag[0] s
-              \alert{rs = quicksort\mymath{\myindu{lift}} [s1, s2]}
+              \alert{rs = quicksort [s1, s2]}
           in  (rs !! 0) ++ (rs !! 1)
       ) arrofarrs
 \end{colorcode}
 
+\alert{\tt (length arr) < 2} will not work correctly if the input array has duplicated elements (?)
 \medskip
 
-\alert{Flattening quicksort could be a project if anyone is interested!}
+What should the result be of distributing the \alert{\tt map} over\\ \alert{\tt rs = quicksort [s1,s2]}?
+\medskip
+
 
 \end{frame}
 
@@ -1588,6 +1592,8 @@ quicksort\mymath{\myindu{lift}} arrofarrs =
     \item The recursion can be re-written as a loop in which the stopping 
             condition is that all elements of the array are sorted 
             (expressed as a map-reduce composition);\medskip
+    \item Distributing the puter \alert{\tt map} over \alert{\tt rs = quicksort [s1,s2]}
+            results in \emphh{quicksort\mymath{\myindu{lift}}},
     \item \alert{The difficult step} is to flatten {\tt map (parFilter)}.
 \end{itemize}
 
