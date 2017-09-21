@@ -32,6 +32,12 @@ l3-pipe:
 	pdflatex L3-InOrderPipe.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb *~
 
+l4-vliw:
+	pdflatex L4-VLIW.tex
+	pdflatex L4-VLIW.tex
+	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb *~
+
+
 clean:
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
