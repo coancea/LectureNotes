@@ -42,6 +42,11 @@ l5-loop:
 	pdflatex L5-LoopParI.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb *~
 
+proj:
+	pdflatex ProjectDiscussion.tex
+	pdflatex ProjectDiscussion.tex
+	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb *~
+
 clean:
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
 
