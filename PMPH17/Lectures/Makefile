@@ -37,6 +37,10 @@ l4-vliw:
 	pdflatex L4-VLIW.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb *~
 
+l5-loop:
+	pdflatex L5-LoopParI.tex
+	pdflatex L5-LoopParI.tex
+	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb *~
 
 clean:
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb
