@@ -42,6 +42,16 @@ l5-loop:
 	pdflatex L5-LoopParI.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb *~
 
+l6-mem:
+	pdflatex L6-MemIntro.tex
+	pdflatex L6-MemIntro.tex
+	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb *~
+
+l7-net:
+	pdflatex L7-Interconnect.tex
+	pdflatex L7-Interconnect.tex
+	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb *~
+
 proj:
 	pdflatex ProjectDiscussion.tex
 	pdflatex ProjectDiscussion.tex
