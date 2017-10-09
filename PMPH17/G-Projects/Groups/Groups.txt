@@ -36,6 +36,13 @@ IV. Andreas project (prime polynomials)
 1. Lasse Petersen 
 2. Arinbjørn Brandsson.
 
-IV. ?
+V. Flattening Quicksort
+
+1. Sebastian Skjønberg Andersen, 
+2. Troels Kamp Leskes, 
+3. Rasmus Klitgaard,
+4. Henrik Thomsen.
+
+VI. ?
 groups of one -- she Anna prefers alone due to sickness, etc.
 1. Anna Sofie Kiehn <mvq686@alumni.ku.dk>
