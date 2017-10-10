@@ -6,14 +6,6 @@
 
 default(i32)
 
-let i32_filter [k] (flags: [k]i32) (ns: *[k]i32): (*[]i32, i32) =
-  let is0 = scan (+) 0 flags
-  let filter_size = is0[k - 1]
-  let is1 = map (\ (i: i32, f: i32): i32  -> i * f) (zip is0 flags)
-  let is2 = map (\ (i: i32): i32  -> i - 1) is1
-  in (scatter (replicate filter_size 0) is2 ns, filter_size)
-
-
 let primesOpt (n : i32) : []i32 =
   if n <= 4 then [2,3]
   else let sq= i32( f32.sqrt( f32(n) ) )
