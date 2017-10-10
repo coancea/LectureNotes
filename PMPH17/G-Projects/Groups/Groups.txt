@@ -30,6 +30,7 @@ III. Simplex Algorithm
 
 1. Dan Chi Pham (vqr853) 
 2. Anders Wind Steffensen (qrj741).
+3. Michael Hejselbak (hsx578)
 
 IV. Andreas project (prime polynomials)
 
@@ -43,6 +44,22 @@ V. Flattening Quicksort
 3. Rasmus Klitgaard,
 4. Henrik Thomsen.
 
-VI. ?
+VI. Default Project (last year)
+
+1. Brian Spiegelhauer
+2. Lukas Svarre Engedal
+3. Simon Gustav Cordes
+
+VII. N-body simulation
+
+1. Dominik Táborský (grt113), 
+2. Lennard Hilgendorf (fwc817)
+
+VIII. Scan project (Troels)
+
+1. Mark Jacobi
+2. Mads Skjøttgaard Ynddal <sjt402@alumni.ku.dk>
+
+VII. ?
 groups of one -- she Anna prefers alone due to sickness, etc.
 1. Anna Sofie Kiehn <mvq686@alumni.ku.dk>
