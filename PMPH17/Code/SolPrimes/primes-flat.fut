@@ -2,6 +2,10 @@
 -- ==
 -- compiled input { 30 } output { [2,3,5,7,11,13,17,19,23,29] }
 
+default(i32)
+default(f32)
+
+import "/futlib/math"
 
 let primesFlat (n : i32) : []i32 =
   if n <= 8 then [2,3,5,7]
