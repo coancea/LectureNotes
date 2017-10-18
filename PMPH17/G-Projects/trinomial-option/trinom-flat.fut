@@ -207,7 +207,7 @@ let trinomialChunk [ycCount] [numAllOptions] [maxOptionsInChunk]
      then (replicate maxOptionsInChunk 0.0) else
   -- header: get the options
   let (Xs, ns, dts, drs, Ms, jmaxs, ms) = unzip (
-    map (\i -> if (i < 0) -- || i >= optionsInChunk
+    map (\i -> if (i < 0)   -- OR i >= optionsInChunk
                then (1.0, 0, 1.0, 1.0, 1.0, -1, -1)
                else
                 let option = unsafe options[i]
@@ -273,7 +273,8 @@ let trinomialChunk [ycCount] [numAllOptions] [maxOptionsInChunk]
   let n_maxInChunk = n_max
 
   -- time stepping
-  loop ((Qs,alphass)) = for i < n_maxInChunk do
+  let (Qs,alphass) =
+  loop ((Qs,alphass)) for i < n_maxInChunk do
       let imaxs = map (\jmax -> i32.min (i+1) jmax) jmaxs
 
       -- Reset
@@ -403,7 +404,8 @@ let trinomialChunk [ycCount] [numAllOptions] [maxOptionsInChunk]
   ----------------------
   -- back propagation --
   ----------------------
-  loop (Calls) = for ii < n_maxInChunk do  -- condition is ii < ns[sgm_ind]
+  let Calls =
+  loop (Calls) for ii < n_maxInChunk do  -- condition is ii < ns[sgm_ind]
       -- i = n - 1 - ii
       let is = map (\sgm_ind -> if sgm_ind >= optionsInChunk then 0
                                 else ns[sgm_ind] - 1 - ii 
@@ -515,8 +517,8 @@ let formatOptions [numOptions]
                 in  (n+1, 2*m+1)
         ) options
     )
-  let n_max = reduce_com (i32.max) 0 ns
-  let m_max = reduce_com (i32.max) 0 ms
+  let n_max = reduce_comm (\x y -> i32.max x y) 0 ns
+  let m_max = reduce_comm (\x y -> i32.max x y) 0 ms
   
 
   let optionData = options[0]

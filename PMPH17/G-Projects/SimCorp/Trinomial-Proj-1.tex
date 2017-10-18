@@ -1,0 +1,483 @@
+\documentclass[a4paper,11pt]{article}
+
+\usepackage[top=2.5cm, bottom=2.5cm]{geometry}
+
+\usepackage{multicol}
+\usepackage{verbatim}
+\usepackage{enumerate}
+\usepackage{enumitem}
+
+\usepackage{fancyvrb}
+
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{subfigure}
+%\usepackage{epsfig}
+\usepackage{xspace}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{pslatex}
+\usepackage[english]{babel}
+
+\usepackage[colorlinks=true,linkcolor=black]{hyperref}
+
+\usepackage{fancyhdr}%
+\usepackage{lastpage}%
+%
+\pagestyle{fancy}%
+\lhead{}%
+\chead{}%
+\rhead{}%
+\cfoot{\thepage/\pageref{LastPage}}%
+\renewcommand{\headrulewidth}{0in}%
+%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%  reviewer comments  %%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\comm}[2]{{\sf \(\spadesuit\){\bf #1: }{\rm \sf #2}\(\spadesuit\)}}
+\newcommand{\mcomm}[2]{\marginpar{\scriptsize \comm{#1}{#2}}}
+%\renewcommand{\comm}[2]{}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\jbcomment}[1]{\mcomm{JB}{#1}}
+\newcommand{\cocomment}[1]{\mcomm{CO}{#1}}
+
+% Fancy code with color commands:
+\DefineVerbatimEnvironment{fancycode}%
+        {Verbatim}{commandchars=\\\{\}}
+
+%%%%%%%%%% The language %%%%%%%%%%
+\newcommand{\fasto}{\textsc{Fasto}\xspace}
+\newcommand{\mips}{\textsc{Mips}\xspace}
+\newcommand{\mars}{\textsc{Mars}\xspace}
+\newcommand{\soac}{\textsc{soac}\xspace}
+\newcommand{\soacs}{\textsc{soac}s\xspace}
+
+\begin{document}
+
+%\setlength{\baselineskip}{0.95\baselineskip}
+
+\begin{center}
+
+{\LARGE Trinomial Princing: Flattening in Futhark and CUDA}
+
+
+\end{center}
+
+\section*{Preamble}
+
+The handed out code for the project consists of several files,
+such as {\tt header32.fut}, {\tt header64.fut}, and 
+{\tt trinom-basic.fut} and {\tt trinom-flat.fut}.
+%
+Currently {\tt trinom-basic.fut} can only be executed with 
+the {\tt futhark-c} compiler due to a internal-compiler bug; 
+we are working on it.  The headers are used as macros so
+that the {\tt real} type can be easily switched from single ({\tt f32}) 
+to double-precision floats {\tt f64} by (un)commenting in the main file 
+{\tt trinom-basic.fut} the lines of code: 
+
+%\begin{figure}[h]
+%\begin{fancycode}[frame=lines,label=\textit{Example}]
+\begin{fancycode}
+--default(f64)
+--import "header64"
+
+default(f32)
+import "header32"
+\end{fancycode}
+%\vspace*{-3ex}
+%\caption{Code Example for Array Computation in \fasto}
+%\label{fig:FastoMap} 
+%\end{figure}
+
+The code comes with two datasets, available in {\tt data/small.in}
+and {\tt data/options-60000.in}; you can use 
+{\tt \$ futhark-test -c trinom-basic.fut}
+for automatic validation due to the openning comment directives
+
+\begin{fancycode}
+-- Trinomial option pricing
+-- ==
+-- compiled input @ data/small.in
+-- output @ data/small.out
+--
+-- compiled input @ data/options-60000.in
+-- output @ data/options-60000.out
+\end{fancycode}
+
+When we finally fix the compiler and you are able to run the parallel
+code you may be pleasently surprised at the speedup; if memory serves
+it is about $300\times$ faster than sequential execution on 
+{\tt gpu02-diku-apl}.
+
+\section{The Code Structure of {\tt trinom-basic.fut}}
+
+The last line of file {\tt trinom-basic.fut} is actually where you should
+start---{\tt map (trinomialSingle h\_YieldCurve) options}---mainly, you 
+would like to price a bunch of options. One option pricing is implemented
+by function {\tt trinomialSimgle} which receives as arguments a
+(constant) array of {\tt YieldCurveData} and an option; its signature is:  
+%
+\begin{fancycode}
+let trinomialSingle [ycCount] (h_YieldCurve : [ycCount]YieldCurveData)
+                              (optionData   : TOptionData)
+                            : real = ...
+\end{fancycode}
+\noindent where, {\tt YieldCurveData} and {\tt TOptionData} are record types
+declared earlier in the file:
+%
+\begin{fancycode}
+type YieldCurveData = \{ P : real, t : real \}
+type TOptionData = \{
+    StrikePrice   : real  
+  , Maturity      : real  
+  , NumberOfTerms : i32   
+  , ReversionRateParameter : real 
+  , VolatilityParameter    : real
+\}
+\end{fancycode}
+
+The {\tt trinomialSingle} function mainly consists of two sequential 
+(convergence) loops of count {\tt n}, which contain inner parallel
+operators of length {\tt Qlen}, where {\tt n} and {\tt Qlen} are specific
+to each option (and thus vary across options).   Figure~\ref{fig:code-struct} 
+shows the (simplified) structure of {\tt trinomialSingle}.
+
+\begin{figure}[h]
+\begin{fancycode}[frame=lines]
+let trinomialSingle [ycCount] (h_YieldCurve : [ycCount]YieldCurveData)
+                              (optionData : TOptionData) : real =
+    
+    let (Qlen,n) = depends-on(optionData)
+    let alphas = replicate (n + 1) zero  -- alphas : [n+1]real
+    let alphas[0] = #P (h_YieldCurve[0])
+    let Q = map (\textbackslash{}i -> if i == m then one else zero) (iota Qlen)
+
+    -- forward propagation (convergence) loop
+    let (_,alphas) =
+        loop (Q:*[Qlen]real, alphas) for i < n do
+            let Q         = map (\textbackslash{}j -> ...) (iota Qlen)
+            let tmps      = map (\textbackslash{}j -> ...) (iota Qlen)
+            let alpha_val = reduce (+) zero tmps
+            let alphas[i+1] = alpha_val
+            in  (Q,alphas)
+
+    let Call = map (\textbackslash{}j -> ...) (iota Qlen)
+
+    -- backward propagation (convergence) loop
+    let Call =
+        loop (Call:*[Qlen]real) for ii < n do
+            let i = n - 1 - ii
+            -- ...      
+            in map (\textbackslash{}j -> ...) (iota Qlen)
+
+    in Call[m]
+\end{fancycode}
+\vspace*{-3ex}
+\caption{The Code Structure of Function {\tt trinomialSingle}}
+\label{fig:code-struct} 
+\end{figure}
+
+Note that array {\tt alphas} has option-dependent size {\tt n+1}
+and hence Futhark cannot hoist its (memory-expanded) allocation
+outside of the outermost {\tt map} across all options, which
+prevents parallelization in the general case. Similar
+considerations apply for arrays {\tt Q}, {\tt tmps} and {\tt Call},
+which have option-dependent size {\tt Qlen}.
+%
+Furthermore, even if we overcome these obstacles, a parallelization
+strategy that executes one option per thread---i.e., which would
+sequentialize all the parallel operators in {\tt trinomialSingle}
+and only utilize the parallelism of the outer map---would potentially 
+suffer from significant load imbalance, (e.g., thread divergence), 
+because, not only the inner-loop operations have work proportional
+with (the option variant) {\tt Qlen}, but the loop count itself {\tt n} 
+is variant as well.  
+
+Currently, this Futhark implementation uses a very dirty hack to measure
+at least the {\em ideal} speedup that can be obtained when you execute
+one option per thread, namely, it sets\\ {\tt WITH\_ONLY\_STRIKE\_VARIANT=true},
+and overwrites the dataset in such a way that the compiler can deduce that 
+all options have the same {\tt Qlen} and {\tt n}---see the code in the 
+{\tt main} function:
+
+\begin{fancycode}
+  let (maturities, numofterms, rrps, vols) =
+      if WITH_ONLY_STRIKE_VARIANT
+      then ( replicate q (maturities0[0]), replicate q (numofterms0[0])
+           , replicate q (rrps0[0]), replicate q (vols0[0])            )
+      else ( maturities0, numofterms0, rrps0, vols0)
+\end{fancycode}
+
+Even so, the code would still not execute as desired (i.e., one option 
+per thread), because the Futhark compiler will recognize and exploit
+an opportunity for increasing the degree of utilized parallelism by
+\begin{itemize}
+    \item inlining the body of function {\tt trinomialSingle} inside
+            the outermost {\tt map}, then by
+    \item distributing the outermost {\tt map} across the two loops
+            and the remaining code, then by
+    \item interchaning the outermost {\tt map} inside the sequential
+            loops and continuing distribution.
+\end{itemize} 
+
+In order to really force the compiler to execute one option per 
+thread, the constant variable {\tt let FORCE\_PER\_OPTION\_THREAD} 
+is set to {\tt true} and a branch is added to encompass the body 
+of {\tt trinomialSingle} in order to prevent the distribution of
+the {\tt map} across the bindings (statements) of the body.
+
+\begin{fancycode}
+let trinomialSingle [ycCount]
+                    (h_YieldCurve : [ycCount]YieldCurveData)
+                    (optionData : TOptionData) : real = unsafe
+  let X  = #StrikePrice   optionData
+  -- ...
+  let m  = jmax + 2
+
+  in if FORCE_PER_OPTION_THREAD && X < zero 
+     then zero else
+  -- ...
+\end{fancycode}
+
+All this would allow one to get an idea of the ``ideal'' runtime
+of the one-option-per-thread strategy, but, in the best case this
+implementation is a subcase of a bigger implementation---for example
+you can write code that test whether the options have comparable 
+{\tt n} and {\tt Qlen}, and if so you can use a version of code 
+similar to this one (that assumes padding), but if {\tt n} and 
+{\tt Qlen} are very different across options, then you need to 
+plug in another implementation for that case.
+
+\textbf{This observation motivates your project work, which, in simple words
+referrs to flattening all available parallelism in the general 
+(irregular) case, when {\tt Qlen} varies across options}. Your
+version of code should use only flat-parallel (rather than nested) operators,
+which have the parallelism degree equal to $\sum_{i=0}^{p-1} \mbox{\tt Qlen}_i$,
+where $p$ is the number of options. I recommand that both groups 
+read the next section.
+
+\section{Project 1: Futhark-to-Futhark Flattening}
+
+Your task is to implement the function {\tt trinomialChunk},
+whose signature is given below, such that it contains flat
+parallelism of maximal degree:
+
+\begin{fancycode}
+let trinomialChunk [ycCount] [numAllOptions] [maxOptionsInChunk]
+                   (h_YieldCurve : [ycCount]YieldCurveData)
+                   (options : [numAllOptions]TOptionData) 
+                   (w: i32)
+                   (n_max : i32)
+                   (optionsInChunk: i32, optionIndices: [maxOptionsInChunk]i32)
+                 : [maxOptionsInChunk]real = unsafe
+\end{fancycode}
+
+The function {\tt trinomialChunk} receives as parameters:
+\begin{itemize}
+    \item the {\tt h\_YieldCurve} as before,
+    \item an array containing all {\tt options},
+    \item two integers {\tt w} and {\tt n\_max},
+    \item the number of options {\tt optionsInChunk} to 
+            be processed by an invocation of 
+            {\tt trinomialChunk}, tupled with the
+            indexes of these options, i.e., 
+            $\cup_{k\in\mbox{\tt optionIndices}} \mbox{\tt options[k]}$.
+\end{itemize}
+
+The implicit assumptions for having a safe call to {\tt trinomialChunk} are that:
+\begin{itemize}
+    \item the sum of {\tt Qlen} across all options in the chunk is less than
+            or equal to {\tt w}, i.e.,\\ 
+            $\sum_{k\in\mbox{\tt optionIndices}}\mbox{\tt Qlen}_k \leq \mbox{\tt w}$
+    \item the maximum value of {\tt n} across all options in the chunk is less than
+            or equal to {\tt n\_max}.
+\end{itemize}
+
+The motivation for implementing this function, is that it would allow
+to easily explore various optimization strategies. For example, if the
+maximal {\tt Qlen} across all options is less than a suitable
+CUDA-block size value {\tt w}, then options could be bin-packed 
+in parallel (e.g., see {\tt bin-packing-ffh.fut}) into chunks
+(bins) of size (weight) {\tt w} and then each CUDA-block would
+execute a chunk (bin). Since the sum of {\tt Qlen}s in a chunk is 
+less than {\tt w}, it follows that all (expanded) inner arrays such as 
+{\tt Q}, {\tt Call}, could be maintained in shared memory, which
+would change the program behavior from memory to compute bound
+(much like in the case of matrix multiplication). 
+Note that option chunking is necessary because an option might have
+a {\tt Qlen} that is too small to occupy alone a CUDA-block, e.g.,
+empirical evidence shows that CUDA-block size should be at least 
+$96$, and over-partitioning improves load balancing. 
+
+Conversely, having such a function available, we can easily implement
+the default implementation that flattens the parallelism across all
+options and does not utilizes shared memory.  The following code
+demonstrate such a use, where the {\tt depends-on} function is assumed
+to compute the {\tt Qlen} and {\tt n} for an option:
+
+\begin{fancycode}
+let num_options = length options
+let (ns, Qlens) = map depends-on options
+let n_max = reduce (i32.max) 0 ns
+let w     = reduce (+) 0 Qlens
+in  trinomialChunk h_YieldCurve options w n_max (num_options, iota num_options)
+\end{fancycode}
+
+\subsection{Flattening Hints}
+
+\begin{itemize}
+    \item[(1)] The flattening reasoning should probably start by observing
+                that, assuming support for arbitrary nested parallelism,
+                {\tt trinomialChunk} can be defined as:
+\begin{fancycode}
+let trinomialChunk maxOptionsInChunk h_YieldCurve options
+                   w n_max (optionsInChunk, optionIndices) =
+    map (\textbackslash{}i -> 
+                 let ind    = optionIndices[i]
+                 let option = options[ind]
+                 in  trinomialSingle h_YieldCurve option
+         ) (iota optionsInChunk)
+\end{fancycode}
+
+    \item[(2)] You probably will continue by inlining the body
+        of {\tt trinomialSingle} inside the {\tt map}, and by
+        applying the rules of flattening. However you are encouraged
+        to simplify the implementation by using the values of
+        {\tt w}, {\tt n\_max}, {\tt maxOptionsInChunk} for padding.
+        For example, distributing the {\tt map} over the creation
+        points of array {\tt Q}, {\tt Call}, {\tt tmps} 
+        (see Figure~\ref{fig:code-struct})
+        would result in expanded arrays (of arrays) {\tt Qs},
+        {\tt Calls}, {\tt tmpss} whose flat size is at most {\tt w}
+        (and in practice is a good lower approximation of {\tt w}).
+        For simplicity, the size of {\tt alphass} can be approximated
+        to {\tt maxOptionsInChunk * (n\_max+1)}, where 
+        segment (subarray) $i$ starts at offset {\tt $i$*(n\_max+1)}
+        in the flat representation.   Similarly, the sequential
+        loops can have count {\tt n\_max}, but you should make sure 
+        that out-of-range iterations should not produce modifications
+        to the segments that have semantically finished
+        their loop execution (remember that each option/segment is supposed
+        to run a loop of count {\tt n}, which differs among options/segments).
+        In essence, remember that each CUDA blocks is supposed to
+        run a different {\tt trinomialChunk} invocation, hence
+        the padding described above would simplify inter-block 
+        bookkeeping.
+
+    \item[(3)] Feel free to take inspiration from file {\tt trinom-flat.fut}
+        which implements the flattened version, but make sure that you
+        just take inspiration: meaning, look at it, but then close the
+        file and try to do it yourselves. For example, several arrays
+        created inside loops, such as {\tt Qs}, {\tt Calls}, {\tt tmpss},
+        share the same flag and segment-index descriptors\footnote{
+            An array that contains three segments of lengths {\tt 4}, {\tt 2},
+            and {\tt 3} has the flag descriptor {\tt [4,0,0,0,2,0,3,0,0]},
+            and the segment-index descriptor {\tt [0,0,0,0,1,1,2,2,2]} and 
+        }, which can be computed once before the loop. Dito for
+        the {\tt iota2mp1} array, in which each segment stores {\tt iota Qlen},
+        where {\tt Qlen=2*m+1}.
+        They all should be stored into padded arrays of flat size {\tt w}.
+        The {\tt Qlens} (or {\tt ms} in code) should be similarly stored
+        into a padded array of size {\tt maxOptionsInChunk}, i.e., one {\tt Qlen}
+        per segment.  You can use the segment descriptor to access
+        the corresponding {\tt Qlen} of a segment, for example flattening
+        the nested parallelism corresponding to 
+
+\begin{fancycode}
+   let Qs = map (\textbackslash{}k ->
+                    let m = ...
+                    map (\textbackslash{}i -> if i == m then one else zero) (iota (2*m+1)))
+                (iota optionsInChunk)
+\end{fancycode}
+
+        can be achieved by something like:
+
+\begin{fancycode}
+  let ms       = map (\textbackslash{}i -> ) (iota optionsInChunk)
+  let iota2mp1 = ...
+  let Qs = map (\i k -> if i == ms[sgm_inds[k]] then one else zero 
+               ) iota2mp1 (iota w)
+\end{fancycode}
+
+    meaning that, assuming we have already distributed the {\tt map} across the
+    first two instructions and obtained {\tt ms:[optionsInChunk]i32} and
+    {\tt iota2mp1:[w]i32}, we can flatten the two-map nest as a flat map,
+    in which we can access the correct {\tt m} for each element {\tt k}, by indexing
+    into {\tt ms} with the segment-index descriptor {\tt sgm\_inds[k]}, i.e.,
+    get me the {\tt m} for the segment of the {\tt k} element of the flat array.
+
+    \item[(4)] Good luck with it, and do not be shy to come asking for help!
+
+\end{itemize}
+
+\section{Project 2: Futhark-to-CUDA Translation}
+
+Your task is to develop a CUDA implementation semantically equivalent to 
+{\tt trinom-flat.fut}, which has been described in the previous
+section, such that an invocation  of {\tt trinomialChunk} is efficiently 
+executed in one CUDA block. By efficiently we mean that most of the arrays 
+used by {\tt trinomialChunk} should be stored in shared memory---e.g.,
+the ones of size {\tt w} and {\tt maxOptionsInChunk}. The notable exception
+is the array {\tt alphass}, which you may leave in global memory (because
+it is rarely accessed, i.e., ones per segment for each iteration of the loop).
+%
+Implementation hints are:
+\begin{itemize}
+
+    \item[(1)] Make sure to put the necessary barrier synchronization between
+            the parallel operations of {\tt trinomialChunk}, otherwise you
+            might get data races between warps. A block-level map is 
+            morally translated to CUDA by writing the body of the map 
+            in the kernel; and a scatter is morally translated as an
+            in-place update. For segmented scan and reduce, you may
+            use the block-level implementations that were already
+            provided to you (or use CUB -- your choice).             
+
+    \item[(2)] There are about $8$ (maximum $10$) words of shared memory per 
+            thread; try to reuse some of the shared-memory buffers 
+            (across arrays) such that you fit in this budget---if you
+            use too much shared memory, this would lead to spawning
+            less-than-optimal blocks per multiprocessor, i.e., 
+            to hardware underutilization.
+
+    \item[(3)]  We said that array {\tt alphass} should be stored in global
+            memory. Try to optimize the space: compute 
+            {\tt maxOptionsInChunk*(n\_max+1)} for each CUDA block
+            ({\tt n\_max} may differ across blocks), and then perform 
+            a scan on the CUDA-block results, denoted {\tt scan\_lens}. 
+            The total flat length of {\tt aplhass} is the last element 
+            {\tt scan\_len}. CUDA block number $0$ will use the slice
+            {\tt [0$\ldots$scan\_len[0]-1]} of {\tt alphass}, 
+            and any other CUDA block numbered $i$ will use the slice 
+            {\tt[scan\_len[i-1]:scan\_len[i]]} of {\tt alphass}.
+
+    \item[(4)]  Good luck with it, and do not be shy to come asking for help!
+\end{itemize}
+
+\section{Closing Remarks For Both Projects}
+
+\begin{itemize}
+    \item Please write a tidy report that puts emphasis on the parallelization-strategy
+            reasoning, and which explores and explains the design space of
+            potential solutions, and argues the strengths and shortcomings of
+            the one you have chosen.
+
+    \item Please make sure your code validates at least on the provided datasets,
+            and please compare the performance of your code against baseline 
+            implementations in Futhark (or from elsewhere if you have other), 
+            and comment on the potential differences between the observed
+            performance and what you assumed it will be (based on the
+            design-space exploration).
+
+\end{itemize}
+
+\bibliographystyle{unsrt}
+\bibliography{CB12}
+%\bibliography{GroupProj}
+
+
+\end{document}

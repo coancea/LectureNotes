@@ -2,12 +2,12 @@
 -- ==
 -- compiled input @ data/small.in
 -- output @ data/small.out
+--
 -- compiled input @ data/options-60000.in
 -- output @ data/options-60000.out
 
 
 import "/futlib/math"
-
 import "/futlib/array"
 
 ------------------------------------------------
@@ -21,6 +21,7 @@ import "/futlib/array"
 --default(f64)
 --import "header64"
 
+default(i32)
 default(f32)
 import "header32"
 
@@ -28,7 +29,6 @@ import "header32"
 --- Pushing the compiler in a direction or another ---
 ------------------------------------------------------
 let FORCE_PER_OPTION_THREAD  = true
-let WITH_SIZE_INVARIANT_TO_i = true
 let WITH_ONLY_STRIKE_VARIANT = true
 
 -------------------------------------------------------------
@@ -179,9 +179,9 @@ let bkwdHelper (X : real) (M : real) (dr : real) (dt : real) (alphai : real)
 
 
 
-let trinomialOptionsHW1FCPU_single [ycCount]
-                                   (h_YieldCurve : [ycCount]YieldCurveData)
-                                   (optionData : TOptionData) : real = unsafe
+let trinomialSingle [ycCount]
+                    (h_YieldCurve : [ycCount]YieldCurveData)
+                    (optionData : TOptionData) : real = unsafe
   let X  = #StrikePrice   optionData
   let T  = #Maturity      optionData
   let n  = #NumberOfTerms optionData
@@ -200,42 +200,34 @@ let trinomialOptionsHW1FCPU_single [ycCount]
   -- Compute Q values
   -------------------------
   -- Define initial tree values
-  let Q = map (\i -> if i == m then one else zero) (iota (2 * m + 1))
-  let QCopy = replicate (2 * m + 1) zero
+  let Qlen = 2*m+1
+  let Q = map (\i -> if i == m then one else zero) (iota Qlen)
 
-  let alphas = replicate (n + 1) zero
+  let alphas = replicate (n + 1) zero  -- [n+1]real
   let alphas[0] = #P (h_YieldCurve[0])
-  
-  -- time stepping
-  let (Q,QCopy,alphas) =
-    loop (Q,QCopy,alphas) for i < n do
+
+  -- forward propagation loop
+  let (_,alphas) =
+    loop (Q:*[Qlen]real, alphas) for i < n do
       let imax = i32.min (i+1) jmax
+
       -- Reset
-      -- let QCopy[m - imax : m + imax + 1] = Q[m - imax : m + imax + 1]
       let QCopy = copy Q
 
       ----------------------------
       -- forward iteration step --
       ----------------------------
-      let Q = 
-        if WITH_SIZE_INVARIANT_TO_i
-        then -- 1. result of size independent of i (hoistable)
-             map (\j -> if (j < (-imax)) || (j > imax)
-                        then zero -- Q[j + m]
-                        else fwdHelper M dr dt (alphas[i]) QCopy m i imax jmax j
-                 ) (map (-m) (iota (2*m+1)))
-        else -- 2. result of i-dependent size; needs copying
-             let Q[m - imax : m + imax + 1] =
-               map (fwdHelper M dr dt (alphas[i]) QCopy m i imax jmax)
-                   (map (-imax) (iota (2*imax+1)))
-             in  Q
+      let Q = map (\j -> if (j < (-imax)) || (j > imax)
+                         then zero -- Q[j + m]
+                         else fwdHelper M dr dt (alphas[i]) QCopy m i imax jmax j
+                  ) (map (-m) (iota Qlen))
             
       -- determine new alphas
       let tmps= map (\jj -> let j = jj - imax in
                             if (j < (-imax)) || (j > imax) then zero 
                             else unsafe Q[j+m] * r_exp(-(i2r j)*dr*dt)
                     ) 
-                    (iota (2*m+1))--(iota (2*imax+1))
+                    (iota Qlen)--(iota (2*imax+1))
       let alpha_val = reduce (+) zero tmps
 
       -- interpolation of yield curve
@@ -253,7 +245,7 @@ let trinomialOptionsHW1FCPU_single [ycCount]
       let alpha_val = r_log (alpha_val / P)
       let alphas[i + 1] = alpha_val
 
-      in  (Q,QCopy,alphas)
+      in  (Q,alphas)
 
     ------------------------------------------------------------
     --- Compute values at expiration date:
@@ -264,36 +256,26 @@ let trinomialOptionsHW1FCPU_single [ycCount]
     let Call = map (\j -> if (j >= -jmax+m) && (j <= jmax + m)
                           then one else zero
                    ) 
-                   (iota (2*m+1))
-    let CallCopy = replicate (2 * m + 1) zero
+                   (iota Qlen)
+    --let CallCopy = replicate (2 * m + 1) zero
     
-    -- back propagation
-    let (Call,CallCopy) =
-    loop (Call,CallCopy) for ii < n do
+    -- back propagation loop
+    let Call =
+    loop (Call:*[Qlen]real) for ii < n do
       let i = n - 1 - ii
       let imax = i32.min (i+1) jmax
       
       -- Copy array values to avoid overwriting during update
-      -- let CallCopy[m - imax : m + imax + 1] = Call[m - imax : m + imax + 1]
       let CallCopy = copy Call
 
       -----------------------------
       -- backward iteration step --
       -----------------------------
-      let Call = 
-        if WITH_SIZE_INVARIANT_TO_i
-        then -- 1. result of size independent of i (hoistable)
-             map (\j -> if (j < (-imax)) || (j > imax)
-                        then zero -- Call[j + m]
-                        else bkwdHelper X M dr dt (alphas[i]) CallCopy m i jmax j
-                 ) (map (-m) (iota (2*m+1)))
-        else -- 2. result of i-dependent size; needs copying
-             let Call[m - imax : m + imax + 1] = 
-               map (bkwdHelper X M dr dt (alphas[i]) CallCopy m i jmax)
-                   (map (-imax) (iota (2*imax+1)))
-             in  Call
-
-      in  (Call, CallCopy)
+      let Call = map (\j -> if (j < (-imax)) || (j > imax)
+                            then zero -- Call[j + m]
+                            else bkwdHelper X M dr dt (alphas[i]) CallCopy m i jmax j
+                     ) (map (-m) (iota Qlen))
+      in  Call
 
     in Call[m] -- r_abs(Call[m] - 0.0000077536006753f64)
 
@@ -333,8 +315,8 @@ let main [q] (strikes     : [q]real)
       else ( maturities0, numofterms0, rrps0, vols0)
 
   let options = map (\s m n r v -> { StrikePrice=s, Maturity=m, NumberOfTerms=n,
-                                       ReversionRateParameter=r, VolatilityParameter=v }
+                                     ReversionRateParameter=r, VolatilityParameter=v }
                     ) strikes maturities numofterms rrps vols
 
-  in  map (trinomialOptionsHW1FCPU_single h_YieldCurve) options
+  in  map (trinomialSingle h_YieldCurve) options
 
