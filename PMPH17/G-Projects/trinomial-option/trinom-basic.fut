@@ -203,7 +203,7 @@ let trinomialSingle [ycCount]
   let Qlen = 2*m+1
   let Q = map (\i -> if i == m then one else zero) (iota Qlen)
 
-  let alphas = replicate (n + 1) zero  -- [n+1]real
+  let alphas = map (\_ -> zero) [0..1..<(n+1)] -- [n+1]real
   let alphas[0] = #P (h_YieldCurve[0])
 
   -- forward propagation loop

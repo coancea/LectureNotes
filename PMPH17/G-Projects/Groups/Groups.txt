@@ -60,6 +60,10 @@ VIII. Scan project (Troels)
 1. Mark Jacobi
 2. Mads Skjøttgaard Ynddal <sjt402@alumni.ku.dk>
 
-VII. ?
+IX. ?
 groups of one -- she Anna prefers alone due to sickness, etc.
 1. Anna Sofie Kiehn <mvq686@alumni.ku.dk>
+
+X. N-body simulation in CUDA
+1. Jan Mezník
+2. Troels Skjøttgaard Ynddal

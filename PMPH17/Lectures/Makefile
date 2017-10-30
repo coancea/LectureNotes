@@ -57,6 +57,11 @@ l8-loc:
 	pdflatex L8-LocOfRef.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb *~
 
+l9-tls:
+	pdflatex TLS.tex
+	pdflatex TLS.tex
+	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb *~
+
 
 proj:
 	pdflatex ProjectDiscussion.tex
