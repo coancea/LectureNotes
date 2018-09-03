@@ -8,35 +8,7 @@
 -- } 
 -- output { [3.0f32, 0.0f32, -4.0f32, 6.0f32, 9.0f32] }
 
-default(i32)
-default(f32)
-
-------------------------
---- Sgm Scan Helpers ---
-------------------------
-
--- segmented scan with (+) on integers:
-let sgmSumI32 [n] (flg : [n]i32) (arr : [n]i32) : [n]i32 =
-  let flgs_vals = 
-    scan ( \ (f1, x1) (f2,x2) -> 
-            let f = f1 | f2 in
-            if f2 > 0 then (f, x2)
-            else (f, x1 + x2) )
-         (0,0) (zip flg arr)
-  let (_, vals) = unzip flgs_vals
-  in vals
-
--- segmented scan with (+) on floats:
-let sgmSumF32 [n] (flg : [n]i32) (arr : [n]f32) : [n]f32 =
-  let flgs_vals = 
-    scan ( \ (f1, x1) (f2,x2) -> 
-            let f = f1 | f2 in
-            if f2 > 0 then (f, x2)
-            else (f, x1 + x2) )
-         (0,0.0f32) (zip flg arr)
-  let (_, vals) = unzip flgs_vals
-  in vals
-
+import "/futlib/segmented"
 
 
 -----------------------------------------------------
@@ -75,18 +47,12 @@ let spMatVctMult [num_elms] [vct_len] [num_rows]
 
   let shp_sc   = scan (+) 0 shp
   let shp_inds = map (\ i -> if i > 0 then unsafe shp_sc[i-1] else 0) (iota num_rows)
-  let flags    = scatter (replicate num_elms 0) shp_inds (replicate num_rows 1)
+  let flags    = scatter (replicate num_elms false) shp_inds (replicate num_rows true)
 
   let v_mul_xis = map (\(i,v) -> unsafe (v * vct[i]) ) mat
-  let segm_mat  = sgmSumF32 flags v_mul_xis
+  let segm_mat  = segmented_scan (+) 0.0f32 flags v_mul_xis
 
-  let new_inds  = scan (+) 0 flags
-  let flagsshift= map (\i -> if i < (num_elms-1) then unsafe flags[i+1] else 1) 
-                      (iota num_elms) -- (tail flags) ++ [1]
-  let wrt_indval= map (\f i v -> if f>0 then (i-1,v) else (-1,v)) 
-                      flagsshift new_inds segm_mat
-  let (wrt_inds, wrt_vals) = unzip wrt_indval
-  in  scatter (replicate num_rows 0.0f32) wrt_inds wrt_vals
+  in  map (\i-> unsafe segm_mat[shp_sc[i]-1]) (iota num_rows)
 
 
 -- One may run with for example:

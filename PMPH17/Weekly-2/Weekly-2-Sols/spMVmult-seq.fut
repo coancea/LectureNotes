@@ -8,9 +8,6 @@
 -- } 
 -- output { [3.0f32, 0.0f32, -4.0f32, 6.0f32, 9.0f32] }
 
-default(i32)
-default(f32)
-
 let spMatVctMult [vct_len] [num_rows] 
                  (mat : [](i32,f32))
                  (shp : [num_rows]i32)
