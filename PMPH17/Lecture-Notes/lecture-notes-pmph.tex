@@ -2239,7 +2239,7 @@ scan : ($\alpha \to \alpha \to \alpha$) $\to$ $\alpha$ $\to$ $\Pi$n. [n]$\alpha$
 scan $\oplus$ 0$_{\oplus}$ [a$_1$, $\ldots$, a$_n$] = [0$_{\oplus}$ $\oplus$ a$_1$, $\ldots$, 0$_{\oplus}$ $\oplus$ $\ldots$ $\oplus$ a$_n$]
 
 filter : ($\alpha$ $\to$ Bool) $\to$ $\Pi$n. [n]$\alpha$ $\to$ [m]$\alpha$   (where m $\leq$ n)
-filter : p [a$_1$, $\ldots$, a$_n$] = [a$_{k_1}$,$\ldots$, a$_{k_m}$]
+filter p [a$_1$, $\ldots$, a$_n$] = [a$_{k_1}$,$\ldots$, a$_{k_m}$]
   such that k$_1$ < k$_2$ < $\ldots$ < k$_m$, and denoting by $\overline{\mbox{\tt k}}$ = {k$_1$,$\ldots$, k$_m$},
   we have (p a$_j$ == true) $\forall$ j $\in$ $\overline{\mbox{\tt k}}$, and (p a$_j$ == false) $\forall$ j $\not\in$ $\overline{\mbox{\tt k}}$
 \end{lstlisting}\vspace{-4ex}
