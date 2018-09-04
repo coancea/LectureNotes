@@ -3,6 +3,9 @@
 -- compiled input @ data/small.in
 -- output @ data/small.out
 --
+-- compiled input @ data/options-1000.in
+-- output @ data/options-1000.out
+--
 -- compiled input @ data/options-60000.in
 -- output @ data/options-60000.out
 
@@ -369,20 +372,7 @@ let trinomialChunk [ycCount] [numAllOptions] [maxOptionsInChunk]
 
       let alphass' = scatter alphass alpha_inds alpha_vals
 
-      --------------------------------------
-      -- update Qs, and similar for QCopy --
-      --------------------------------------
-      let (inds,vals) = unzip (
-            map (\q' w_ind -> let sgm_ind = sgm_inds[w_ind] in
-                           if (sgm_ind < optionsInChunk) && (i < ns[sgm_ind])
-                           then -- valid element, should update
-                                (w_ind, q')
-                           else (-1, 1.0)
-                ) Qs' (iota w)
-        )
-      let Qs'' = scatter Qs inds vals
-
-      in  (Qs'', alphass')
+      in  (Qs', alphass') -- Qs''
 
   ------------------------------------------------------------
   --- Compute values at expiration date:
@@ -429,7 +419,7 @@ let trinomialChunk [ycCount] [numAllOptions] [maxOptionsInChunk]
       let Calls' = map  (\jj w_ind -> 
                             let sgm_ind = sgm_inds[w_ind] in
                             if sgm_ind >= optionsInChunk || ii >= ns[sgm_ind]
-                            then 0.0
+                            then CallCopys'[jj]
                             else let imax = imaxs[sgm_ind]
                                  let i    = is[sgm_ind]
                                  let m    = ms[sgm_ind] 
@@ -445,20 +435,7 @@ let trinomialChunk [ycCount] [numAllOptions] [maxOptionsInChunk]
                         )
                         iota2mp1 (iota w)
 
-      ---------------------------------------------
-      -- update Calls, and similar for CallCopys --
-      ---------------------------------------------
-      let (inds,vals) = unzip (
-            map (\call' w_ind -> let sgm_ind = sgm_inds[w_ind] in
-                           if (sgm_ind < optionsInChunk) && (ii < ns[sgm_ind])
-                           then -- valid element, should update
-                                (w_ind, call')
-                           else (-1, 1.0)
-                ) Calls' (iota w)
-        )
-      let Calls'' = scatter Calls inds vals
-
-      in  (Calls'')
+      in  Calls' -- Calls''
 
 ------------------
 --  in Calls[m] --
@@ -491,19 +468,12 @@ let h_YieldCurve = [ { P = 0.0501772, t = 3.0    }
                    , { P = 0.0749015, t = 3653.0 }
                    ]
 
--- trinomialChunk [ycCount] [numAllOptions] [maxOptionsInChunk]
---                   (h_YieldCurve : [ycCount]YieldCurveData)
---                   (w: i32)
---                   (n_max : i32)
---                   (optionIndices: [maxOptionsInChunk]i32)
---                   (optionsInChunk: i32)
---                   (options : [numAllOptions]TOptionData) 
---                 : [maxOptionsInChunk]real
+
 let formatOptions [numOptions]
                   (w: i32)
                   (options : [numOptions]TOptionData)
                 -- (n_max, maxOptionsInChunk, optionsInChunk, optionIndices) 
-                : (i32, i32, [](i32, []i32)) = unsafe
+                : (i32, i32, i32, [](i32, []i32)) = unsafe
   let (ns, ms) = unzip (
     map (\option -> 
                 let T  = #Maturity        option
@@ -533,7 +503,7 @@ let formatOptions [numOptions]
                               in (num, arr)
                           )
                           (iota num_chunks)
-  in  (n_max, maxOptionsInChunk, chunks)
+  in  (n_max, m_max, maxOptionsInChunk, chunks)
    
 
 -----------------
@@ -550,8 +520,8 @@ let main [q] (strikes    : [q]real)
                                        ReversionRateParameter=r, VolatilityParameter=v }
                     ) strikes maturities numofterms rrps vols
 
-  let w = 256
-  let (n_max, maxOptionsInChunk, chunks) = formatOptions w options
+  let w = 512
+  let (n_max, m_max, maxOptionsInChunk, chunks) = formatOptions w options
   let chunkRes = -- : [maxOptionsInChunk]real
         map (trinomialChunk h_YieldCurve options w n_max) chunks
       

@@ -12,11 +12,11 @@ let primesHelp [np1] (sq : i32) (a : *[np1]i32) : [np1]i32 =
         let res  = scatter a inds vals
         in  res
 
--- Run with $echo "1000000" | ./primes-naive -t /dev/stderr > /dev/null
+-- Run with $echo "1000000" | ./primes-naive -t /dev/stderr -r 10 > /dev/null
 let main (n : i32) : []i32 =
   let np1 = n+1
   let a = map (\i -> if i==0 || i==1 then 0 else 1) (iota np1)
-  let sq= i32 (f32.sqrt (f32 n))
+  let sq= t32 (f32.sqrt (r32 n))
   let fl= primesHelp sq a
   in  filter (\i -> unsafe fl[i]!=0) (iota np1)
 

@@ -8,7 +8,6 @@
 -- } 
 -- output { [3.0f32, 0.0f32, -4.0f32, 6.0f32, 9.0f32] }
 
-
 import "/futlib/segmented"
 
 
@@ -49,14 +48,15 @@ let spMatVctMult [num_elms] [vct_len] [num_rows]
   let shp_sc   = scan (+) 0 shp
   let shp_inds = map (\ i -> if i > 0 then unsafe shp_sc[i-1] else 0) (iota num_rows)
   let flags    = scatter (replicate num_elms false) shp_inds (replicate num_rows true)
-  
   let v_mul_xis = map (\(i,v) -> unsafe (v * vct[i]) ) mat
   let segm_mat  = segmented_scan (+) 0f32 flags v_mul_xis -- sgmSumF32 flags v_mul_xis
   in  map (\i -> unsafe (segm_mat[i-1])) shp_sc
 
--- One may run with for example:
--- $ futhark-dataset --i32-bounds=0:9999 -g [1000000]i32 --f32-bounds=-7.0:7.0 -g [1000000]f32 --i32-bounds=100:100 -g [10000]i32 --f32-bounds=-10.0:10.0 -g [10000]f32 | ./spMVmult-seq -t /dev/stderr > /dev/null
 let main [n] [m] 
          (mat_inds : [n]i32) (mat_vals : [n]f32) 
          (shp : [m]i32) (vct : []f32) : [m]f32 =
   spMatVctMult (zip mat_inds mat_vals) shp vct
+
+-- One may run with for example:
+-- $ futhark-dataset --i32-bounds=0:9999 -g [1000000]i32 --f32-bounds=-7.0:7.0 -g [1000000]f32 --i32-bounds=100:100 -g [10000]i32 --f32-bounds=-10.0:10.0 -g [10000]f32 | ./spMVmult-seq -t /dev/stderr > /dev/null
+

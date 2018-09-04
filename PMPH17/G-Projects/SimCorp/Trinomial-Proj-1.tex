@@ -96,7 +96,7 @@ import "header32"
 The code comes with two datasets, available in {\tt data/small.in}
 and {\tt data/options-60000.in}; you can use 
 {\tt \$ futhark-test -c trinom-basic.fut}
-for automatic validation due to the openning comment directives
+for automatic validation due to the opening comment directives
 
 \begin{fancycode}
 -- Trinomial option pricing
@@ -109,7 +109,7 @@ for automatic validation due to the openning comment directives
 \end{fancycode}
 
 When we finally fix the compiler and you are able to run the parallel
-code you may be pleasently surprised at the speedup; if memory serves
+code you may be pleasantly surprised at the speedup; if memory serves
 it is about $300\times$ faster than sequential execution on 
 {\tt gpu02-diku-apl}.
 
@@ -118,7 +118,7 @@ it is about $300\times$ faster than sequential execution on
 The last line of file {\tt trinom-basic.fut} is actually where you should
 start---{\tt map (trinomialSingle h\_YieldCurve) options}---mainly, you 
 would like to price a bunch of options. One option pricing is implemented
-by function {\tt trinomialSimgle} which receives as arguments a
+by function {\tt trinomialSingle} which receives as arguments a
 (constant) array of {\tt YieldCurveData} and an option; its signature is:  
 %
 \begin{fancycode}
@@ -220,7 +220,7 @@ an opportunity for increasing the degree of utilized parallelism by
             the outermost {\tt map}, then by
     \item distributing the outermost {\tt map} across the two loops
             and the remaining code, then by
-    \item interchaning the outermost {\tt map} inside the sequential
+    \item interchanging the outermost {\tt map} inside the sequential
             loops and continuing distribution.
 \end{itemize} 
 
@@ -253,11 +253,11 @@ similar to this one (that assumes padding), but if {\tt n} and
 plug in another implementation for that case.
 
 \textbf{This observation motivates your project work, which, in simple words
-referrs to flattening all available parallelism in the general 
+refers to flattening all available parallelism in the general 
 (irregular) case, when {\tt Qlen} varies across options}. Your
 version of code should use only flat-parallel (rather than nested) operators,
 which have the parallelism degree equal to $\sum_{i=0}^{p-1} \mbox{\tt Qlen}_i$,
-where $p$ is the number of options. I recommand that both groups 
+where $p$ is the number of options. I recommend that both groups 
 read the next section.
 
 \section{Project 1: Futhark-to-Futhark Flattening}

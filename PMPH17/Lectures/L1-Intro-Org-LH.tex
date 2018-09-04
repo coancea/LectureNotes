@@ -89,7 +89,7 @@
 \institute{Department of Computer Science (DIKU)\\University of Copenhagen}
 
 
-\date[Sept 2017]{September 2017 PMPH Lecture Slides}
+\date[Sept 2018]{September 2018 PMPH Lecture Slides}
 
 
 \begin{document}
@@ -115,7 +115,7 @@ List Homomorphism: a way of writing inherently-parallel programs.
 \bigskip
 
 \begin{itemize}
-    \item explain when and where PMPH'17 lectures and lab sessions 
+    \item explain when and where PMPH'18 lectures and lab sessions 
             are located in space and time, \bigskip
 
     \item explain Moore's law and argue based on hardware trends 
@@ -238,13 +238,15 @@ List Homomorphism: a way of writing inherently-parallel programs.
     \begin{itemize}
         \item Tuesday 8:15am - 12:00\medskip
             \begin{itemize}
-                \item Week 36: bi - 2-0-07/09, Ole Maaløes Vej 5 (Biocenter)\medskip
-                \item weeks 37-41, 43-44:  øv - 4-0-32,     Ole Maaløes Vej 5 (Biocenter)
+                \item Lecture:  8:15 - 10:00  Aud 08, Universitetsparken 5, HCØ
+                \item Lab:     10:15 - 12:00  ov-4-0-10, Ole Maaløes Vej 5 (Biocenter)
+                \item Week 42 is reading week not holiday! No lecture, lab upon request.
             \end{itemize}\bigskip
-        \item Thursday 13:15 pm - 17:00 pm:\medskip
+        \item Thursday 10:15 - 12:00, 13:15 - 17:00 pm:\medskip
             \begin{itemize}
-                \item  week 36: NO LECTURE/LAB (Cosmin is away at FHPC'17)!\medskip
-                \item weeks 37-41, 43-44: aud - Aud 07, Universitetsparken 5, HCO
+                \item Lecture: 10:15 - 12:00  S11, Universitetsparken 5, HCØ
+                \item Lab:     13:15 - 17:00  ov-4-0-10, Ole Maaløes Vej 5 (Biocenter)
+                \item Week 42 is reading week not holiday! No lecture, lab upon request.
             \end{itemize}
     \end{itemize}  
 \end{frame}
@@ -255,24 +257,24 @@ List Homomorphism: a way of writing inherently-parallel programs.
     \begin{itemize}
         \item Lectures\medskip
             \begin{itemize}
-                \item Tuesday  10:00 - 12:00\medskip
-                \item Thursday 13:00 - 15:00
+                \item Tuesday   8:15 - 10:00  Aud 08, HCØ\medskip
+                \item Thursday 10:15 - 12:00  ov-4-0-10, Biocenter
             \end{itemize} \bigskip
         \item Lab\medskip
             \begin{itemize}
-                \item Tuesday   8:15  - 10:00\medskip
-                \item Thursday  15:00 - 17:00
+                \item Tuesday   10:15 - 12:00 S11, HCØ\medskip
+                \item Thursday  13:15 - 17:00 ov-4-0-10, Biocenter
             \end{itemize}
     \end{itemize}
 \bigskip
 
-You can influence the schedule, any suggestions?
+Any strong complaints about the schedule?
 \end{frame}
 
 \begin{frame}[fragile]
 \frametitle{Tentative Lecture/Lab Schedule}
 
-TA: Camilla Maach Brønnum Olsen,    wjp143@ku.dk\\
+Your TA: Chi Pham 	email: vqr853@alumni.ku.dk,\\
 (mainly grading assignments and moderate Absalon discussions)\bigskip
 
 Cosmin will lead the lectures + lab.\bigskip
@@ -283,8 +285,9 @@ Continuous-evaluation assessment:
     \item one group project + final presentation and discussion: $60\%$ of final grade.
         \begin{itemize}
             \item you may chose from multiple possible projects
-            \item presented tentatively on Tuesday (tentative) 8:15-10:00 (?)
+            \item presented tentatively during Lab on Thursdays (?)
             \item or discuss your own project with me.
+            \item projects can be very practical in CUDA, Futhark, or more theoretical.
         \end{itemize}
 \end{itemize} 
 \end{frame}
@@ -307,7 +310,8 @@ Software track studies programming models for expressing data parallelism + way 
         \item High-level of abstraction:\\ 
                 list-homomorphism $\equiv$ functional map-reduce style + flattening\smallskip
         \item Low-level of abstraction:\\
-                loops and transformations rooted in data dependency analysis
+                loops and transformations rooted in data dependency analysis\smallskip
+        \item Lecture Notes are/will be available for the software track!
     \end{itemize}
 \bigskip
 \pause
@@ -809,9 +813,9 @@ Realm of finite lists:
 \begin{columns}
 \column{0.45\textwidth}
 \begin{colorcode}[fontsize=\small]
-h( [ ] )   = e
-h( [x] )   = f(x)
-h( x ++ y) = h(x) \mymath{\odot} h(y)
+h [ ] = e
+h [x] = f x
+h (x ++ y) = (h x) \mymath{\odot} (h y)
 \end{colorcode}
 \pause
 \alert{A well-defined program requires that no matter how 
@@ -821,9 +825,9 @@ the input list is partitioned into {\tt x ++ y}, the result is the same!}
 \blue{--computes the length of a list,}
 \blue{--(how many elements a list has)}
 len :: [T] -> Int
-len([ ])    = \alert{???}
-len([x])    = \alert{???}
-len(x ++ y) = len(x) \alert{???} len(y)
+len [ ]    = \alert{???}
+len [x]    = \alert{???}
+len (x++y) = (len x) \alert{???} (len y)
 \end{colorcode}
 \end{columns}
 
@@ -845,9 +849,9 @@ Realm of finite lists:
 \begin{columns}
 \column{0.45\textwidth}
 \begin{colorcode}[fontsize=\small]
-h( [ ] )   = e
-h( [x] )   = f(x)
-h( x ++ y) = h(x) \mymath{\odot} h(y)
+h [ ]   = e
+h [x]   = f x
+h( x ++ y) = (h x) \mymath{\odot} (h y)
 \end{colorcode}
 \alert{A well-defined program requires that no matter how 
 the input list is partitioned into {\tt x ++ y}, the result is the same!}
@@ -856,9 +860,9 @@ the input list is partitioned into {\tt x ++ y}, the result is the same!}
 -- one :: Int -> Int
 -- one(x) = 1
 len :: [T] -> Int
-len([ ])    = \emp{0}
-len([x])    = \emp{one}(x) \blue{-- \mymath{\equiv} 1}
-len(x ++ y) = len(x) \emp{+} len(y)
+len [ ]    = \emp{0}
+len [x]    = \emp{one} x \blue{-- \mymath{\equiv} 1}
+len (x ++ y) = (len x) \emp{+} (len y)
 \end{colorcode}
 \end{columns}
 
@@ -881,9 +885,9 @@ Realm of finite lists:
 \begin{columns}
 \column{0.45\textwidth}
 \begin{colorcode}[fontsize=\small]
-h( [ ] )   = e
-h( [x] )   = f(x)
-h( x ++ y) = h(x) \mymath{\odot} h(y)
+h [ ]   = e
+h [x]   = f x
+h ( x ++ y) = (h x) \mymath{\odot} (h y)
 \end{colorcode}
 \alert{A well-defined program requires that no matter how 
 I partition the input list into {\tt x ++ y} I get the same result!}
@@ -893,9 +897,9 @@ I partition the input list into {\tt x ++ y} I get the same result!}
 \blue{--compute whether all elements of}
 \blue{--a list satisfy predicate p.}
 all\mymath{\myindx{p}} :: [T] -> Bool
-all\mymath{\myindx{p}}([ ])  = \alert{???}
-all\mymath{\myindx{p}}([x])  = \alert{???} 
-all\mymath{\myindx{p}}(x++y) = all\mymath{\myindx{p}}(x) \alert{???} all\mymath{\myindx{p}}(y)
+all\mymath{\myindx{p}} [ ]  = \alert{???}
+all\mymath{\myindx{p}} [x]  = \alert{???} 
+all\mymath{\myindx{p}} (x++y) = (all\mymath{\myindx{p}} x) \alert{???} (all\mymath{\myindx{p}} y)
 \end{colorcode}
 \end{columns}
 
@@ -918,9 +922,9 @@ Realm of finite lists:
 \begin{columns}
 \column{0.45\textwidth}
 \begin{colorcode}[fontsize=\small]
-h( [ ] )   = e
-h( [x] )   = f(x)
-h( x ++ y) = h(x) \mymath{\odot} h(y)
+h [ ]   = e
+h [x]   = f x
+h (x ++ y) = (h x) \mymath{\odot} (h y)
 \end{colorcode}
 \alert{A well-defined program requires that no matter how 
 I partition the input list into {\tt x ++ y} I get the same result!}
@@ -930,9 +934,9 @@ I partition the input list into {\tt x ++ y} I get the same result!}
 \blue{--compute whether all elements of}
 \blue{--a list satisfy predicate p.}
 all\mymath{\myindx{p}} :: [T] -> Bool
-all\mymath{\myindx{p}}([ ])  = True
-all\mymath{\myindx{p}}([x])  = p(x) 
-all\mymath{\myindx{p}}(x++y) = all\mymath{\myindx{p}}(x) && all\mymath{\myindx{p}}(y)
+all\mymath{\myindx{p}} [ ]  = True
+all\mymath{\myindx{p}} [x]  = p x 
+all\mymath{\myindx{p}} (x++y) = (all\mymath{\myindx{p}} x) && (all\mymath{\myindx{p}} y)
 \end{colorcode}
 \end{columns}
 
@@ -987,12 +991,12 @@ Realm of finite lists:
 \begin{columns}
 \column{0.45\textwidth}
 \begin{colorcode}[fontsize=\small]
-h( [ ] )   = e
-h( [x] )   = f(x)
-h( x ++ y) = h(x) \mymath{\odot} h(y)
+h [ ]   = e
+h [x]   = f x
+h (x ++ y) = (h x) \mymath{\odot} (h y)
 \end{colorcode}
 \emph{A well-defined program requires that no matter how 
-I partition the input list into {\tt x ++ y} I get the same result!}
+I partition the input list into\\ {\tt (x ++ y)}, the result is the same!}
 \column{0.52\textwidth}
 \begin{colorcode}[fontsize=\small]
 \alert{EXERCISE:} prove that
@@ -1009,15 +1013,15 @@ with neutral element e.
 
 \bigskip
 
-\emp{map} :: $((\alpha \rightarrow \beta), [\alpha]) \rightarrow [\beta] $ has \emph{\em inherently parallel semantics}.
+\emp{map} :: $(\alpha \to \beta) ~\to~ [\alpha] ~~\to~~ [\beta] $ has \emph{\em inherently parallel semantics}.
 
 
 \bigskip
 
 \begin{tabular}{crcccccl}
-x = & \emp{map}(~~~f, \{& $a_1$, & $a_2$, & .., & $a_n$ & \} & )\\
+x = & \emp{map}~~f~ [& $a_1$, & $a_2$, & .., & $a_n$ & ]\\
     &      & $\downarrow$ & $\downarrow$ &  & $\downarrow$ & &\\
-x $\equiv$ &  \{  & \emph{f($a_1$)}, & \emph{f($a_2$)}, & .., & \emph{f($a_n$)} & \} &
+x $\equiv$ &  [  & \emph{f $a_1$}, & \emph{f $a_2$}, & .., & \emph{f $a_n$} & ] &
 \end{tabular}
 
 \end{frame}
@@ -1028,11 +1032,11 @@ x $\equiv$ &  \{  & \emph{f($a_1$)}, & \emph{f($a_2$)}, & .., & \emph{f($a_n$)} 
 
 \bigskip
 
-\emp{reduce} :: $((\alpha \rightarrow \alpha \rightarrow \alpha), \alpha, [\alpha]) \rightarrow \alpha$
+\emp{reduce} :: $(\alpha \to \alpha \to \alpha) ~\to~ \alpha ~\to~ [\alpha] ~~\to~~ \alpha$
 
 \smallskip
 
-\emp{reduce}($\odot$, $e$, \{$a_1$, $a_2$, ..., $a_n$\}) $\equiv$ \emph{$e \odot a_1 \odot a_2 \odot ... \odot a_n$}
+\emp{reduce} $\odot$ $e$ [$a_1$, $a_2$, ..., $a_n$] $\equiv$ \emph{$e \odot a_1 \odot a_2 \odot ... \odot a_n$}
 
 \smallskip
 
@@ -1055,14 +1059,13 @@ Build programs by combining \emp{map}, \emp{reduce} and other such operators. %E
 \begin{columns}
 \column{0.45\textwidth}
 \begin{colorcode}[fontsize=\small]
-h( [ ] )   = e
-h( [x] )   = f(x)
-h( x ++ y) = h(x) \mymath{\odot} h(y)
+h [ ]   = e
+h [x]   = f(x)
+h (x ++ y) = (h x) \mymath{\odot} (h y)
 \end{colorcode}
 \column{0.52\textwidth}
 \begin{colorcode}[fontsize=\small]
-h    \mymath{\equiv}    reduce(\mymath{\odot}, e) \mymath{\circ} 
-           map(f)
+h  \mymath{\equiv}  (reduce \mymath{\odot} e) \mymath{\circ} (map f)
 \end{colorcode}
 \end{columns}
 \medskip
@@ -1076,14 +1079,14 @@ h    \mymath{\equiv}    reduce(\mymath{\odot}, e) \mymath{\circ}
 \begin{colorcode}[fontsize=\small]
 -- one :: Int -> Int,one(x)=1
 len :: [T] -> Int
-len([ ])    = \emp{0}
-len([x])    = \emp{one}(x) \blue{-- \mymath{\equiv} 1}
-len(x ++ y) = len(x) \emp{+} len(y)
+len [ ]    = \emp{0}
+len [x]    = \emp{one} x \blue{-- \mymath{\equiv} 1}
+len (x ++ y) = (len x) \emp{+} (len y)
 \end{colorcode}
 \column{0.52\textwidth}
 \begin{colorcode}[fontsize=\small]
-len \mymath{\equiv}\pause    reduce(+, 0) \mymath{\circ} 
-          map(one)
+    len \mymath{\equiv}\pause  (reduce (+) 0) \mymath{\circ} 
+            (map one)
 \end{colorcode}
 \end{columns}
 
@@ -1092,14 +1095,14 @@ len \mymath{\equiv}\pause    reduce(+, 0) \mymath{\circ}
 \begin{columns}
 \column{0.45\textwidth}
 \begin{colorcode}[fontsize=\small]
-all\mymath{\myindx{p}}([ ])  = True
-all\mymath{\myindx{p}}([x])  = p(x) 
-all\mymath{\myindx{p}}(x++y) = all\mymath{\myindx{p}}(x) && all\mymath{\myindx{p}}(y)
+all\mymath{\myindx{p}} [ ]  = True
+all\mymath{\myindx{p}} [x]  = p(x) 
+all\mymath{\myindx{p}} (x++y) = (all\mymath{\myindx{p}} x) && (all\mymath{\myindx{p}} y)
 \end{colorcode}
 \column{0.52\textwidth}
 \begin{colorcode}[fontsize=\small]
-all\mymath{\myindx{p}} \mymath{\equiv}\pause    reduce(&&, True) \mymath{\circ} 
-           map(p)
+    all\mymath{\myindx{p}} \mymath{\equiv}\pause  (reduce (&&) True) \mymath{\circ} 
+             (map p)
 \end{colorcode}
 \end{columns}
 
@@ -1207,7 +1210,7 @@ mss (x{\tt ++}\mbox{ }y) = (mss x) \mymath{\uparrow} (mss y) -- \mymath{\uparrow
 
 \smallskip
 
-\alert{Incorrect:} {\tt (mss [1,-2,3,4])\mymath{\uparrow}(mss [-1,5,-6,1]) $\equiv$ 7 \mymath{\uparrow} 4 $\equiv$ 7} \\
+\alert{Incorrect:} {\tt (mss [1,-2,3,4])\mymath{\uparrow}(mss [-1,5,-6,1]) $\equiv$ 7 \mymath{\uparrow} 5 $\equiv$ 7} \\
 \emph{The correct result} of {\tt (mss [1, -2, 3, 4, -1, 5, -6, 1])} \emph{is} 11, corresponding to segment [3, 4, -1, 5].
 
 \bigskip
