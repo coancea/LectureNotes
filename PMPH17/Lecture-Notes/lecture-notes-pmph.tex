@@ -69,6 +69,8 @@
 \newtheorem{mydef}{Definition}
 \newtheorem{mytheo}{Theorem}
 \newtheorem{mylemma}{Lemma}
+\newtheorem{myexerc}{Exercise}
+\newtheorem{rewrite}{rule}
 
 
 \begin{document}
@@ -1111,7 +1113,7 @@ optimizations next.
 
 \begin{mytheo}[LH Promotion Lemmas]\label{LH-PROMS}
 $\mbox{ }$\\
-Given unary functions \lstinline{f} and \lstinline{f}, and an 
+Given unary functions \lstinline{f} and \lstinline{g}, and an 
 associative binary operator $\odot$ with neutral element {\tt e$_{\odot}$}
 then the following three identities hold, where $\circ$ denotes 
 function composition:\\
@@ -1166,17 +1168,26 @@ to optimize the program in various ways, for example:
                     be used in the forward 
                     direction ($\Rightarrow$) to efficiently sequentialize 
                     the parallelism in excess of what the hardware can support, 
-                    and in the backward direction ($\Rightarrow$)  
+                    and in the backward direction ($\Leftarrow$)  
                     to enhance load balancing and the program's degree of 
                     parallelism that can be statically mapped to hardware.
         \begin{itemize}
             \item[$\Rightarrow$]
-                    The second identity can be rewritten as:\\
-                    \lstinline{map f} $\Rightarrow$ \lstinline{(reduce (++) [])} $\circ$ \lstinline{(map (map f))} $\circ$ {\tt split$_p$}\\
-                    where {\tt split$_p$} denotes the operator that splits a list
-                    into $p$ sublists of roughly equal lengths.  Assume the hardware
+                    Assume {\tt split$_p$} denotes the operator that splits a 
+                    list into $p$ sublists of roughly equal lengths. Please 
+                    observe that {\tt (reduce (++) []) $\circ$ split$_p$ $\equiv$ id},
+                    meaning that splitting a list into $p$ sublists, then
+                    flattening the resulted list results in the original list.
+                    ({\tt id x = x} stands for the identity function.)
+                    One may straightforwardly derive a new identity, presented
+                    below by composing both sides of identity (2) with {\tt split$_p$}:
+                    \begin{center}\lstinline{map f} $\equiv$ \lstinline{(reduce (++) [])} $\circ$ \lstinline{(map (map f))} $\circ$ {\tt split$_p$} (2')\end{center}
+                    The difference is that (2) necessarily operates on lists, while 
+                    (2') operates on list of lists.   We are interested in using 
+                    this new identity in the forward ($\Rightarrow$) direction. 
+                    Assume the hardware
                     has $p$ cores, and that the input list (array) contains
-                    $n$ elements, where $n$ is much larger than $p$. The right-hand side 
+                    $n$ elements, where $n$ is much larger than $p$. The left-hand side 
                     \lstinline{map f} suggests an execution model that spawns $n$
                     threads---this is suboptimal on many architectures.
                     The translation basically aims to spawn a number of threads
@@ -1236,6 +1247,7 @@ transformed program the final (parallel) reduction
 is performed on a list of $p$ elements, requiring only
 $log(p)$ sequential steps.
 
+\newpage
 \begin{mytheo}[Optimized Map-Reduce Lemma]\label{Lemma-Map-Red}
 Assume {\tt split$_p :: [\alpha] \rightarrow [[\alpha]]$}
 distributes a list into $p$ sublists, each containing about 
@@ -1327,7 +1339,7 @@ for each (sub)list:
     \item[(mis)] an integer corresponding to the maximal 
         sum across all contiguous segments that starts the 
         list (i.e., those containing the first element);
-        we will name this the maximal-initial sum {\tt mss}, 
+        we will name this the maximal-initial sum {\tt mis}, 
     \item[(mcs)] and similar for the contiguous segments that 
         ends a list (i.e., those containing the last element);
         we will name this the maximal-concluding sum {\tt mcs}.
@@ -1413,7 +1425,7 @@ in that the result is always positive---we kept this form in order
 to be consistent with the original paper~\cite{ColeNearHom}.  If
 we would like also to compute negative MSS values, we can change
 the implementation of {\tt f} to
-\lstinline{let f x = (x,x,x,0)} and the neutral element of $\odot$
+\lstinline{let f x = (x,x,x,x)} and the neutral element of $\odot$
 to {\tt($-\inf, -\inf, -\inf, 0$)}.
 
 \subsubsection{Longest-Satisfying Segment (LSS) Problem}:
@@ -1725,8 +1737,8 @@ the argument that each core run as fast as the CPU (they do not!).
 Applying Amdahl's law for $F=99.9\%$ results in a limiting
 $1000\times$ speedup. This means that the student is only utilizing
 about one third of the compute power provided by one GPU, and $35\%$
-is a \emph{\bf failing grade}!
-
+is a \emph{\bf failing grade}!\\
+$\mbox{ }$\\
 
 \subsubsection{Work-Depth Asymptotic Behavior of a Parallel Program}
 \label{subsubsub:work-depth}
@@ -2236,7 +2248,7 @@ reduce : ($\alpha \to \alpha \to \alpha$) $\to$ $\alpha$ $\to$  $\Pi$n. [n]$\alp
 reduce $\oplus$ 0$_{\oplus}$  [a$_1$, $\ldots$, a$_n$] = 0$_{\oplus}$ $\oplus$ a$_1$ $\oplus$ $\ldots$ $\oplus$ a$_n$
 
 scan : ($\alpha \to \alpha \to \alpha$) $\to$ $\alpha$ $\to$ $\Pi$n. [n]$\alpha$ $\to$ [n]$\alpha$
-scan $\oplus$ 0$_{\oplus}$ [a$_1$, $\ldots$, a$_n$] = [0$_{\oplus}$ $\oplus$ a$_1$, $\ldots$, 0$_{\oplus}$ $\oplus$ $\ldots$ $\oplus$ a$_n$]
+scan $\oplus$ 0$_{\oplus}$ [a$_1$, $\ldots$, a$_n$] = [a$_1$, a$_1\oplus$a$_2$, $\ldots$, a$_1$ $\oplus$ $\ldots$ $\oplus$ a$_n$]
 
 filter : ($\alpha$ $\to$ Bool) $\to$ $\Pi$n. [n]$\alpha$ $\to$ [m]$\alpha$   (where m $\leq$ n)
 filter p [a$_1$, $\ldots$, a$_n$] = [a$_{k_1}$,$\ldots$, a$_{k_m}$]
@@ -2260,11 +2272,12 @@ an array of the same length as the input by starting with the first element,
 then applying the operator between the first two elements, then applying the
 operator between the first three elements, and so on, until the last element
 corresponds to the result of reducing the array. Please note that, similar to
-\lstinline{reduce}, \lstinline{scan}'s binary operator $\odot$ must be associative
-and {\tt e$_\odot$} must be its neutral element! Please also note that
-the provided version of \lstinline{scan} is \emph{inclusive}; an \emph{exclusive}
-\lstinline{scan} would produce an array starting with the neutral element and
-ending with the reduction of the first {\tt n-1} elements. The work and depth
+\lstinline{reduce}, \lstinline{scan}'s binary operator $\odot$ must be associative!
+Please also note that the provided version of \lstinline{scan} is \emph{inclusive}
+and it does not actually require a neutral element; an \emph{exclusive}
+\lstinline{scan} requires a neutral element because it produces an array 
+that starts with the neutral element and ends with the reduction of the 
+first {\tt n-1} elements. The work and depth
 of \lstinline{scan} is also similar to \lstinline{reduce}: $O(n)$ and $O(lg~n)$,
 respectively.
 
@@ -2326,7 +2339,8 @@ $\mbox{ }$\\
 
 We start by emphasizing again that, similar to \lstinline{reduce},
 \lstinline{scan} requires an \emph{\bf associative} binary operator,
-and the neutral element of the monoid induced by that operator.
+and the exclusive scan requires the neutral element of the monoid 
+induced by that operator.
 
 \begin{figure}
 \includegraphics[height=33ex]{Figures/L2/ScanEg.pdf} 
@@ -2588,6 +2602,18 @@ whose binary associative operator combines two flag-value tuples:
         of the monoid induced by $\odot$ is indeed \lstinline{(false, ne)}.
 \end{itemize}
 
+\textbf{\em An important observation} is that segmented scan can be easily 
+adapted to work with an integral array of flags, in which a flag different 
+than $0$ denotes the start of a new segment. The necessary modifications are:
+\begin{itemize}
+    \item {\tt fl = x\_flag || y\_flag} is rewritten as {\tt fl = x\_flag | y\_flag},
+            where {\tt |} denotes the bitwise-or operator, and
+    \item the branch condition {\tt if y\_flag} is rewritten as
+            {\tt if y\_flag != 0}.
+\end{itemize}
+Maintaining the flags as an array of boolean reduces memory footprint and
+saves bandwidth, but some of the flattening rules can be optimized if we
+use the integral representation.
 
 \subsubsection{Implementation of Partition (Filter)}
 \label{subsubsub:filter-impl}
@@ -2620,7 +2646,7 @@ under the predicate.
 \begin{figure}
 \begin{lstlisting}[mathescape=true]
 let partition2 [n] 't                    -- Assume t = i32, n = 6,
-           (e: t) (p : (t -> bool))      -- p (x:i32)= 0 == (x%2),
+           (p : (t -> bool))             -- p (x:i32)= 0 == (x%2),
            (arr : [n]t) : ([n]t, i32) =  -- arr = [5,4,2,3,7,8]
   let cs  = map p arr                    -- cs  = [F,T,T,F,F,T]
   let tfs = map (\f -> if f then 1       -- tfs = [0,1,1,0,0,1]
@@ -2635,7 +2661,7 @@ let partition2 [n] 't                    -- Assume t = i32, n = 6,
                     if c then iT-1 
                          else iF-1
                  ) cs isT isF
-  let r = scatter (replicate n e) inds arr -- r = [4,2,8,5,3,7]            
+  let r = scatter (scratch n t) inds arr -- r = [4,2,8,5,3,7]            
   in  (r, i) 
 \end{lstlisting}\vspace{-4ex}
 \caption{Implementation of a two-way partition in Futhark.}
@@ -2643,9 +2669,11 @@ let partition2 [n] 't                    -- Assume t = i32, n = 6,
 \end{figure}
 
 The Futhark implementation is shown in \cref{fig:futhark-partition2};
-we have added as first parameter a dummy value of the element type
-of the array, which will be used to initialize an array that will
-be subject to a parallel write (\lstinline{scatter} operator).
+the last {\tt let} instruction uses the {\tt scratch} operator
+that creates an uninitialized array of size {\tt n} and element
+type {\tt t}; please note that the result of {\tt partition2} is 
+still deterministic because it is guaranteed that all elements
+are going to be written by \lstinline{scatter}. 
 %
 The right hand  side of \cref{fig:futhark-partition2} demonstrates
 the code on an example. The implementation proceeds as follows:
@@ -2756,7 +2784,7 @@ across iterations of the outer \lstinline{map}. We will see later,
 in \cref{sec:flattening} how to re-write this irregular nested
 parallelism by means of (1) a flat-sparse-data representation 
 in format (c), and (2) flat-parallel constructs (that do not exhibit
-inner parallelism).
+inner parallelism).\bigskip
 
 %\begin{figure}
 %\begin{lstlisting}[mathescape=true]
@@ -3153,8 +3181,8 @@ GPU parallelization (or other highly-parallel hardware).
 
 This section is organized as follows:
 \begin{itemize}
-    \item \cref{subsec:flatten-rules} presents an incomplete set of 
-        rules related to the flattening of specific code patterns.
+    \item \cref{subsec:flatten-rules} presents an \textbf{\em incomplete set of 
+        rules} related to the flattening of specific code patterns.
     \item \cref{subsec:flatten-simple-eg} demonstrates how the 
         previously-discussed rules can be combined to flatten a 
         trivial program.
@@ -3175,7 +3203,7 @@ We present first the intuition behind the flat-data representation
 several constructs which are directly nested inside a map:
 scan, map, replicate, iota, if-then-else expressions, and reduce. 
 
-\subsubsection{Data Flattening}
+\subsubsection{Data Flattening (Flat Array Representation)}
 \label{subsubsec:data-flat}
 $\mbox{ }$\\
 
@@ -3197,8 +3225,9 @@ can be represented
 
 \begin{figure}
 \begin{lstlisting}[mathescape=true]
-mkFlagArray [m] (aoa_shp: [m]i32) : []i32 = -- aoa_shp = [3,1,4,2]
-  let shp_scn = scan (+) 0 aoa_shp          -- shp_scn = [3,4,8,10]
+mkFlagArray [m] (aoa_shp: [m]i32) : []i32 =
+  let aoa_shp'= filter (>0) aoa_shp         -- aoa_shp'= [3,1,4,2]
+  let shp_scn = scan (+) 0 aoa_shp'         -- shp_scn = [3,4,8,10]
   let aoa_len = shp_ind[m-1]                -- aoa_len = 10
   let shp_ind =                             -- shp_ind = [0,3,4,8]
     map (\i -> if i==0 then 0     -- scatter [0,0,0,0,0,0,0,0,0,0]
@@ -3219,8 +3248,9 @@ otherwise. The question is ``how do we construct the flag array from
 the shape array''?  \cref{fig:make-flag} provides the implementation
 together with a side example:
 \begin{itemize}
-    \item[(a)] first the shape array is scanned with addition and 
-        the result is recorded in {\tt shp\_scn};
+    \item[(a)] first the shape array is filtered so as to contain only
+            sizes greater than zero, then it is scanned with addition 
+            and the result is recorded in {\tt shp\_scn};
     \item[(b)] the length of the flag/data array is the last element
             of {\tt shp\_scn};
     \item[(c)] {\tt shp\_scn} is semantically rotated/shifted-right
@@ -3281,18 +3311,571 @@ one can compute {\tt aoa\_flg1 = [1,0,0,1,0,1,0,1,1,0,1,1,0,0,0]},
 by using the {\tt mkFlagArray} function shown in \cref{fig:make-flag}.
 Furthermore, one can distribute various information across the 
 data elements of the arrays in a similar fashion with the one 
-used for the two-dimensional arrays.
+used for the two-dimensional arrays.   
 
+\begin{myexerc}[Flattening the inner dimensions of a 3-D array]\label{Flat-Inner-Arr-Dim}
+$\mbox{ }$\\
+Assume a three-dimensional array. Write a function that flattens 
+out the two-inner dimensions of the array. Note that the data
+array remains the same; what needs to be done is to compute the
+shape of the resulting array.  Assume that the shape and flags
+for every dimension are available (as arguments).
+
+\begin{lstlisting}[mathescape=true]
+let flatten3to2d [n][m] (aoa_shp0: [m]i32) 
+                        (aoa_flg0: [n]i32)
+                        (aoa_shp1: [n]i32) : [m]i32 = $\ldots$
+\end{lstlisting}\vspace{-2ex}
+
+In the example just above, the result array should correspond to
+the list of lists\\ {\tt [ [1,2,3,4,5,6,7], [9,8,7,6,5,4,3,2] ]},
+whose shape should be {\tt [7,8]}.
+\end{myexerc}
+
+In the following subsections related to flattening we will use the
+following notation: for some two-dimensional irregular array 
+{\tt array\_name}, then the shape, flag, and data arrays of its 
+flat representation will be named {\tt array\_name\_shp}, 
+{\tt array\_name\_flg} and {\tt array\_name\_val}, respectively.
+We will assume that the latter arrays are already available,
+since this section has shown how they can be computed.
+The flattening transformation will be denoted by symbol $\mathcal{F}$. 
 
 \subsubsection{Flattening a Scan Directly Nested in a Map}
-\label{subsubsec:scna-in-map} 
+\label{subsubsec:scan-in-map} 
+
+\begin{rewrite}[$\mathcal{F}$(Map(Scan))]\label{Flat-Scan-In-Map}
+$\mbox{ }$\\
+Flattening a scan that is directly nested inside a map is translated to a
+segmented scan. This corresponds to computing the data array of the result; 
+the shape and the flag arrays are the same as those of the input array.
+\begin{lstlisting}[mathescape=true]
+$\mathcal{F}$( map (\row -> scan ($\odot$) e$_\odot$ row) A ) $\Rightarrow$
+   ( A_shp, sgmScan ($\odot$) e$_\odot$ A_flg A_val )
+\end{lstlisting}\vspace{-2ex}
+\end{rewrite}
+
+We demonstrate this rule for the case when {\tt$\odot$ = +}, and 
+{\tt A = [[1,3], [2,4,6]]}.
+The computation of the nested parallel program is:
+\begin{lstlisting}[mathescape=true]
+map (\row -> scan (+) 0 row) [[1,3], [2,4,6]] $\equiv$
+[ scan (+) 0 [1,3], scan (+) 0 [2,4,6] ] $\equiv$
+[ [1, 4], [2, 6, 12] ]
+\end{lstlisting}\vspace{-2ex}
+
+The flat representation of {\tt A} is {\tt A\_shp = [2,3]}, 
+{\tt A\_flg=[1,0,1,0,0]}, {\tt A\_val = [1,3,2,4,6]}. 
+The computation of the translated, flat parallel program is:
+\begin{lstlisting}[mathescape=true]
+sgmScan ($\odot$) e$_\odot$ [1, 0, 1, 0, 0] 
+               [1, 3, 2, 4, 6] $\equiv$
+               [1, 4, 2, 6, 12]
+\end{lstlisting}\vspace{-2ex}
+It is trivial to see that a segmented scan preserves the shape: 
+the result array should have the same shape as the input, and
+hence the same flags.
+
+%%%%%%%%%%%%%%%%%
+\subsubsection{Flattening a Map Directly Nested in a Map}
+\label{subsubsec:map-in-map} 
+
+\begin{rewrite}[$\mathcal{F}$(Map(Map))]\label{Flat-Map-In-Map}
+$\mbox{ }$\\
+Flattening a map that is directly nested inside a map is translated to a
+map on the flattened data. This corresponds to the data array of the result; 
+the shape and the flag arrays are the same as those of the input array.
+\begin{lstlisting}[mathescape=true]
+$\mathcal{F}$(map (\row -> map f row) A) $\Rightarrow$ (A_shp, map f A_val)
+\end{lstlisting}\vspace{-2ex}
+\end{rewrite}
+
+We demonstrate this rule for the case when {\tt A = [[1,3], [2,4,6]]}.
+The computation of the nested parallel program is:
+\begin{lstlisting}[mathescape=true]
+map (\row -> map f row) [[1,3], [2,4,6]] $\equiv$
+[ map f [1,3], map f [2,4,6] ] $\equiv$
+[ [f 1, f 3], [f 2, f 4, f 6] ]
+\end{lstlisting}\vspace{-2ex}
+
+The flat representation of {\tt A} is {\tt A\_shp = [2,3]}, 
+{\tt A\_flg=[1,0,1,0,0]}, {\tt A\_val = [1,3,2,4,6]}. 
+The computation of the translated, flat parallel program is:
+\begin{lstlisting}[mathescape=true]
+map f [1,3,2,4,6] $\equiv$ [f 1, f 3, f 2, f 4, f 6]
+\end{lstlisting}\vspace{-2ex}
+It is trivial to see that the result array should have the same shape, 
+and hence the same flags, as the input array.
+
+%%%%%%%%%%%%%%%%%
+\subsubsection{Flattening a Replicate Directly Nested in a Map}
+\label{subsubsec:rep-in-map} 
+
+\begin{rewrite}[$\mathcal{F}$(Map(Replicate))]\label{Flat-Rep-In-Map}
+$\mbox{ }$\\
+Assuming that the values to be replicated are numeric, a replicate that 
+is directly nested inside a map is translated to the following code:
+\begin{lstlisting}[mathescape=true]
+$\mathcal{F}$map2 (\ n v -> replicate n v) ns vs$\Rightarrow$
+  ( ns,
+    let (ns',vs') = unzip <| filter (\(n,_) -> n>0) (zip ns vs)
+    let len  = length ns'
+    let inds = scan$^{exc}$ (+) 0 ns'
+    let totsz= if len==0 then 0 else inds[len-1] + ns'[len-1]
+    let flags= scatter (replicate totsz 0) inds vs'
+    in  sgmScan$^{inc}$ (+) 0 flags flags
+  )
+\end{lstlisting}\vspace{-2ex}
+\end{rewrite}
+
+The shape of the result is the array {\tt ns}, from which one can
+compute the flag array if needed later.   The data array is computed by:
+\begin{itemize}
+    \item filtering out the $0$-lengths (if any). If we would 
+            have a language property that would prevent the replicate
+            from creating an empty array, this step could be eliminated.
+            Furthermore, even in the absence of such guarantee, it
+            could be more efficient to check whether the any sizes
+            are $0$ and only then perform the filtering;  
+    \item performing an exclusive segmented scan operation in order
+            to compute the indices at which a segments start.
+          Please remember that Futhark does not support an inclusive
+            scan operator, but this can be easily implemented,
+            for example by using a \lstinline{map} to shift left by one
+            the input array and then performing an inclusive scan;
+            the two operations will be fused, so the overhead is really 
+            negligible:\\
+            \lstinline{let inds = map (\i-> if i>0 then ns'[i-1] else 0) (iota len) |> scan (+) 0};
+    \item computing the total size ({\tt totsz}) of the data array;
+    \item placing the values at the start-position of each segment
+            by means of the \lstinline{scatter} operation;
+    \item distributing the value previously written at the start of
+            each segment to all remaining elements of the segment.
+            This is accomplished with the inclusive segmented
+            scan with addition operator. Note that the implementation
+            assumes the version of inclusive segmented scan that uses
+            a integral representation of the flag array, in which
+            a number different than zero denote the start of a segment. 
+\end{itemize}
+
+We demonstrate the algorithm on the simple instance in which {\tt ns=[1,3,2]}
+and {\tt vs = [7,8,9]}.
+The computation of the nested parallel code is:
+\begin{lstlisting}[mathescape=true]
+map2 (\ n v -> replicate n v) [1, 3, 2] [7,8,9] $\equiv$
+[ replicate 1 7, replicate 3 8, replicate 2 9 ]  $\equiv$
+[ [7], [8, 8, 8], [9, 9] ]
+\end{lstlisting}\vspace{-2ex}
+
+The translation says that the shape of the result is
+equal to {\tt ns = [1,3,2]}, which is certainly the case.
+The computation of the data array by the flat parallel program is
+demonstrated below, where we skip the first step because all sizes
+are greater than $0$:
+\begin{lstlisting}[mathescape=true]
+let len  = length ns'                   -- 3
+let inds = scan$^{exc}$ (+) 0 ns'             -- [0, 1, 4]
+let totsz= $\ldots$                           -- 4 + 2 = 6 
+let flags= scatter (replicate totsz 0)  -- [0,0,0,0,0,0]
+                   inds                 -- [0,1,4]
+                   vs                   -- [7,8,9]
+                                        -- [7,8,0,0,9,0]
+in  sgmScan$^{inc}$ (+) 0 flags flags         -- [7,8,8,8,9,9]
+\end{lstlisting}\vspace{-2ex}
+
+It remains to discuss what happens when the element type is not numeric:
+most of the translated code is the same, except for the zero in 
+\lstinline{replicate totsz 0}, and the associative operator and neutral
+element of \lstinline{sgmScan}.
+If the element type is a:
+\begin{itemize}
+    \item[bool] then we can use {\tt false} instead of {\tt 0}
+            and logical or as operator;
+    \item[tuple] of numeric types, then we unzip the input array 
+        and perform the computation of \lstinline{scatter} and 
+        \lstinline{sgmScan} twice---i.e., for each member of the tuple;
+        note that the two \lstinline{sgmScan}s can be fused.
+        However, a compiler for a data-parallel language typically
+        works with a tuple-of-array representation, which would
+        exhibit two replicates in the source program rather than
+        a replicate on tuple values; so this case does not typically
+        happens.
+    \item[array] then the inner replicate can be re-written in terms of
+        {\tt map} and {\tt iota} as:
+\begin{lstlisting}[mathescape=true]
+replicate n v $\equiv$ map (\i -> v[i % (length v)]) 
+                    (iota (n * (length v)))
+\end{lstlisting}\vspace{-2ex}
+        and flattening will be applied to the rewritten code.
+\end{itemize}
+
+If the element type is some strange scalar type that cannot be translated
+to numeric, there is still a solution, albeit ugly: zero can be
+replaced with any ({\tt dummy}) value of the type, and the plus
+operator of inclusive segmented scan can be replaced with the 
+{\tt first} binary operator that simply returns the first argument 
+{\tt first (a: $\alpha$) (b: $\alpha$) : $\alpha$ = a}.
+This exploits the fact that the inclusive (segmented) scan does
+not actually needs a neutral element (but exclusive scan does!)
+One can check that {\tt first} is associative 
+{\tt first a (first b c) = a = first (first a b) c}.
+
+%%%%%%%%%%%%%%%%%
+\subsubsection{Flattening a Iota Directly Nested in a Map}
+\label{subsubsec:iota-in-map}
+$\mbox{ }$\\
+
+The main intuition is that {\tt iota n} can be expressed
+by a composition of scan exclusive and replicate, hence a 
+translation can be derived from the flattening rules
+of \lstinline{scan} and \lstinline{replicate}:
+\begin{lstlisting}[mathescape=true]
+iota n $\equiv$ scan$^{exc}$ (+) 0 (replicate n 1)
+\end{lstlisting}\vspace{-2ex}
+
+The good thing is that the argument of iota is an integer,
+a numerical type, thus it allows a specialized flattening rule.
+
+\begin{rewrite}[$\mathcal{F}$(Map(Iota))]\label{Flat-Iota-In-Map}
+$\mbox{ }$\\
+Flattening a iota that is directly nested inside a map results
+in an array of the same shape as the argument of map, and in a
+data array which is computed by the following flat-parallel code:
+\begin{lstlisting}[mathescape=true]
+$\mathcal{F}$( map (\n -> iota n) ns ) $\Rightarrow$
+  ( ns,
+    let ns'  = filter (>0) ns
+    let len  = length ns'
+    let inds = scan$^{exc}$ (+) 0 ns'
+    let totsz= if len==0 then 0 else inds[len-1] + ns'[len-1]
+    let flag = scatter (replicate totsz 0) inds ns'
+    let tmp  = map (\fl -> if fl!=0 then 0 else 1) flag
+    in  sgmScan$^{inc}$ (+) 0 flag tmp
+  )
+\end{lstlisting}\vspace{-2ex}
+\end{rewrite}
+
+We recall that exclusive scan can be written as a composition
+of a map that is shifting the array to the right by one, and 
+an inclusive scan. We demonstrate the rule for \lstinline{iota}
+by a simple example in which {\tt ns = [1,3,2]}.
+
+\begin{lstlisting}[mathescape=true]
+map2 (\ n -> iota n) [1,3,2] $\equiv$
+[ iota 1, iota 3, iota 2 ] $\equiv$
+[ [0], [0, 1, 2], [0, 1] ]
+\end{lstlisting}\vspace{-2ex}
+ 
+The flat parallel program results in an array whose shape is 
+equal to {\tt ns = [1,3,2]}, which is how it should be.
+The computation of the data array by the flat parallel program is
+demonstrated below, where we skip the first step because all elements
+of {\tt ns'} are greater than $0$:
+\begin{lstlisting}[mathescape=true]
+let len  = length ns'                      -- 3
+let inds = scan$^{exc}$ (+) 0 ns'                -- [0, 1, 4]
+let totsz= $\ldots$                              -- 4 + 2 = 6 
+let flags= scatter (replicate totsz 0)     -- [0,0,0,0,0,0]
+                   inds                    -- [0,1,4]
+                   ns'                     -- [1,3,2]
+                                           -- [1,3,0,0,2,0]
+let tmp  = map  ...                        -- [0,0,1,1,0,1]
+in  sgmScan$^{inc}$ (+) 0 flags flags            -- [0,0,1,2,0,1]
+\end{lstlisting}\vspace{-2ex}
+
+%%%%%%%%%%%%%%%%%
+\subsubsection{Flattening a Reduce Directly Nested in a Map (Segmented Reduce)}
+\label{subsubsec:red-in-map}
+$\mbox{ }$\\
+
+\begin{rewrite}[$\mathcal{F}$(Map(Reduce))]\label{Flat-Red-In-Map}
+$\mbox{ }$\\
+An irregular segmented reduce will be translated to an array whose
+length is equal to the outer length of the input array {\tt mat}, and
+whose data is computed by: 
+\begin{lstlisting}[mathescape=true]
+$\mathcal{F}$( map (\ row -> reduce $\odot$ e$_\odot$ row) mat )$\Rightarrow$
+  ( [length mat_shp],
+    let indsp1 = scan$^{inc}$ (+) 0 <| filter (>0) mat_shp
+    let sc_mat = sgmScan$^{inc}$ $\odot$ e$_\odot$ mat_flg mat_val
+    in  map (\ip1 -> sc_mat[ip1-1]) indsp1
+  )
+\end{lstlisting}\vspace{-2ex}
+\end{rewrite}
+
+In essence, a scan inclusive on the shape of the input array computes
+the index of the last element in each segment plus one, then a segmented
+inclusive scan is performed on the data with the operator and neutral
+element of the reduce and finally, a map operation selects the last
+element of the segment---this is because the last element of an inclusive
+scan, by definition, is the reduction of the whole array (segment). 
+
+Note that in order to get decent performance, the associative-binary 
+operators of reduce/scan/segmented scan should be rewritten whenever 
+possible to operate on scalar types (i.e., a reduce with a vectorized 
+addition would be extremely inefficient).
+
+We demonstrate the translation on a simple example in which our
+irregular array is  {\tt[[1, 3, 4], [6, 7]]} and the reduce operator
+is addition. The nested parallel program computes:
+\begin{lstlisting}[mathescape=true]
+map (\ row -> reduce (+) 0 row) [[1, 3, 4], [6, 7]] $\equiv$
+[ reduce (+) 0 [1, 3, 4], reduce (+) 0 [6, 7] ] $\equiv$
+[ 8, 13 ]
+\end{lstlisting}\vspace{-2ex}
+
+The flat-data representation of the input array is {\tt mat\_shp = [3,2]},
+{\tt mat\_val = [1,3,4,6,7]}, {\tt mat\_flg = [1,0,0,1,0]}.
+The flat parallel program results in a uni-dimensional array whose shape 
+is {\tt[2]}.
+The computation of the data array is:
+\begin{lstlisting}[mathescape=true]
+let indsp1 = scan (+) 0 <| filter (>0) mat_shp  -- [3,5]
+let sc_mat = sgmScan (+) 0 mat_flg      -- [1,0,0,1,0] 
+                           mat_val      -- [1,3,4,6,7]
+                                        -- [1,4,8,6,13]
+in  map (\ip1 -> sc_mat[ip1-1]) indsp1  -- [8,13]
+\end{lstlisting}\vspace{-2ex}
 
 
+%%%%%%%%%%%%%%%%%
+\newpage
+\subsubsection{Flattening an If-Then-Else Directly Nested in a Map}
+\label{subsubsec:if-in-map}
+$\mbox{ }$\\
 
+The rule assumes an \lstinline{if-then-else} expression, such that the 
+\lstinline{then} or/and \lstinline{else} expressions contain parallel 
+constructs; otherwise flattening it is not profitable (does not
+enhances the degree of parallelism).
+
+\begin{rewrite}[$\mathcal{F}$(Map(If-Then-Else))]\label{Flat-If-In-Map}
+$\mbox{ }$\\
+Assuming the input array {\tt xs} is a uni-dimensional array, the 
+flattening rule is given below:
+\begin{lstlisting}[mathescape=true]
+$\mathcal{F}$( map (\(x: $\alpha$) : $\beta$ -> if p x then f x else g x) xs ) $\Rightarrow$
+  ( [length xs],
+    let len = length xs
+    let (is, q) = partition2 (\i -> p (x[i])) (iota len)
+    let (is$^{then}$, is$^{else}$) = split q is
+    let xs$^{then}$ = map (\i$^{then}$ -> xs[i$^{then}$]) is$^{then}$
+    let res$^{then}$= map f xs$^{then}$
+    let xs$^{else}$ = map (\i$^{then}$ -> xs[i$^{else}$]) is$^{else}$    
+    let res$^{else}$= map g xs$^{else}$
+    let res = scatter (scratch len $\beta$) is$^{then}$ xs$^{then}$
+    in  scatter res is$^{else}$ xs$^{else}$
+  )
+\end{lstlisting}\vspace{-2ex}
+\end{rewrite}
+
+The data array of the result is computed as follows:
+\begin{itemize}
+    \item the iteration space of the input array (\lstinline{iota len}) 
+            is partitioned 
+            (see \cref{fig:futhark-partition2} in \cref{subsubsub:filter-impl}) 
+            according to the predicate {\tt p} which represents the 
+            condition of the \lstinline{if}: the indices corresponding
+            to the elements that succeed under the predicate and take the
+            \lstinline{then} branch, namely {\tt is$^{then}$}, 
+            appear before the ones that take the \lstinline{else}
+            branch, namely {\tt vis$^{else}$}.
+    \item the elements that take the \lstinline{then} branch are
+            selected and processed with the {\tt f} function; note that
+            the corresponding two \lstinline{map}s can be fused.
+          Similar thoughts apply to those that take the \lstinline{else}
+            branch.
+    \item finally, the \lstinline{scatter} operations place the results
+            back in the order of the original array. Operator 
+            {\tt scratch len $\beta$} creates an uninitialized array of 
+            length {\tt len} and element type $\beta$; the result is still 
+            deterministic because 
+            all its elements are guaranteed to be written by the two 
+            \lstinline{scatter} operations.
+\end{itemize}
+ 
+We demonstrate on the simple example in which the predicate succeeds on
+odd numbers, the function on the then branch is {\tt f x = 2*x}, the
+function on the else branch is {\tt g x = x - 1}, and the input array 
+is {\tt [3, 4, 6, 7]}. The nested-parallel version results in
+{\tt [f 3, g 4, g 4, f 3] = [6, 3, 5, 14]}.
+%
+The flat parallel version executes as follows:
+\begin{lstlisting}[mathescape=true]
+    let len = length xs                          -- 4
+    let (is, q) = partition2 (\i -> p (x[i])) (iota len)
+    let (is$^{then}$, is$^{else}$) = split q is               -- ([0,3], [1,2])
+    let xs$^{then}$ = map (\i$^{then}$ -> xs[i$^{then}$]) is$^{then}$     -- [3, 7]
+    let res$^{then}$= map f xs$^{then}$                       -- [6, 14]
+    let xs$^{else}$ = map (\i$^{then}$ -> xs[i$^{else}$]) is$^{else}$      -- [4, 6]
+    let res$^{else}$= map g xs$^{else}$                        -- [3, 5]
+    let res = scatter (scratch len $\beta$) is$^{then}$ xs$^{then}$ -- [6, u, u, 14]
+    in  scatter res is$^{else}$ xs$^{else}$                    -- [6, 3, 5, 14]
+\end{lstlisting}\vspace{-2ex}
+
+
+\subsubsection{Exercise: Flattening an Index Directly Nested in a Map}
+\label{subsubsec:if-in-map}
+$\mbox{ }$\\
+
+\begin{myexerc}[$\mathcal{F}$(Map(Index))]\label{Flat-Ind-In-Map}
+$\mbox{ }$\\
+Assume an irregular input matrix array {\tt mat} (i.e., rows have
+different lengths), which has been previously translated to 
+a flat representation consisting of the shape {\tt mat\_shp}, 
+flag {\tt mat\_flg} and data {\tt mat\_val} arrays.
+Please write the rule that translates the following \lstinline{map} 
+that selects from each row of the matrix the element corresponding
+to the index taken from {\tt inds}:
+\begin{lstlisting}[mathescape=true]
+$\mathcal{F}$map2 (\row i -> row[i]) mat inds $\Rightarrow$
+  ( $\ldots$
+  )
+\end{lstlisting}\vspace{-2ex}
+\end{myexerc}
 
 \subsection{Flattening a Simple, Contrived Program}
 \label{subsec:flatten-simple-eg}
 
+We have presented so far, rather informally, a subset of
+the flattening rules. While we hope that they make sense
+individually, it is still probably not very clear the manner
+in which they can be combined to flatten a nested-parallel
+program. We demonstrate them on a very simple code example:
+\begin{lstlisting}[mathescape=true]
+map (\ i -> map (+(i+1)) (iota i) ) arr  -- arr = [1, 2, 3, 4]
+\end{lstlisting}\vspace{-2ex}
+in which the mapped array is an uni-dimensional array of integers
+of length {\tt n}. We will demonstrate the execution in the
+particular case when {\tt arr = [1, 2, 3, 4]}.
+
+We first perform the nested parallel computation:
+\begin{lstlisting}[mathescape=true]
+map (\i -> map (+(i+1)) (iota i)) arr  $\equiv$ -- arr = [1, 2, 3, 4]
+[ 
+  map (+(1+1)) (iota 1)  $\equiv$  map (+2) [0]       $\equiv$  [0+2]  $\equiv$  [2]
+, map (+(2+1)) (iota 2)  $\equiv$  map (+3) [0,1]     $\equiv$  [3,4]  
+, map (+(3+1)) (iota 3)  $\equiv$  map (+4) [0,1,2]   $\equiv$  [4,5,6]
+, map (+(4+1)) (iota 4)  $\equiv$  map (+5) [0,1,2,3] $\equiv$  [5,6,7,8]
+]     $\equiv$
+[[2], [3,4], [4,5,6], [5,6,7,8]]
+\end{lstlisting}\vspace{-2ex}
+
+We now turn to the task of flattening our nested parallel program.
+The first observation is that the program is not in a suitable form:
+it has to be normalized or desugared to a form (think three-address code) 
+that would permit the application of the previously discussed rules.
+In particular we will be bothered by the {\tt map (+(i+1))} call,
+because {\tt i} is variant in the outer \lstinline{map} but
+invariant in the inner one, and we do not have a rule to handle
+such cases (one can be added certainly). What we would like is to
+expand {\tt i} (by means of \lstinline{replicate}) to an array that 
+is passed directly as parameter to the inner \lstinline{map}.
+The semantically-equivalent and normalized code is:
+\begin{lstlisting}[mathescape=true]
+map (\ i -> let ip1 = i+1 in
+            let iot = (iota i) in
+            let ip1r= (replicate i ip1) in
+            map (+) ip1r iot
+    ) arr
+\end{lstlisting}\vspace{-2ex}
+  
+We are ready for flattening, which corresponds to distributing the
+outer \lstinline{map} over each ``let-statement'' in the body.
+While doing so, we will semantically expand the left-hand side
+of the let statement with an outer array dimension equal to the
+size of the outer \lstinline{map}. We assume that we also maintain
+a context $\Sigma$ (think symbol table) that binds the variable
+names declared inside the map to their expanded arrays (obtained 
+by map distribution/fission).  Initially, {\tt $\Sigma$ = [i$\to$arr]},
+and we will use the notation {\tt$\Sigma$(x)} to get the flattened
+array corresponding to symbol {\tt x} in the source program. For example 
+{\tt $\Sigma$(i) = arr}.  When we distribute the outer \lstinline{map}
+across a statement we will extend the arguments of the map with
+the expanded arrays corresponding to the symbols that are used inside
+the current statement---those have been necessarily translated 
+previously. Long story short here is how the flattening is
+distributed across the statements of the outer \lstinline{map} body:
+\begin{lstlisting}[mathescape=true]
+$\mathcal{F}$( map (\ i -> map (+(i+1)) (iota i) ) arr ) 
+                      $\equiv$
+let ip1s = $\mathcal{F}$( map  (\i -> i+1) arr )       -- $\Sigma$=[i$\to$arr,ip1$\to$ip1s]
+let iots = $\mathcal{F}$( map  (\i -> (iota i)) arr )  
+                                  -- $\Sigma$=[i$\to$arr,ip1$\to$ip1s,iot$\to$iots]
+let ip1rs= $\mathcal{F}$( map2 (\(i,ip1) -> (replicate i ip1)) arr ip1s )
+                      -- $\Sigma$=[i$\to$arr,ip1$\to$ip1s,iot$\to$iots,ip1r$\to$ip1rs]
+in  $\mathcal{F}$( map2 (\ip1r iot -> map (+) ip1r iot) ip1rs iots ) 
+\end{lstlisting}\vspace{-2ex}
+The parameters of the distributed \lstinline{map} are obtained by querying
+the symbols used inside the corresponding let statement: for example the first
+statement uses only {\tt i}, and {\tt$\Sigma$(i) = arr}, thus the map is over
+one array argument {\tt arr} and the lambda formal argument is {\tt i}.
+After the expression of the first statement has been translated, a fresh
+variable name is produced {\tt ip1s} to store the result, and a new association
+is added to the symbol table {\tt ip1$\to$ip1s}, because the let statement in the
+original program was producing variable named {\tt ip1}.
+Similar thoughts apply to the second let statement. 
+
+The third statement uses two variables: {\tt i} and {\tt ip1}. Querying the
+context results in the corresponding expanded arrays {\tt arr} and {\tt ip1s},
+which are passed as arguments to the \lstinline{map2}, and similar for the
+result expression, which uses source-program variables {\tt ip1r} and {\tt iot}.
+
+Now we proceed to apply individual rules for each expression.
+The first one does not correspond to any rule, because there is
+no inner parallelism to flatten, hence the translation is the identity:
+\begin{lstlisting}[mathescape=true]
+let ip1s = $\mathcal{F}$( map  (\i -> i+1) arr ) 
+             $\equiv$
+let ips1 = map  (\i -> i+1) arr       -- [2, 3, 4, 5]
+\end{lstlisting}\vspace{-2ex}
+
+The second expression corresponds to a iota directly nested inside a map,
+and we can apply \cref{Flat-Iota-In-Map}.
+\begin{lstlisting}[mathescape=true]
+let iots = $\mathcal{F}$( map  (\i -> (iota i)) arr )  
+                      $\equiv$
+let arr'  = filter (>0) arr
+let len   = length arr'                              -- 4
+let inds  = scan$^{exc}$ (+) 0 arr'                        -- [0,1,3,6]
+let totsz = if len>0 then inds[len-1]+arr[len-1] else 0     -- 10
+let flag  = scatter (replicate totsz 0) inds arr
+                                         -- [1,2,0,3,0,0,4,0,0,0]
+let tmp   = map (\fl -> if fl!=0 then 0 else 1) 
+                                         -- [0,0,1,0,1,1,0,1,1,1]
+iots = sgmScan$^{inc}$ (+) 0 flag tmp          -- [0,0,1,0,1,2,0,1,2,3]
+\end{lstlisting}\vspace{-2ex}
+
+The third expression corresponds to a replicate directly nested inside a map,
+and we can apply \cref{Flat-Rep-In-Map}. Several of the statements of the 
+previous case can be reused (i.e., can be eliminated by common-subexpression
+elimination). We present only the ones that contributed to the solution
+(i.e., the non-redundant ones):\medskip
+\begin{lstlisting}[mathescape=true]
+let iots = $\mathcal{F}$( map2 (\(i,ip1) -> (replicate i ip1)) arr ip1s )
+                      $\equiv$
+-- redundant code computing arr', len, inds, totsz
+flag'= scatter (replicate totsz 0) inds ip1s-- [2,3,0,4,0,0,5,0,0,0]
+ip1rs= sgmScan$^{inc}$ (+) 0 flag' flag'          -- [2,3,3,4,4,4,5,5,5,5]
+\end{lstlisting}\vspace{-2ex}
+
+Finally, the last expression corresponds to a map directly nested inside
+an outer map, and we can apply \cref{Flat-Map-In-Map}, which basically says
+that this case translates to a map on the flatten data:
+\begin{lstlisting}[mathescape=true]
+in $\mathcal{F}$( map2 (\ip1r iot -> map (+) ip1r iot) ip1rs iots
+                      $\equiv$
+in  map (+) ip1rs iots     -- [2,3,3,4,4,4,5,5,5,5]
+                           --  + + + + + + + + + +
+                           -- [0,0,1,0,1,2,0,1,2,3]
+                           --  = = = = = = = = = =
+                           -- [2,3,4,4,5,6,5,6,7,8]
+\end{lstlisting}\vspace{-2ex}
+
+We conclude by remarking that the shape of the program result is actually 
+{\tt arr}. This is derived from the iota/replicate nested inside a map rules,
+which generate an array whose shape is the input array of the map. Finally,
+the last rule (map nested inside a map) preserves the shape of the input array(s).
 
 \subsection{Flattening Exercises}
 \label{subsec:flat-exercises}
