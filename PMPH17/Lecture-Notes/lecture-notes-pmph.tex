@@ -14,7 +14,7 @@
 %% Supplied to authors by publisher for camera-ready submission;
 %% use defaults for review submission.
 \acmJournal{PACMPL} 
-\acmVolume{1}
+\acmVolume{1} 
 \acmNumber{1}
 \acmArticle{1}
 \acmYear{2018}
@@ -68,6 +68,7 @@
 
 \newtheorem{mydef}{Definition}
 \newtheorem{mytheo}{Theorem}
+\newtheorem{mycorol}{Corollary}
 \newtheorem{mylemma}{Lemma}
 \newtheorem{myexerc}{Exercise}
 \newtheorem{rewrite}{rule}
@@ -1129,7 +1130,7 @@ the identities can be written in full as:\\
 1. map f (map g zs) $\equiv$ map ($\lambda$ z $\rightarrow$ f (g z)) zs
 2. map f (reduce (++) [] zs) $\equiv$ reduce (++) [] (map ($\lambda$z$\rightarrow$map f z) zs)
 3. reduce ($\odot$) e$_{\odot}$ (reduce (++) [] zs) $\equiv$ 
-                        reduce $\odot$ e$_\odot$ (map ($\lambda$ z $\rightarrow$ reduce $\odot$ e$_{\odot}$ z)) 
+                        reduce $\odot$ e$_\odot$ (map ($\lambda$ z $\rightarrow$ reduce $\odot$ e$_{\odot}$ z) zs) 
 \end{lstlisting}\vspace{-2ex}
 \end{mytheo}
 
@@ -2710,6 +2711,20 @@ the code on an example. The implementation proceeds as follows:
 \label{subsubsub:sparse-mat-vec-mult}
 $\mbox{ }$\\
 
+Assuming a dense $m\times n$ matrix $M$ and a dense vector $v$ of 
+size $n$, matrix-vector multiplication can be described by the
+formula: $r[i] = \Sigma_{j=1}^n M[i,j] \times v[j]$, where 
+$i=0,\ldots m-1$, and $r$ denotes the resulting vector of
+length $m$. Dense-matrix vector multiplication can be written
+in Futhark as:
+\begin{lstlisting}[mathescape=true]
+let dnsMatVctMul [m][n] (mat: [m][n]f32) (vct: [n]) : [m]f32 =
+    map (\row -> let ps = map2 (*) row vct
+                 in  reduce (+) 0.0f32 ps
+        ) mat
+\end{lstlisting}\vspace{-2ex}
+
+
 \begin{figure}
 \begin{lstlisting}[mathescape=true]
 -- (a) Dense-Matrix Representation
@@ -2740,9 +2755,9 @@ value = [ (0,2.0), (1,-1.0), (0,-1.0), (1, 2.0), (2,-1.0),
 \label{fig:mat-reps}
 \end{figure}
 
-% x = [2.0, 1.0, 0.0, 3.0]
-
-Figure~\ref{fig:mat-reps} shows several matrix representations
+However, our example refers to {\em sparse} matrices, whose non-zero
+values are significantly smaller than the size of the dense matrix;
+\cref{fig:mat-reps} shows several matrix representations
 of a {\tt m$\times$n} matrix (where {\tt m=5} and {\tt n=4}):
 \begin{itemize}
     \item[(a)] the dense representation is a two-dimensional
@@ -2771,20 +2786,25 @@ the same length---hence it does not support arrays of pointers.
 However, assuming a language that supports arrays of pointers 
 (such as Haskell), sparse matrix vector multiplication can be 
 elegantly written using format (b) in the following Futhark-like 
-pseudocode:
+pseudocode:\medskip
+
 \begin{lstlisting}[mathescape=true]
-let spMatVctMul [m][n] (mat: [m][](i32,f32)) (vct: [n]) : [m]f32 =
+let spMatVctMul [m][n] (mat:[m][](i32,f32)) (vct:[n]) : [m]f32 =
     map (\row -> let ps = map (\(i,v) -> v * vct[i]) row
                  in  reduce (+) 0.0f32 ps 
         ) mat
-\end{lstlisting}\vspace{-2ex}
+\end{lstlisting}\vspace{-2ex} 
 Please note that the implementation exhibits irregular parallelism:
 the size of the inner \lstinline{map-reduce} operations differs 
-across iterations of the outer \lstinline{map}. We will see later,
-in \cref{sec:flattening} how to re-write this irregular nested
-parallelism by means of (1) a flat-sparse-data representation 
-in format (c), and (2) flat-parallel constructs (that do not exhibit
-inner parallelism).\bigskip
+across iterations of the outer \lstinline{map}. In comparison to
+the code corresponding to dense matrices, the inner \lstinline{map} 
+is applied to each row of non-zero elements, whose values are multiplied 
+with their corresponding element {\tt i} in the vector.
+%
+We will see later, in \cref{sec:flattening} how to re-write this 
+irregular nested parallelism by means of (1) a flat-sparse-data 
+representation in format (c), and (2) flat-parallel constructs 
+(that do not exhibit inner parallelism).\bigskip
 
 %\begin{figure}
 %\begin{lstlisting}[mathescape=true]
@@ -2834,8 +2854,8 @@ for(i = 2; i <= sqrt(n); i++)
     endif
 endfor
 \end{lstlisting}\vspace{-4ex}
-\caption{Imperative pseudocode for the naive version of primes:
-         Work $O(n \ lg \ lg \ n)$, Suboptimal Depth: $O(\sqrt{n})$. }
+\caption{Imperative code for the naive computation of prime numbers:
+         Work $O(n~lg~lg~n)$, Suboptimal Depth $O(\sqrt{n})$. }
 \label{fig:primes-naive-Imp}
 \end{figure}
 
@@ -3018,7 +3038,7 @@ It follows that the total number of iterations of the loop
 is the first $k$ such that $2^{2^k} \geq n$, hence the depth of 
 the new nested-parallel version is $O(lg~lg~n)$.
 
-
+\newpage
 \subsubsection{Quicksort}
 \label{subsubsub:quicksort}
 $\mbox{ }$\\
@@ -3715,7 +3735,7 @@ The flat parallel version executes as follows:
 
 
 \subsubsection{Exercise: Flattening an Index Directly Nested in a Map}
-\label{subsubsec:if-in-map}
+\label{subsubsec:ind-in-map}
 $\mbox{ }$\\
 
 \begin{myexerc}[$\mathcal{F}$(Map(Index))]\label{Flat-Ind-In-Map}
@@ -3880,7 +3900,864 @@ the last rule (map nested inside a map) preserves the shape of the input array(s
 \subsection{Flattening Exercises}
 \label{subsec:flat-exercises}
 
+This section provides hints related to how to apply flattening to the following 
+problems: sparse-matrix vector multiplication (\cref{exercise:flat-sp-mat-vec-mul}), 
+prime number computation (\cref{exercise:flat-primes}), and 
+quicksort (\cref{exercise:flat-quicksort}).
 
+\subsubsection{Exercise: Flattening Sparse-Matrix Vector Multiplication}
+\label{exercise:flat-sp-mat-vec-mul}
+$\mbox{ }$\\
+
+We recall that sparse matrix-vector multiplication was discussed in 
+\cref{subsubsub:sparse-mat-vec-mult}, and it has the following nested
+parallel implementation:
+\begin{lstlisting}[mathescape=true]
+let spMatVctMul [m][n] (mat: [m][](i32,f32)) (vct: [n]) : [m]f32 =
+    map (\row -> let ps = map (\(i,v) -> v * vct[i]) row
+                 in  reduce (+) 0.0f32 ps 
+        ) mat
+\end{lstlisting}\vspace{-2ex}
+where {\tt mat} is assumed to be an irregular two dimensional array---in
+which rows have different lengths (think list of lists)---whose elements
+are a tuple formed by (i) an integer denoting the column number at which 
+the non-zero element appears in the dense matrix, and (ii) a numeric value
+corresponding to the non-zero value of the matrix element. For simplicity,
+we also assume that the matrix does \emph{not} have any empty rows 
+(i.e., formed only by zero elements).
+
+To flatten this code, we apply the same procedure used for our contrived
+example described in \cref{subsec:flatten-simple-eg}, in which we distribute
+the outer \lstinline{map} across the statements of its lambda function (body):
+\begin{lstlisting}[mathescape=true]
+let pss = $\mathcal{F}$( map (\row -> map (\(i,v) -> v * vct[i]) row) mat )
+in  $\mathcal{F}$ ( map (\ps -> reduce (+) 0.0f32 ps) pss )
+\end{lstlisting}\vspace{-2ex}
+It follows that we need to apply two flattening rules, corresponding to
+\begin{itemize}
+    \item[(1)] flattening a \lstinline{map} directly nested in outer 
+                \lstinline{map} (see \cref{subsubsec:map-in-map})
+    \item[(2)] flattening a \lstinline{reduce} directly nested in an
+                outer \lstinline{map} (see \cref{subsubsec:red-in-map}).
+\end{itemize}
+
+\subsubsection{Exercise: Flattening Prime Number Computation (Sieve)}
+\label{exercise:flat-primes}
+$\mbox{ }$\\
+
+We recall that a nested-parallel implementation---for computing all prime numbers 
+less than or equal to an input integer {\tt n}, and having work $O(n~lg~lg~n)$ 
+and depth $O(lg~lg~n)$---has been discussed in \cref{fig:primes-nested-par-Futhark}
+of \cref{subsubsub:primes}. The nested parallelism refers to the code:
+\begin{lstlisting}[mathescape=true]
+...
+let composite = -- uses nested parallelism
+map (\ p -> let m = len / p
+            let arr = map (+2) ( iota (m -1))
+            in map (*p) arr
+    ) sqrn_primes
+let not_primes = reduce (++) [] composite
+...
+\end{lstlisting}\vspace{-2ex}
+Our goals is to apply the flattening algorithm to the above code.
+We use the same procedure as for our contrived example described 
+in \cref{subsec:flatten-simple-eg}, in which the first step is to
+``normalize'' the code, by 
+\begin{itemize}
+    \item computing {\tt m-1} and \lstinline{iota (m-1)} in
+            separate \lstinline{let} statements,
+    \item normalizing the inner \lstinline{map} such that
+            {\tt p} is expanded to an array and passed as
+            argument to the inner \lstinline{map}.
+\end{itemize}
+This results in the code below:
+\begin{lstlisting}[mathescape=true]
+let composite = -- uses nested parallelism
+map (\ p -> let m   = len / p         -- distribute map
+            let mm1 = m - 1           -- distribute map
+            let iot = iota mm1        -- $\mathcal{F}$(Map(Iota))
+            let arr = map (+2) iot    -- $\mathcal{F}$(Map(Map))
+            let ps  = replicate mm1 p -- $\mathcal{F}$(Map(Replicate))
+            in map2 (*) ps arr        -- $\mathcal{F}$(Map(Map))
+    ) sqrn_primes
+let not_primes = reduce (++) [] composite-- noop because composite
+                                         -- is in flat-data form
+\end{lstlisting}\vspace{-2ex}
+What remains is to distribute the outer \lstinline{map} across
+the statements of the lambda body, as indicated on the right-hand
+side of the code:
+\begin{itemize}
+    \item {\tt $\mathcal{F}$(Map(Map))} refers to the rule for
+        translating a directly-nested inner \lstinline{map},
+        as presented in \cref{subsubsec:map-in-map};
+    \item {\tt $\mathcal{F}$(Map(Iota))} refers to the rule for
+        translating a directly-nested inner \lstinline{iota}, 
+        as presented in \cref{subsubsec:iota-in-map};
+    \item {\tt $\mathcal{F}$(Map(Replicate))} refers to the rule for
+        translating a directly-nested inner \lstinline{replicate}, 
+        as presented in \cref{subsubsec:rep-in-map}.
+\end{itemize}
+
+\newpage
+\subsubsection{Exercise: Flattening Quicksort}
+\label{exercise:flat-quicksort}
+$\mbox{ }$\\
+
+We recall that a nested-parallel implementation for computing quicksort 
+has been discussed in \cref{fig:quicksort-nested-par-Futhark}
+of \cref{subsubsub:quicksort}.  The main problem is that the
+implementation exhibits a \lstinline{map} over the recursively
+defined function {\tt quicksort}, which is actually the function 
+which we are trying to flatten: \lstinline{map nestedQuicksort [s1 , s2]}.
+This case has not been covered by our rules; but do not fret,
+the treatment is not difficult. 
+
+Mapping a recursive function corresponds to lifting the function:
+this means that we need to construct a function which is semantically
+similar to a \lstinline{map} over the current function:
+\begin{itemize}
+    \item the original parameters have to be expanded with
+        a new outer-array dimension corresponding to a generic
+        number of instances, denoted {\tt p}, of the original
+        function that will be computed at once (in parallel);
+    \item a outer \lstinline{map} of size {\tt p} has to be
+        distributed over the original body of the function;
+    \item the \lstinline{map} over the recursive function
+        should be translated to the lifted function, because
+        they have equivalent semantics by construction.
+\end{itemize}
+
+\begin{figure}
+\begin{lstlisting}[mathescape=true]
+isSorted [n] (arr: [n]i32) : bool =
+  reduce (&&) true <|
+  map (\i -> i == 0 || arr[i-1] <= arr[i]) (iota n)
+
+liftedQuicksort [p] (arrs: [p][]i32) : []i32 =
+  map (\arr ->
+        if n <= 1 || isSorted arr then arr
+        else
+        let q  = length arr
+        let qm1= q - 1
+        let i  = getRand (0, qm1)
+        let a  = arr[i]
+        let s1 = filter (\x -> (x <  a)) arr
+        let s2 = filter (\x -> (x >= a)) arr
+        let rs = map nestedQuicksort [s1, s2]
+        in  (rs[0]) ++ (rs[1])
+      ) arrs
+
+quicksort [n] (arr: [n]i32) : [n]i32 = liftedQuicksort ([arr]) 
+\end{lstlisting}\vspace{-4ex}
+\caption{Futhark-like (Nested-Parallel) Lifted Quicksort function.\\
+        (Please be aware that this code is illegal in Futhark!)}
+\label{fig:lifted-nest-par-quicksort-Futhark}
+\end{figure}
+
+The (still) nested-parallel definition of the lifted function is 
+shown in \cref{fig:lifted-nest-par-quicksort-Futhark}. One can go
+about flattening it by following the rules explain in the previous
+chapter (and by deriving other rules). However, there are several
+observations that may allow to derive in an easier way the flattened
+program (at the expense of perhaps not respecting the work and
+depth asymptotic of the original program):
+\begin{itemize}
+    \item[(1)] In order to eschew the complicate rule for an \lstinline{if}
+        directly nested inside a map, please observe that the all segments
+        actually belong to the same array, and a conservative and safe  
+        stop condition for recursion is when the value array of {\tt arrs}
+        is completely sorted. In essence, if the value array of {\tt arrs}
+        is already sorted, then we should just return it. This hints that
+        the implementation of {\tt liftedQuicksort} should be a \lstinline{while}
+        loop, which terminates when the value array is sorted.
+        It remains to distribute the body of the map on the statements
+        belonging to the body of the \lstinline{then} branch.
+    \item[(2)] the computation of {\tt q} can be obtained from the
+        shape of {\tt arrs}.
+    \item[(3)] {\tt getRand}---which is supposed to return a random
+            number between {\tt 0...qm1}---should be lifted as well;
+            I suggest using a random number generator that does not
+            have state, such as Sobol numbers (ask for help if you
+            chose this as project).
+    \item[(4)] the two \lstinline{filter} operations can be rewritten
+            by means of {\tt partition2}, defined in 
+            \cref{fig:futhark-partition2}.
+    \item[(5)] the translation of the last two statement:\\
+            \lstinline{let rs = map nestedQuicksort [s1, s2] in rs[0]++rs[1]}\\
+            would correspond to creating a new shape array that
+            takes into account the split indices resulted from applying 
+            \lstinline{partition2}, which will be used by the next 
+            iteration of the encompassing \lstinline{while} loop;
+            please notice that {\tt rs[0]++rs[1]} is a noop because
+            the value array is flat anyway.
+\end{itemize}
+
+\begin{figure}
+\begin{lstlisting}[mathescape=true]
+liftedQuicksort [m][n] (arr_shp: [m]i32) (arr_val: [n]i32) 
+                                        : ([m]i32, [n]i32) =
+  loop (arr_shp, arr_val) 
+    while not (isSorted arr_val) do
+      let qs   = arr_shp
+      let qm1s = map (\q -> q-1) qs
+      let is   = $\mathcal{F}$( map  (\qm1 -> getRand (0,qm1)) qm1s )
+      let as   = $\mathcal{F}$( map  (\i -> arr[i]) arrs ) -- $\mathcal{F}$(Map(Index))
+      let (arr_val', ss) = 
+          $\mathcal{F}$( map2 (\a arr -> partition2 (\x-> x<a) ) as arrs )
+      let arr_shp' = ... ??? ... -- use split points in ss 
+      in  (arr_shp', arr_val')   -- to create a new shape.
+
+quicksort [n] (arr: [n]i32) : [n]i32 = -- initially one subarray of
+  let (_, arr') = liftedQuicksort ([n]) ([arr]) in arr' -- size n
+\end{lstlisting}\vspace{-4ex}
+\caption{Flat-Parallel Template for Quicksort.}
+\label{fig:lifted-flat-quicksort-template}
+\end{figure}
+
+In essence the function can be rewritten to operate on the flat-data
+representation, according to the template presented in 
+\cref{fig:lifted-flat-quicksort-template},
+where $\mathcal{F}$ represents the application of the flattening 
+transformation. The tricky parts remaining to implement/flatten are:
+\begin{itemize}
+    \item the flattening of the random-number generator (try sobol),
+            which can be inlined and flattened according to the rules,
+    \item the flattening of the array indexing {\tt arr[i]}---this 
+        was left as an exercise in \cref{Flat-Ind-In-Map} of 
+        \cref{subsubsec:ind-in-map},
+    \item the flattening of the {\tt partition2} call, which can be 
+            inlined and flattened according to the rules; perhaps
+            this is the most challenging part,
+    \item finally the computation of the shape array corresponding
+            to the segmented partition---this can be done in an
+            intuitive way (i.e., not according to rules). 
+\end{itemize}
+
+
+\newpage
+\section{Loop-Based Data-Dependence Analysis and Applications}
+\label{sec:imp-loop-analysis}
+
+So far, we have assumed that the user writes a fresh implementation
+of a \emph{known} algorithm, and we have demonstrated how ``parallel
+thinking'' can
+\begin{itemize}
+    \item derive a nested-parallel implementation, which is close,
+        in spirit, to the algorithmic specification---e.g., by
+        faithfully reproducing the control structure of the 
+        algorithm---and which answers well software engineering
+        concerns such as modularity, code re-use, etc. In essence, 
+        the nested-parallel implementation can be maintained direcly
+        by the (algorithm-) domain expert rather than by the 
+        computer scientist who sleeps with the hardware-specification
+        and compiler-transformations books under his pillow.
+    \item reason about the asymptotic work-depth behavior of the
+        nested parallel implementation, and
+    \item automatically derive a low-level, flat-parallel 
+        implementation that is suitable to being directly 
+        (statically) mapped on highly-parallel hardware, 
+        and which preserves the work-depth asymptotic of 
+        the nested-parallel implementation 
+        (from which it has been derived).
+\end{itemize}
+
+One may rightfully raise the question ``Why then do we need to 
+learn how to reason about low-level imperative code written in 
+terms of loops and array accesses?'' There are at least two 
+important reasons that justify this direction:
+\begin{itemize}
+    \item[1)] There is a lot of legacy (already written) sequential
+        (scientific) code written in imperative languages such as
+        C{\tt++}, Java, Fortran, and either the precise algorithm 
+        to which they correspond to (i) may have been forgotten (not documented),
+        or (ii) a fresh implementation is infeasible (e.g., because it
+        costs too much).
+        At some point you may wish (or be asked) to parallelize such
+        code to run efficiently on a certain hardware. This will require
+        \begin{itemize}
+            \item[a)] to identify the computational kernels where most 
+                of the runtime is spent, and 
+            \item[b)] to optimize them by reasoning at a lower-level of 
+                abstraction about which loops in the nest are parallel, and
+            \item[c)] the manner in which loop nests can be re-written 
+                in order to optimize locality of reference, load balancing, 
+                thread divergence, etc. 
+        \end{itemize}
+    \item[2)] The flattening transformation guarantees preservation of 
+        the \emph{asymptotic operational} work-depth behavior of the 
+        transformed program, but 
+        \begin{itemize}
+            \item[a)] it may require {\em impractically-high memory usage},
+                which may be asymptotically higher than the one corresponding 
+                to the sequential algorithm---for example a fully flattened 
+                implementation of matrix-matrix multiplication of $n\times n$ 
+                matrices requires $O(n^3)$ memory space in comparison with 
+                $O(n^2)$ required by the sequential implementation.
+            \item[b)] \emph{it does not account for locality of reference
+                and inter-thread communication}. In fact full flattening
+                results in flat-parallel code that does not contain any
+                inner recurrences (think no inner sequential loops), and
+                as such, it actually destroys the program structure necessary
+                for performing locality-based optimizations.
+                For example, the fully flattened implementation of matrix
+                matrix multiplication would exploit all available parallelism
+                but its performance behavior, in practice, will be limited
+                by the bandwidth supported by the underlying hardware.
+                In comparison, an implementation that sequentializes the 
+                innermost dot-product operation and performs block tiling 
+                in scratchpad memory to optimize locality, would exhibit 
+                a compute-bound behavior---in which the limiting factor 
+                for performance is the throughput of floating point 
+                operations per second supported by the hardware
+                (which is typically much higher than the hardware bandwidth).
+        \end{itemize}
+\end{itemize}
+It follows that in many cases, especially the ones involving regular 
+parallelism---in which the length of the inner parallel construct is 
+the same across the encompassing (outer) \lstinline{map} operation---full
+flattening yields very pessimistic performance results.   While 
+the style of reasoning introduced by the flattening transformation 
+remains important, this chapter augments it with a set of lower-level,
+loop-based transformations that address the major shortcomings
+identified above.  
+
+The main source of inspiration for the material presented in this 
+section has been the book 
+``Optimizing compilers for modern architectures: a dependence-based approach''~\cite{kennedy2001optimizing}. 
+This section is organized as follows:
+\begin{itemize}
+    \item \cref{subsec:dir-vct} introduces various nomenclature,
+        in particular the notion of cross-iteration dependency, and 
+        it shows how to summarize dependencies across the iteration 
+        space into a succinct representation, named direction vectors, 
+        that promotes reasoning about various code transformations;
+    \item \cref{subsec:loop-par} presents a simple theorem
+        that allows easy identification of loop-level parallelism;
+    \item \cref{subsec:loop-interch} presents a simple
+        theorem that gives necessary conditions for the safety 
+        of the transformation that interchanges two perfectly-nested
+        loops;
+    \item \cref{subsec:loop-distrib} discusses the legality and
+        the manner in which a loop can be distributed across the 
+        statements in its body. The treatment is a bit more general
+        than flattening, which essentially distributes a parallel loop
+        (\lstinline{map}) across its statements; we will see that in 
+        some cases one can also distribute a dependent (sequential) 
+        loop across subsets of its statements;
+    \item \cref{subsec:strip-tiling} introducing a simple
+        transformation, named stripmining, which is always valid,
+        and shows how block tiling can be derived as a combination
+        of stripmining and loop interchange;
+    \item \cref{subsec:transp} discusses the typical GPU 
+        implementation of matrix transposition, which uses block
+        tiling as a way to exploit spatial locality---i.e., 
+        ensuring coalesced access to global memory for both read
+        and write operations;
+    \item \cref{subsec:block-mmm} starts from the naive implementation 
+        of matrix-matrix multiplication and demonstrates how block tiling 
+        can be applied to derive an optimized implementation that
+        exploits temporal locality---which is implemented by utilizing
+        GPU's scratchpad memory as a software-managed cache;
+    \item \cref{subsec:block-reg-tiled-mmm} proposes an exercise in
+        which the reader is directed to follow the steps necessary
+        to combine register and block tiling in order to further optimize
+        locality of reference in the case of matrix-matrix multiplication
+        executed on GPU hardware.
+\end{itemize}
+
+\subsection{Data-Dependence Analysis: Direction Vectors}
+\label{subsec:dir-vct}
+
+We start by recalling the so called data hazards, which should
+be familiar to the reader from the introductory course in 
+computer architecture. These refers to dependent instructions
+that must receive special treatment when executing in a 
+pipeline---for example by stalling the pipeline or by forwarding 
+values between pipeline stages---because otherwise their execution
+might be improperly reordered in a way that contradicts the
+semantics of the program.   
+
+\begin{lstlisting}[mathescape=true]
+-- True Dependency   |  Anti Dependency  |  Output dependency
+--       RAW         |        WAR        |        WAW
+S1:   X  = ..        |  S1:   .. = X     |  S1:   X = ...            
+S2:   .. = X         |  S2:   X  = ..    |  S2:   X = ...
+\end{lstlisting}\vspace{-2ex}
+
+The possible data hazards are depicted in the code above between
+two statements {\tt S1} and {\tt S2}, which reside for simplicity
+in the same basic block---a straight-line of three-address code, 
+which is always entered by the first statement and is exited after 
+the execution of the last statement. 
+\begin{itemize}
+    \item[RAW:] refers to the case when a write to a register or
+        memory location is followed, in program order, by a read
+        from the same register or memory location; this is typically
+        referred to as a read-after-write hazard in hardware-architecture
+        nomenclature, and as a \emph{true} dependency in loop-based analysis
+        nomenclature. The word \emph{true} refers to the fact that such 
+        a dependency denotes a producer-consumer relation, in which
+        the value produced by {\tt S1} is used in {\tt S2}. The 
+        producer-consumer relation is an algorithmic property of the 
+        program; such a dependency cannot be eliminated other than 
+        by changing the underlying algorithm.
+    \item[WAR:] refers to the case when a read from a register or
+        memory location is followed, in program order, by a write to
+        the same register of memory location; this is referred to
+        as a write-after-read hazard, and equivalently as an
+        \emph{anti} dependency. The problem here is that, if the
+        two statements are reordered---meaning {\tt S2} executes
+        before {\tt S1}, then the value needed by {\tt S1} is no
+        longer available because it has been already overwritten
+        by {\tt S2}.
+    \item[WAW:] refers to the case when a write from a register or
+        memory location is followed, in program order, by another
+        write to the same register or memory location; this is
+        referred to as a write-after-write hazard, and equivalently 
+        as an \emph{output} dependency. The problem here is that, 
+        if the two statements are reordered---meaning {\tt S2} executes
+        before {\tt S1}, then the final value stored in register 
+        or memory location is that of {\tt S1} rather than that of 
+        {\tt S2}.
+\end{itemize}
+
+In what parallelism or loop analysis is concerned, we are primarily
+interested in analyzing the (true, anti and output) \emph{dependencies 
+that occur across different iterations of the loop}. For example such
+a true dependency would correspond to the case in which an early
+iterations {\tt i} writes/produces an array location that is 
+subsequently read/consumed in a later iteration {\tt j > i}.
+
+In what parallelization is concerned, the main limiting factor 
+are the true dependencies---which correspond to an algorithmic 
+property---because the anti and output dependencies can be 
+typically eliminated by various techniques, which will be
+reviewed at a later time. 
+
+\subsubsection{Loop Notation and Lexicographic Ordering of Iterations in a Loop Nest}
+$\mbox{ }$\\
+
+In the following we will write loop nests using the \lstinline{do}-loop
+notation, inspired from Fortran:
+\begin{lstlisting}[mathescape=true]
+do i = low_bound, high_bound, stride
+    ... loop body ...
+enddo
+\end{lstlisting}\vspace{-2ex}
+because Fortran \lstinline{do} loops have the property that 
+the loop index {\tt i} cannot the modified inside the loop. As
+such the first iteration uses {\tt i = low\_bound}, the second
+iteration uses {\tt i = low\_bound + stride}, the third uses
+{\tt i = low\_bound + 2*stride}, and so on, for as long as 
+{\tt i $\leq$ high\_bound}. When the stride is one, one may
+use the abbreviation \lstinline{do i = low_bound, high_bound}.
+
+In the following we will also assume that iterations in a loop 
+nest are represented by a vector, in which iterations numbers 
+are written down from the corresponding outermost to the innermost
+loop in the nest, and are ordered \emph{lexicographically}---i.e., 
+are ordered consistently with the order in which they are executed 
+in the (sequential) program. This means that in the loop nest below:
+\begin{lstlisting}[mathescape=true]
+do i = 0, N-1
+  do j = 0, M-1
+    ... loop-nest body ...
+  enddo
+enddo
+\end{lstlisting}\vspace{-2ex}
+iteration {\tt$\overline{k}$=(i=2,j=4)} is smaller than iteration 
+{\tt$\overline{l}$=(i=3,j=3)} (i.e., $\overline{k} < \overline{l}$),
+because the second iteration of the outer loop is executed before
+the third iteration of the outer loop, no matter what the iteration
+numbers are executed for the inner loop (of index {\tt j}). 
+In essence the iteration numbers of inner loops are only used to 
+discriminate the order in the cases in which all the outer-loop
+iterations are equal, for example 
+{\tt$\overline{k}$=(i=3,j=3) $<$ $\overline{l}$=(i=3,j=4)}
+
+\newpage
+\subsubsection{Dependency Definition}
+$\mbox{ }$\\
+
+The precise definition of a dependency between two statements
+located inside a loop nests is given below.
+
+\begin{mydef}[Loop Dependency]\label{Loop-Dep}
+$\mbox{ }$\\
+There is a dependency from statement $S_1$ to statement $S_2$
+in a loop nest {\em if and only if} there exists loop-nest
+iterations $\vec{k}$, $\vec{l}$ such that $\vec{k} \leq \vec{l}$ 
+and there exists an execution path from statement $S1$ to 
+statement $S2$ \emph{such that:}
+\begin{description}
+    \item[1.] $S1$ accesses some memory location $M$ in iteration $\vec{k}$, and
+    \item[2.] $S2$ accesses the same memory location $M$ in iteration $\vec{l}$, and
+    \item[3.] one of these accesses is a write.
+\end{description}
+In such a case, we say that $S_1$ is the \emph{source} of the dependence,
+and that S2 is the \emph{sink} of the dependence, because $S_1$ is supposed
+to execute before $S_2$ in the sequential program execution.\\
+Dependencies can be visually depicted by arrows pointing from the source
+to the sink of the dependence.
+\end{mydef}
+
+The definition basically says that in order for a dependency to exist,
+there must be two statements that access \emph{the same memory location} 
+and one of the accesses must be a write---because a two read instructions
+to the same memory location does not produce a data hazard on any 
+architecture that we are aware of. The nomenclature denotes the statement 
+that executes first in the program order as \emph{the source} and the 
+other as \emph{the sink} of the dependency. We represent a dependency 
+graphically with an arrow pointing from the source to the sink. 
+
+Optimizations aimed at optimizing instruction-level parallelism 
+(ILP)---meaning eliminating as much as possible the stalls from
+processor's pipeline execution---typically rely on intra-iteration
+analyses (i.e., $\ov{k}=\ov{l}$).   Higher-level optimizations,
+such as detection of loop parallelism, are mostly concerned with
+analyzing inter-iteration dependencies (i.e., $\ov{k}\neq\ov{l}$).
+For example the main aim could be to disprove the existence of inter-iteration
+dependencies, such that different iterations may be scheduled 
+out of order (in parallel) on different cores, while the body of an 
+iteration is executed sequentially on the same core. As such, 
+intra-iteration dependencies are trivially preserved, hence are
+not very interesting in such a context.
+
+\subsubsection{Aggregating Dependencies by Means of Direction Vectors}
+$\mbox{ }$\\
+
+Assume the three loops presented in \cref{fig:data-dep-running-eg}, which
+will be used as running example to demonstrate data-dependency analysis and
+related transformations. We make the important observation that the code
+is not in three-address code (TAC) form: a statement such as 
+{\tt A[j,i] = A[j,i] + 3} would correspond to three TAC or hardware 
+instructions: one that loads from memory {\tt tmp1 = A[j,i]}, followed 
+by one that performs the arithmetic operation {\tt tmp2 = tmp1 + 3}, 
+followed by one that writes to memory {\tt A[j,i] = tmp2}. Analysis 
+should semantically be carried out (reasoned) on TAC form but, for brevity,
+our analysis (and also compiler analysis) will be carried out at
+the statement level.
+%---however please remember that such a statement 
+%is actually a composition of three hardware instructions! 
+A human may start analyzing dependencies:
+\begin{itemize}
+    \item by depicting the iteration space in a rectangle in which the $x$ 
+        axis and $y$ axis correspond to iteration numbers of the inner 
+        loop $j$ and outer loop $i$, respectively, and 
+    \item then by reasoning point-wise about what dependencies may 
+        happen between two iterations.
+\end{itemize}  
+
+\begin{figure}
+\begin{lstlisting}[mathescape=true]
+do i = 0, N-1       | do i = 1, N-1           | do i = 1, N-1
+  do j = 0, N-1     |   do j = 1, N-1         |   do j = 0, N-1 
+$S_1:$ A[j,i]=A[j,i]... | $S_1:$ A[j,i]=A[j-1,i-1]... | $S_1:$ A[i,j] =
+  enddo             | $S_2:$ B[j,i]=B[j-1,i  ]... |       A[i-1,j+1]...
+enddo               |   enddo                 |   enddo
+                    | enddo                   | enddo
+--   (a)            |          (b)            |        (c)        
+\end{lstlisting}\vspace{-4ex}
+\caption{Three Simple Running Code Examples that will be used to demonstrate data-dependency analysis and related transformation.}
+\label{fig:data-dep-running-eg}
+\end{figure}
+
+\begin{figure}
+\includegraphics[width=90ex]{Figures/L5/LoopDeps}
+\caption{Graphical representation of the dependencies for the three running examples shown in \cref{fig:data-dep-running-eg}; the $x$ and $y$ axis correspond to the index of the inner and outer \lstinline{do} loop, respectively.}
+\label{fig:dep-graph}
+\end{figure} 
+
+A graphical representation of the dependencies of the three running code
+examples is shown in \cref{fig:dep-graph}.   They can be intuitively inferred 
+as follows:
+\begin{itemize}
+    \item For the loop in \cref{fig:data-dep-running-eg}(a), different
+loop-nest iterations $(i_1,j_1)$ and $(i_2,j_2)$ necessarily read and write 
+different array elements {\tt A[$j_1,i_1$]} and {\tt A[$j_2,i_2$]}.
+This is because the assumption was that $(i_1,j_1) \neq (i_2,j_2)$, 
+hence it cannot be that both $i_1 = i_2$ and $j_1 = j_2$. As such,
+the representation of dependencies should be a set of points (no arrows), 
+meaning that all dependencies actually occur inside the same 
+iteration---in fact they are anti intra-iteration dependencies (WAR) 
+because {\tt A[j,i]} is read first and then {\tt A[j,i]} is written 
+inside the same iteration.
+    \item For the loop in \cref{fig:data-dep-running-eg}(b) we reason
+        individually for statements $S_1$ and $S_2$ because each
+        statement accesses (one) array {\tt A} and {\tt B}, respectively:
+        \begin{itemize}
+            \item[$S_1:$] Let's take an iteration, say $(i_1=2, j_1=3)$,
+                which \emph{reads} element {\tt A[$j_1$-1,$i_1$-1] = A[2,1]}. 
+                Since an iteration $(i,j)$ always writes the element 
+                {\tt A[i,j]}, we can reason that iteration $(i_2=1, j_2=2)$ 
+                will \emph{write} the same element {\tt A[2,1]}. 
+                It follows that we have discovered a true (RAW) dependency, 
+                depicted in the figure with and arrow, from the source 
+                iteration $(i_2=1, j_2=2)$---which writes {\tt A[2,1]}---to 
+                the sink iteration $(i_1=2, j_1=3)$---which reads {\tt A[2,1]}. 
+                This is because iteration $(1,2) < (2,3)$ according to the 
+                lexicographical ordering, and as such, the read happens after 
+                the write (RAW) in program order. One can individually reason
+                for each point of the iteration space and fill it with oblique,
+                forward-pointing arrows denoting true dependencies between 
+                different instances of statement $S_1$ 
+                (executing in different iterations).
+            \item[$S_2:$] Following a similar rationale, iteration $(i_1=2, j_1=3)$
+                \emph{reads} element {\tt B[$j_1$-1,$i_1$] = B[2,2]}, and 
+                iteration $(i_2=2, j_2=2)$ \emph{writes} element {\tt B[2,2]}.
+                It follows that we have discovered a true (RAW) dependency
+                with source $(i_2=2, j_2=2)$ and sink $(i_1=2, j_1=3)$,
+                because $(2,2) < (2,3)$ in lexicographic ordering.
+                Since $i_1=i_2$ we depict the arrow parallel with the
+                horizontal axis (that depicts values of $j$). One can
+                fill in the rest of the iteration space with horizontal arrows. 
+        \end{itemize}
+
+    \item For the loop in \cref{fig:data-dep-running-eg}(c) we reason in
+        a similar way: take iteration $(i_1=2, j_1=3)$ that \emph{reads}
+        element {\tt A[2-1,3+1] = A[1,4]}. This element is \emph{written}
+        by iteration $(i_2=1,j_2=4)$. It follows that we have discovered
+        a true (RAW) from source $(i_2=1,j_2=4)$ to sink 
+        $(i_1=2, j_1=3)$---because the read happens in iteration $(2,3)$
+        which comes after the write in iteration $(1,4)$,
+        i.e., $(1,4) < (2,3)$.  Thus, one can fill in the iteration
+        space with oblique, backward-pointing arrows, denoting true dependencies
+        between instances of $S_1$ executing in different iterations.
+\end{itemize}
+
+We have applied above a human type of reasoning and, as a result, we
+have a graphical representation of all dependencies. However, such a reasoning
+is not suitable for compiler-based automation because (i) the loop counts
+are statically unknown---they depend on the dataset---hence one cannot 
+possibly represent an arbitrary large iteration space, and, more importantly,
+(ii) even if the loop counts would be statically known it is still inefficient 
+to maintain and work with all this pointwise information. 
+
+A representation that promotes compiler reasoning should succinctly capture 
+the pattern that is multiplexed in the figure. Intuitively and imprecisely,
+for \cref{fig:data-dep-running-eg}(a) the pattern would correspond to a point,
+for \cref{fig:data-dep-running-eg}(b) it would correspond to two 
+arrows---one oblique and one horizontal forward pointing arrows---and
+for \cref{fig:data-dep-running-eg}(c) it would correspond to an
+oblique, backward-pointing arrow.
+%
+These patterns are formalized by introducing the notion of direction vectors,
+which are defined below.
+
+\begin{mydef}[Dependency-Direction Vector]\label{Dep-Dir-Vect}
+$\mbox{ }$\\
+Assume there exists a dependency with source $S1$ in iteration $\ov{k}$
+to sink $S2$ in iteration $\ov{l}$ ($\ov{k}\leq\ov{l}$).
+We denote by {\tt m} the depth of the loop nest, we use $i$ to range
+from {\tt $0,\ldots,$m-1}, and we denote by $x_i$ the $i^{th}$
+element of some vector $\ov{x}$ of length {\tt m}.
+
+The \emph{direction vector} between the instance of statement $S_1$ 
+executed in some source iteration $\ov{k}$and statement $S_2$ executed
+in sink iteration $\ov{l}$ is denoted by $\ov{D}(S_1\in\ov{k},S2\in\ov{l})$,
+and corresponds to a vector of length {\tt m}, whose elements are defined as:
+\[
+D_i(S_1\in\ov{k},S_2\in\ov{l})=
+    \begin{cases} 
+        \mbox{\tt<} \ \ \ \ \mbox{\tt if it is provably that} ~~k_i ~<~ l_i,\\
+        \mbox{\tt=} \ \ \ \ \mbox{\tt if it is provably that} ~~k_i ~=~ l_i,\\
+        \mbox{\tt>} \ \ \ \ \mbox{\tt if it is provably that} ~~k_i ~>~ l_i,\\
+        \mbox{\tt{}*} \ \ \ \ \mbox{\tt if}~k_i ~\mbox{\tt{}and}~ l_i~\mbox{are statically uncomparable.}\\
+    \end{cases}
+\]
+\end{mydef}
+
+The first three cases of the definition above assume that the ordering
+relation between $k_i$ and $l_i$ can be statically derived in a generic
+fashion (for any source $k_i$ and $l_i$); if this is not possible than 
+we use the notation {\tt *} which \emph{conservatively} assumes that any 
+directions may be possible---i.e., star should be understood as 
+simultaneous existence of all {\tt <, =, >} directions. For example,
+the loop
+\begin{lstlisting}[mathescape=true]
+do i = 0, N-1
+$S_1:$  A[ X[i] ] = ...
+enddo
+\end{lstlisting}\vspace{-2ex}
+would result in direction vector {\tt[*]} corresponding to a potential
+output dependency (WAW), because the write access to {\tt A[ X[i] ]} is 
+statically unanalyzable---for example under the assumption that 
+the indirect array {\tt X} is part of the dataset---and, as such, 
+all direction vectors may possibly hold between various pairs of 
+instances of statement $S_1$ executed in different iterations.
+
+We also remark that the symbols {\tt <, =, >} are \emph{not} connected at
+all to the type of the dependence, e.g., true (RAW) or anti (WAR) dependence. 
+The type of the dependence is solely determined by the operation of the
+source and that of the sink: If the source is a write statement and the 
+sink is a read then we have a true (RAW) dependency; if the source is a 
+read and the sink is a write then we have an anti (WAR) dependency;
+if both source and sink are writes then we have an output (WAW) dependency.  
+
+The meaning of the symbol {\tt>} at some position $i$ is that
+the source iteration at loop-level $i$ is greater than the sink
+iteration at loop-level $i$. This case is possible, for example
+the code in \cref{fig:data-dep-running-eg}(c) shows a dependence
+with source iteration $(1,4)$ and sink iteration $(2,3)$. At the
+level of the second loop, we have $4 > 3$ hence the direction
+is {\tt >} but still the source iteration is less than the sink
+iteration $(1,4) < (2,3)$ because of the first loop level.
+This observation leads to the following corollary:
+
+\begin{mycorol}[Direction Vector Legality]\label{Leg-Dir-Vect}
+$\mbox{ }$\\
+A direction vector is legal (well formed), if filtering out 
+the {\tt =} entries does \emph{not} result in a leading {\tt>}
+symbol. This would mean that a current iteration depends on
+a future iteration, but depending on a future event is (considered)
+impossible, and as such illegal.
+\end{mycorol}
+
+It remains to determine the sort of automatic reasoning 
+(think compiler reasoning) that can be applied to compute
+the direction vectors for the code examples in 
+\cref{fig:data-dep-running-eg}:
+\begin{description}
+    \item[\cref{fig:data-dep-running-eg}(a):] dependencies
+        can occur only between instances of statement $S_1$,
+        executed in different (or the same) iterations.
+        We recall that, by the definition of dependency,
+        the two (dependent) iterations must access the same 
+        element of {\tt A} and at least one iteration should 
+        perform a write. 
+        Since statement $S_1$ performs a read and a write to
+        elements of array {\tt A}, two kinds of dependencies
+        may occur:
+    \begin{description}
+        \item[WAW:] an output dependency may be caused by
+        two write accesses in two different iterations,
+        denoted $(i_1,j_1)$ and $(i_2,j_2)$. The written
+        element is thus {\tt A[j$_1$,i$_1$]}, which must
+        be the same as {\tt A[j$_2$,i$_2$]} for a dependency
+        to exist. This results in
+        the system of equations $\begin{cases}i_1 = i_2\\j_1 = j_2\end{cases}$
+        which leads to direction vector {\tt[=,=]}.
+        Hence, an output dependency from $S_1$ to $S_1$ 
+        happens in the same iteration, but statement $S_1$
+        executes only one write access in the same iteration.
+        The conclusion is that no output dependency can occur,
+        hence the direction vector is discarded.
+        \item[RAW:] a true or anti dependency---we do not 
+        know yet which---will be caused by the read access from 
+        {\tt A} and the write access to {\tt A} in different 
+        (or same) iterations. Remember that a statement such
+        as {\tt A[j,i] = A[j,i] + 3} actually corresponds to
+        three hardware instructions, hence either an inter- or
+        an intra-dependency will necessarily occur.
+        Assume some iteration $(i_1, j_1)$ reads from 
+        {\tt A[j$_1$,i$_1$]} and iteration $(i_2,j_2)$ 
+        writes to {\tt A[j$_2$,i$_2$]}.
+        In order for a dependency to exist, the memory location
+        of the read and write must coincide; this results
+        in the system of equations: 
+        $\begin{cases}i_1 = i_2\\j_1 = j_2\end{cases}$
+        from which we can derive the direction vector:
+        {\tt[=,=]}. This implies that the dependency happens
+        in the same iteration, hence it is an intra-dependency.
+        Furthermore, since the write follows the read in the
+        instruction order of an iteration, this is an anti 
+        dependency (WAR).
+    \end{description}
+    \item[\cref{fig:data-dep-running-eg}(b):] dependencies
+        may possibly occur between instances of statement $S_1$
+        and between instances of statement $S_2$. The case of
+        output dependencies is disproved by a treatment similar
+        to the bullet above. It remains to examine the dependency
+        caused by a read and a write in different instances of
+        $S_1$ and $S_2$, respectively:
+    \begin{description}
+        \item[$S_1$:] assume iteration $(i_1,j_1)$ and iteration
+        $(i_2,j_2)$ reads from and writes to the same element of 
+        {\tt A}, respectively. Putting this in equation results in
+        the system: $\begin{cases}i_1-1 = i_2\\j_1-1 = j_2\end{cases}$,
+        which necessarily means that $i_1 > i_2$ and $j_1 > j_2$.
+        However, we do not know yet which iteration is the source
+        and which is the sink. Assuming that $(i_1, j_1)$ is the
+        source results in the direction vector {\tt[>,>]}, which is
+        illegal by \cref{Leg-Dir-Vect}, because a direction
+        vector cannot start with the {\tt>} symbol. If follows
+        that our assumption was wrong: $(i_2, j_2)$ is the source
+        and $(i_1, j_1)$ is the sink, which means that this is
+        a cross-iteration (inter-iteration) true dependency
+        (RAW)---because the sink iteration reads the element 
+        that was previously written by the source iteration---and
+        its direction vector is {\tt[<,<]}.
+        \item[$S_2$:] a similar rationale can be applied to
+        determine that two instances of $S_2$ generate
+        a true cross-iteration dependency (RAW), whose
+        direction vector is {\tt[=,<]}. In short, using the
+        same notation results in the system of equations  
+        $\begin{cases}i_1 = i_2\\j_1-1 = j_2\end{cases}$,
+        hence the source must be $(i_2,j_2)$ and the sink
+        must be $(i_1,j_1)$ and the direction vector is {\tt[=,<]}.
+    \end{description}
+    \item[\cref{fig:data-dep-running-eg}(c):] dependencies
+        may possibly occur between instances of statement $S_1$.
+        Assume iteration $(i_1,j_1)$ and $(i_2,j_2)$ reads from 
+        and writes to the same element of {\tt A}, respectively.
+        Putting this in equation results in the system
+        $\begin{cases}i_1-1 = i_2\\j_1+1 = j_2\end{cases}$,
+        which necessarily imply that $i_1 > i_2$ and
+        $j_1 < j_2$. Choosing $(i_1,j_1)$ as the source
+        of the dependency results in direction vector
+        {\tt[>,<]}, which is illegal because it has
+        {\tt >} as the first non-{\tt=} outermost symbol,
+        as stated by \cref{Leg-Dir-Vect}. It follows that
+        $(i_1,j_1)$ must be the sink and $(i_2,j_2)$
+        must be the source, which results in the direction
+        vector {\tt[<,>]}, which is legal. Since the source 
+        writes and the sink reads, then we deal with a true 
+        dependency (RAW). 
+        Moreover since the direction vector
+        indicates that the source iteration is strictly 
+        less than the sink iteration, this is also a
+        cross-iteration dependency.
+\end{description}
+
+\begin{mydef}[Dependency-Direction Matrix]\label{Dep-Dir-Mat}
+A direction matrix is obtained by stacking together the
+direction vectors of all the intra- and cross-iteration
+dependencies of a loop nest (i.e., between any possible
+pair of write-write or read-read instruction instances).
+\end{mydef}
+
+In conclusion the direction matrices for the three running
+code examples in \cref{fig:data-dep-running-eg} are:
+\begin{description}
+    \item[(a):] $\begin{cases}\mbox{\tt [=,=]}\end{cases}$
+    \item[(b):] $\begin{cases}\mbox{\tt[<,<]}\\\mbox{\tt[=,<]}\end{cases}$
+    \item[(c):] $\begin{cases}\mbox{\tt[<,>]}\end{cases}$
+\end{description}
+The following section will show how the legality of powerful code
+transformations can be reasoned in a simple way in terms of 
+direction vectors/matrices.
+ 
+
+\subsection{Determining Loop Parallelism by Analyzing Direction Vectors}
+\label{subsec:loop-par}
+
+\subsection{Loop Interchange: Legality and Applications}
+\label{subsec:loop-interch}
+
+\subsection{Loop Distribution: Legality and Applications}
+\label{subsec:loop-distrib}
+
+\subsection{Loop Stripmining, Block and Register Tiling}
+\label{subsec:strip-tiling}
+
+\subsection{Application: Tiled Transposition for GPU Hardware}
+\label{subsec:transp}
+
+\subsection{Application: Block Tiling for Matrix-Matrix Multiplication}
+\label{subsec:block-mmm}
+
+\subsection{Exercise: Block and Register Tiling for Matrix-Matrix Multiplication}
+\label{subsec:block-reg-tiled-mmm}
 
 \newpage
 %% Bibliography
