@@ -714,7 +714,7 @@ In result, the elements satisfying the predicate occur before the others.
 \column{0.59\textwidth}
   \lstset{basicstyle=\scriptsize}
   \begin{lstlisting}
-let parFilter [n] (X : [n]i32) : 
+let partition2 [n] (X : [n]i32) : 
               ([n]i32, [n]i32) =
  let cs = map cond X
  let tfs= map (\ f->if f then 1 
@@ -734,26 +734,6 @@ let parFilter [n] (X : [n]i32) :
  in (scatter (replicate n 0) inds X, flags)
 \end{lstlisting}
   \lstset{basicstyle=\small}
-%\begin{colorcode}[fontsize=\scriptsize]
-%parFilter :: (a->Bool) -> [a] -> ([a], [Int])
-%parFilter cond X = 
-%let n   = length arr
-%    cs  = map cond X
-%    tfs = map (\mymath{\backslash}f->if f then 1 
-%                        else 0) cs
-%    isT = scan\mymath{\myindu{inc}} (+) 0 tfs
-%    i   = last isT
-%
-%    ffs = map (\mymath{\backslash}f->if f then 0 
-%                        else 1) cs
-%    isF = (map (+ i) . scan\mymath{\myindu{inc}} (+) 0) ffs
-%
-%    inds= map (\mymath{\backslash} (c,iT,iF) -> 
-%                  if c then iT-1 else iF-1 ) 
-%              (zip3 cs isT isF)
-%    flags = write [0,i] [i,n-i] (replicate n 0)
-%in  (permute X inds, flags)
-%\end{colorcode}
 \column{0.4\textwidth}\vspace{-2ex}
 \begin{colorcode}[fontsize=\scriptsize]
 Assume X = [5,4,2,3,7,8], and 
@@ -853,26 +833,6 @@ let main (n : i32) : []i32 =
   \end{lstlisting}
 \lstset{basicstyle=\small}
 %
-%\begin{colorcode}[fontsize=\scriptsize]
-%primes :: Int -> [Int]
-%primes n = 
-%  let a = map (\mymath{\backslash}i -> if i==0 || i==1
-%                     then 0
-%                     else 1 ) [0..n]
-%      sqrtN = floor (sqrt (fromIntegral n))
-%  in  primesHelp 2 n sqrtN a
-%  where
-%    primesHelp :: Int -> Int -> Int 
-%               -> [Int] -> [Int]
-%    primesHelp i n sqrtN a = 
-%      if i > sqrtN then a
-%      else let m    = (n `div` i) - 1
-%               inds = \emph{map (\mymath{\backslash}k -> (k+2)*i)} 
-%                          \emph{[0..m-1]} --(iota m)
-%               vals = \emph{replicate m 0}
-%               a'   = \emph{write inds vals a}
-%           in  primesHelp (i+1) n sqrtN a'
-%\end{colorcode}
 \column{0.4\textwidth}
 \vspace{-2ex}
 \begin{colorcode}[fontsize=\scriptsize]
@@ -928,8 +888,8 @@ primesOpt n =
        not_primes  = \emph{reduce} (++) [] nested
        mm = length not_primes
        zeros = \emph{replicate} mm False 
-       prime_flags= \emph{write} not_primes zeros 
-                    \emph{(replicate} (n+1) True)
+       prime_flags=\emph{scatter}\emph{(replicate} (n+1) True) 
+                            not_primes zeros 
        (primes,_)= unzip $ \emph{filter} (\mymath{\backslash}(i,f)->f) 
                     $ (zip [0..n] prime_flags)
    in drop 2 primes
@@ -1118,14 +1078,14 @@ map (\mymath{\backslash}(n,m) -> replicate n m) \emp{[(1,7),(3,8),(2,9)]} \mymat
 \bigskip
 \pause
 
-\blue{\bf becomes a composition of scans and write:}
+\blue{\bf becomes a composition of scans and scatter:}
 \bigskip
 
 \begin{colorcode}[fontsize=\scriptsize]
 1. (ns, ms)  = unzip([(1,7), (3,8), (2,9)]      -- ([1,3,2], [7,8,9])
 2. inds = scan\mymath{\myindu{exc}} (+) 0 ns                       -- [0,1,4]
 3. size = (last inds) + (last ns)               -- 4 + 2 = 6
-5. flag = write inds  ms  (replicate size 0)    -- [7, 8, 0, 0, 9, 0]
+5. flag = scatter (replicate size 0) inds  ms   -- [7, 8, 0, 0, 9, 0]
 6. sgmScan\mymath{\myindu{inc}} (+) 0 flag \emp{flag}                    \emph{-- [7, 8, 8, 8, 9, 9]}
 \end{colorcode}
 
@@ -1155,7 +1115,7 @@ map (\mymath{\backslash}i -> iota i) \emp{[1,3,2]} \mymath{\equiv}
 \medskip
 \pause
 
-\blue{\bf becomes a composition of scans and write:}\\
+\blue{\bf becomes a composition of scans and scatter:}\\
 Note that {\tt iota n $\equiv$ scan$^{exc}$ (+) 0 (replicate n 1)}
 
 \medskip
@@ -1164,10 +1124,10 @@ Note that {\tt iota n $\equiv$ scan$^{exc}$ (+) 0 (replicate n 1)}
 1. arr  = [1, 3, 2]
 2. inds = scan\mymath{\myindu{exc}} (+) 0 arr         -- [0,1,4]
 3. size = (last inds) + (last arr) -- 4 + 2 = 6
-4. flag = write inds  -- \emp{[0,1,4]}
-                arr   -- \emp{[1,3,2]}
-                (replicate size 0)
---              [1, 3, 0, 0, 2, 0]
+4. flag = scatter (replicate size 0)
+                  inds  -- \emp{[0,1,4]}
+                  arr   -- \emp{[1,3,2]}
+--                [1, 3, 0, 0, 2, 0]
 5. \emp{tmp  = replicate size 1  --[1, 1, 1, 1, 1, 1]}
 6. sgmScan\mymath{\myindu{exc}} (+) 0 flag \emp{tmp} \emph{--[0, 0, 1, 2, 0, 1]}
 \end{colorcode}
@@ -1206,12 +1166,12 @@ map(\mymath{\backslash}x -> if (odd x)  then f x  -- assume f is *2
 
 \begin{colorcode}[fontsize=\scriptsize]
 1. ais = zip arr (iota (length arr))      -- [(3,0), (4,1), (6,2), (7,3)]
-2. (ais',flg)=\emp{parFilter}(\mymath{\backslash}(x,_)->odd x) ais--([(3,0),(7,3),(4,1),(6,2)],[2,0,2,0])
+2. (ais',flg)=\emp{partition2}(\mymath{\backslash}(x,_)->odd x) ais--([(3,0),(7,3),(4,1),(6,2)],[2,0,2,0])
 3. (ais\mymath{\myindu{t}},ais\mymath{\myindu{f}}) = split flg[0] ais'        --([(3,0),(7,3)], [(4,1),(6,2)])
 4. (arr\mymath{\myindu{t}},inds\mymath{\myindu{t}}) = unzip ais\mymath{\myindu{t}}                 --([3,7], [0,3])
 5. (arr\mymath{\myindu{f}},inds\mymath{\myindu{f}}) = unzip ais\mymath{\myindu{f}}                 --([4,6], [1,2])
 6. (arr\mymath{\myindu{then}},arr\mymath{\myindu{else}}) = (\emph{map f arr\mymath{\myindu{t}}, map g arr\mymath{\myindu{f}}}) --([6,14], [3,5])
-7. result = \purple{write inds\mymath{\myindu{f}} arr\mymath{\myindu{else}} (write inds\mymath{\myindu{t}} arr\mymath{\myindu{then}} [0,\mymath{\ldots},0])} --[6, 3, 5, 14]
+7. result = \purple{scatter (scatter [0,\mymath{\ldots},0] inds\mymath{\myindu{t}} arr\mymath{\myindu{then}}) inds\mymath{\myindu{f}} arr\mymath{\myindu{else}}} --[6, 3, 5, 14]
 \end{colorcode}
 
 \bigskip
@@ -1252,8 +1212,6 @@ map (\mymath{\backslash}x -> reduce + 0 x) arr
 6. sc_arr = \emp{sgmScan\mymath{\myindu{inc}}} (+) 0 flags arr -- [1, 4, 8, 6, 13]
 7. res    = map (\mymath{\backslash} ip1 -> sc_arr[ip1-1]) indsp1
 \end{colorcode}
-
-\alert{By convention, if the index is out of range (e.g., -1) write does not update that element.}
 
 \end{frame}
 
@@ -1320,9 +1278,9 @@ and modify the inputs (results) accordingly.
 
 inds = scan\mymath{\myindu{exc}} (+) 0 arr -- [0,1,3,6]
 size = (last inds) + (last arr) -- 6 + 4 = 10
-flag = write inds arr 
-             (replicate size 0)
---           [1, 2, 0, 3, 0, 0, 4, 0, 0, 0]
+flag = scatter (replicate size 0) 
+               inds arr
+--             [1, 2, 0, 3, 0, 0, 4, 0, 0, 0]
 tmp  = replicate size 1
 iots = sgmScan\mymath{\myindu{exc}} (+) 0 flag \emp{tmp} \emph{--[0, 0, 1, 0, 1, 2, 0, 1, 2, 3]}
 \end{colorcode}
@@ -1341,8 +1299,8 @@ iots = sgmScan\mymath{\myindu{exc}} (+) 0 flag \emp{tmp} \emph{--[0, 0, 1, 0, 1,
 \begin{colorcode}
 3. let ip1rs= \mymath{\mathcal{F}}(map (\mymath{\backslash}(i,ip1) -> replicate i ip1) (zip arr ip1s)))
 \mymath{\equiv}
-vals = write inds  ip1s (replicate size 0) -- [2, 3, 0, 4, 0, 0, 5, 0, 0, 0]
-ip1rs= sgmScan\mymath{\myindu{inc}} (+) 0 flag \emp{vals}           \emph{-- [2, 3, 3, 4, 4, 4, 5, 5, 5, 5]}
+vals = scatter (replicate size 0) inds  ip1s -- [2, 3, 0, 4, 0, 0, 5, 0, 0, 0]
+ip1rs= sgmScan\mymath{\myindu{inc}} (+) 0 flag \emp{vals}             \emph{-- [2, 3, 3, 4, 4, 4, 5, 5, 5, 5]}
 \end{colorcode}
 
 \bigskip
@@ -1412,35 +1370,6 @@ not_primes  = \emph{reduce} (++) [] nested               \blue{-- ignore, alread
 
 \end{frame}
 
-
-%\begin{frame}[fragile,t]
-%  \frametitle{Flattened Prime-Number (Sieve) Computation}
-%
-%\begin{colorcode}[fontsize=\scriptsize]
-%sqrt_primes = primesOpt (sqrt (fromIntegral n))
-%
-%\emph{ms   = map (\mymath{\backslash}p -> n `div` p) sqrt_primes}
-%\emph{mm1s = map (-1) ms}
-%
-%\emp{inds = sgmScan\mymath{\myindu{exc}} (+) 0 mm1s}
-%\emp{size = (last inds) + (last mm1s)}
-%\emp{flag = write inds nm1s (replicate size 0)}
-%\emp{tmp0 = replicate size 1}
-%\emp{iots = sgmScan\mymath{\myindu{exc}} (+) 0 flag tmp0}
-%
-%\emph{twoms= map (+2) iots}
-%
-%\purple{tmp1 = write inds sqrt_primes (replicate size 0)}
-%\purple{rps  = sgmScan\mymath{\myindu{inc}} (+) 0 flag tmp0}
-%
-%\emph{nested= map (\mymath{\backslash}(j,p) -> j*p) (zip twoms rps)} -- flag array
-%
-%-- nested is already flattened, hence (\emph{reduce} (++) [] nested) has no effects
-%not_primes  = nested 
-%\end{colorcode}
-%
-%\end{frame}
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1487,7 +1416,7 @@ nestedQuicksort arr =
 \blue{\bf Key Idea: write a function with the semantics of}\\
 \blue{\tt map nestedQuicksort}, i.e., it operates on array of arrays,
  and, for simplicity, use
-{\tt parFilter :: $(\alpha\rightarrow Bool)\rightarrow[\alpha]\rightarrow([\alpha],[Int])$}.
+{\tt partition2 :: $(\alpha\rightarrow Bool)\rightarrow[\alpha]\rightarrow([\alpha],[Int])$}.
 
 \bigskip
 
@@ -1498,7 +1427,7 @@ quicksort\mymath{\myindu{lift}} arrofarrs =
           if  \alert{(length arr) < 2} then arr else \purple{-- \mymath{\mathcal{F}} rule 6}
           let i  = getRand (0, (length arr) - 1)
               a  = arr !! i
-              (s, flag) = \emp{parFilter} (<a) arr
+              (s, flag) = \emp{partition2} (<a) arr
               (s1, s2)  = split flag[0] s
               \alert{rs = quicksort [s1, s2]}
           in  (rs !! 0) ++ (rs !! 1)
@@ -1527,7 +1456,7 @@ What should the result be of distributing the \alert{\tt map} over\\ \alert{\tt 
             (expressed as a map-reduce composition);\medskip
     \item Distributing the puter \alert{\tt map} over \alert{\tt rs = quicksort [s1,s2]}
             results in \emphh{quicksort\mymath{\myindu{lift}}},
-    \item \alert{The difficult step} is to flatten {\tt map (parFilter)}.
+    \item \alert{The difficult step} is to flatten {\tt map (partition2)}.
 \end{itemize}
 
 \end{frame}
