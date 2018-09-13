@@ -922,7 +922,7 @@ all$_p$ (x ++ y) = (all$_p$ x) && (all$_p$ y)
             {\tt $\{$true, false$\}$} and the logical-and operator (\lstinline{&&}).
             Further intuitive confirmation is given by the fact
             that if {\tt all$_p$ []} is chosen \lstinline{false}
-            then the the function {\tt all$_p$} is ill-defined,
+            then the function {\tt all$_p$} is ill-defined,
             in that it can generate two different results for the same
             input. For example, assume \lstinline{p x = x > 3}. Then 
             {\tt all$_p$ [5, 6]} should result in \lstinline{true}
@@ -1452,7 +1452,7 @@ sequence whose sum is $0$ is \emph{not} expressible as a list
 homomorphism.
 
 It turns our that if we restrict the predicate to have a certain
-shape, than all such predicates allow a list-homomorphic implementation.
+shape, then all such predicates allow a list-homomorphic implementation.
 The shape of the restricted predicate is:
 
 \begin{lstlisting}[mathescape=true]
@@ -1481,7 +1481,7 @@ sorted [x]   = true
 sorted [x,y] = (x <= y)
 \end{lstlisting}\vspace{-2ex}
 
-Now that we finally defined what a LSS problem is, it remains the reason about
+Now that we finally defined what a LSS problem is, it remains to reason about
 what should be the baggage of extra information that would allow us to lift a 
 LSS problem to accept a list-homomorphic implementation. The rational is
 somewhat similar to the one for maximal segment sum, but with several additions:
@@ -1497,7 +1497,7 @@ somewhat similar to the one for maximal segment sum, but with several additions:
             across the two sublists---it is not guaranteed that the spanning 
             segment satisfies the predicate; this must be explicitly checked! 
             For example, if the elements of some lists $x$ and $y$ are in 
-            sorted order, this does not means the the list obtained by 
+            sorted order, this does not means the list obtained by 
             concatenating $x$ with $y$ has elements in sorted order: 
             {\tt (sorted l$_1$) \&\& (sorted $l_2$) $\not\Rightarrow$ sorted ($l_1$++$l_2$)}.  
             
@@ -1610,7 +1610,7 @@ This section is organized as follows:
 
 This section starts by presenting Amdahl's law as a way to
 motivate why it is necessary to write programs as if the
-hardware provides an infinity number of cores. We then
+hardware provides an infinite number of cores. We then
 briefly present a simplified and idealized parallel hardware 
 (PRAM) that is used to introduce the notion of work and depth 
 complexity of a (nested) parallel program. 
@@ -1713,7 +1713,7 @@ for example threads might need to communicate and communication
 is expensive. One can observe that the Amdahl's law is unforgiving:
 the figure uses $F=95$, which corresponds to $95\%$ of the runtime
 being run in parallel; still the speedup is limited to $20\times$,
-no matter how many cores you through at it.
+no matter how many cores you throw at it.
 
 The moral of the parallel case is different than the one for the
 general hardware improvement. We do not advocate to bound/restrict 
@@ -1844,7 +1844,7 @@ $n$ elements, which is summed up using $\frac{n}{2}$ processors:
             sizes,
             \item[(2)] then processing each subarray \emph{sequentially} on a 
             different processor, but \emph{in parallel} across subarrays,
-            \item[(3)] the reducing the results of the $P$ subarrays
+            \item[(3)] then reducing the results of the $P$ subarrays
             in parallel by means of a reduction tree.
         \end{itemize}
             Step (1) and step (2) are fully parallel and take $O(n/P)$ time, 
@@ -1883,7 +1883,9 @@ in an intuitive way, by abstracting out the information depicted in
 a picture.   The question is: ``Can we also do this in a systematical
 way for an arbitrary code?'' It turns out the answer is positive,
 as demonstrated by the following analysis of the low-level (imperative)
-pseudocode presented in \cref{fig-red-imp-pseudo}. The analysis
+pseudocode presented in \cref{fig-red-imp-pseudo}. The pseudocode
+uses \lstinline{for} and \lstinline{forall} to denote a sequential and
+a parallel loop, respectively. The analysis
 proceeds bottom-up, by which we mean that we go in-order across
 constructs at the same level and innermost-to-outermost in
 nests:
@@ -2096,8 +2098,8 @@ In the following, we will explain the code:
                         \lstinline{\i -> unsafe (b[2*i]+b[2*i+1]}.
                     \end{itemize}
                     Please note that the Futhark implementation differs from the
-                    imperative-pseudocode shown in \cref{fig-red-imp-pseudo} in that
-                    each iteration of the Futhark look computes an array result
+                    imperative pseudocode shown in \cref{fig-red-imp-pseudo} in that
+                    each iteration of the Futhark loop computes an array result
                     of half the size of the input {\tt b}: iterations {\tt h=0},
                     {\tt h=1} and {\tt h=k-1} result in arrays of length 
                     $n' = \frac{n}{2^1}$, $n' = \frac{n}{2^2}$ and $n' = \frac{n}{2^k}=\frac{n}{n}=1$,
@@ -2299,7 +2301,7 @@ the indices of an arrays, where the updated indices do not necessarily
 follow any regular pattern, i.e., think parallel random writes.
 Its type is:\\
 \lstinline{scatter}{\tt : $\Pi$ n. *[n]$\alpha~\to~\Pi$ m. [m]}\lstinline{i32}
-{\tt$\to$ [m]$\alpha$ $\to$ [n]$\alpha$}\\
+{\tt$\to$ [m]$\alpha$ $\to$ *[n]$\alpha$}\\
 which means that it receives as arguments a base array of length {\tt n},
 and two arrays of length {\tt m} holding the to-be-updated
 indices and corresponding values, respectively, and produces an array
@@ -2310,7 +2312,8 @@ important observations:
         array specifies that the array is going to be consumed---since
         the update is performed in place, it means that any following 
         reference to that array is \emph{illegal}! 
-    \item[(2)] Furthermore, the first input array cannot alias the other two 
+    \item[(2)] Furthermore, the first input (and the result) array cannot 
+        alias the other two 
         array arguments. This would not be necessary on a PRAM machine
         with an infinity number of cores that execute in SIMD fashion,
         but such hardware does not exist in practice.
@@ -2595,7 +2598,7 @@ whose binary associative operator combines two flag-value tuples:
         necessary in order to propagate the start-of-a-segment flag,
         because parallel execution may proceed in a different order
         than the sequential execution. 
-    \item We leave as exercised to verify that the scan's operator is 
+    \item We leave as an exercise to verify that the scan's operator is 
         associative, i.e.,\\
         {\tt ((x\_flag,x) $\odot$ (y\_flag,y)) $\odot$ (z\_flag,z)} equals\\
         {\tt (x\_flag,x) $\odot$ ((y\_flag,y) $\odot$ (z\_flag,z))},
@@ -2628,7 +2631,7 @@ The answer is positive!
 In the following we will derive the implementation of a slightly more complicated 
 construct than filter, named \lstinline{partition}, which has type:
 \begin{lstlisting}[mathescape=true]
-partition : ($\alpha~\to~$bool) $\to$ $\Pi$ n. [n]$\alpha$ $\to$ ([n]$\alpha$,i32) 
+partition2 : ($\alpha~\to~$bool) $\to$ $\Pi$ n. [n]$\alpha$ $\to$ ([n]$\alpha$,i32) 
 \end{lstlisting}\vspace{-2ex}
 Partition is similar to \lstinline{filter}, in that it receives
 as arguments a predicate and an input array, but it returns
@@ -2700,7 +2703,8 @@ the code on an example. The implementation proceeds as follows:
             (and {\tt cs}) by means of a \lstinline{map3} operator.
     \item Finally, the \lstinline{scatter} operator is used to
             permute the array by {\tt inds}, and the result is
-            written in a new array created by \lstinline{replicate}.
+            written in the new, uninitialized array created by 
+            \lstinline{scratch}.
     \item The result is the permuted array, tupled with integer {\tt i},
             which denotes the number of elements that have succeed 
             under the predicate.
@@ -2773,7 +2777,7 @@ of a {\tt m$\times$n} matrix (where {\tt m=5} and {\tt n=4}):
         element is not the same across all rows. 
     \item[(c)] the flat sparse representation corresponds to a triplet
         of shape, flag and value arrays. The shape array has size {\tt m}
-        and holds the the number of non-zero elements on each row. The
+        and holds the number of non-zero elements on each row. The
         flag and value arrays are unidimensional (flat) and their length
         is equal to the total number of non-zero elements of the matrix.
         The latter are stored in the value array, while the flag array
@@ -3142,7 +3146,7 @@ of work across threads may be very unbalanced.
 
 More important, a big class of highly-parallel hardware, such as
 GPUs support only very limited forms of recursion and dynamic
-parallelism, if at all! Morally, the hyardware execution is organized 
+parallelism, if at all! Morally, the hardware execution is organized 
 on one (or maybe two) flat-parallel levels---for example, on GPUs 
 one typically exploits grid-level parallelism, and occasionally
 block-level parallelism, which allows threads within a block-group
@@ -3248,10 +3252,10 @@ can be represented
 mkFlagArray [m] (aoa_shp: [m]i32) : []i32 =
   let aoa_shp'= filter (>0) aoa_shp         -- aoa_shp'= [3,1,4,2]
   let shp_scn = scan (+) 0 aoa_shp'         -- shp_scn = [3,4,8,10]
-  let aoa_len = shp_ind[m-1]                -- aoa_len = 10
+  let aoa_len = shp_scn[m-1]                -- aoa_len = 10
   let shp_ind =                             -- shp_ind = [0,3,4,8]
     map (\i -> if i==0 then 0     -- scatter [0,0,0,0,0,0,0,0,0,0]
-               else shp_ind[i-1]  --         [0,3,4,8]
+               else shp_scn[i-1]  --         [0,3,4,8]
         ) (iota m)                --         [1,1,1,1]
   in scatter (replicate aoa_len 0)--------------------------------
              shp_inds (replicate m 1)-- res= [1,0,0,1,1,0,0,0,1,0] 
@@ -3317,12 +3321,12 @@ can be simply achieved by recording $k-1$ shape arrays,
 i.e., one for each outer dimension.
 For example, the three-dimensional array
 {\tt [ [[1,2,3], [4,5], [6,7]], [[9], [8,7], [6], [5,4,3,2]] ]}
-is represented by the the shape arrays {\tt aoa\_shp0} and
+is represented by the shape arrays {\tt aoa\_shp0} and
 {\tt aoa\_shp1} and by the flat-data array {\tt aoa\_val}:
 \begin{lstlisting}[mathescape=true]
 aoa_shp0 = [3, 4]
 aoa_shp1 = [3,2,2,1,2,1,4]
-aoa\_val = [1,2,3,4,5,6,7,9,8,7,6,5,4,3,2]
+aoa_val  = [1,2,3,4,5,6,7,9,8,7,6,5,4,3,2]
 \end{lstlisting}\vspace{-2ex}
 If required, we can create flag arrays for each dimension,
 for example from {\tt aoa\_shp0} one can compute
@@ -3455,8 +3459,8 @@ compute the flag array if needed later.   The data array is computed by:
             have a language property that would prevent the replicate
             from creating an empty array, this step could be eliminated.
             Furthermore, even in the absence of such guarantee, it
-            could be more efficient to check whether the any sizes
-            are $0$ and only then perform the filtering;  
+            could be more efficient to check whether any size
+            is $0$ and only then perform the filtering;  
     \item performing an exclusive segmented scan operation in order
             to compute the indices at which a segments start.
           Please remember that Futhark does not support an inclusive
@@ -3541,7 +3545,7 @@ One can check that {\tt first} is associative
 {\tt first a (first b c) = a = first (first a b) c}.
 
 %%%%%%%%%%%%%%%%%
-\subsubsection{Flattening a Iota Directly Nested in a Map}
+\subsubsection{Flattening an Iota Directly Nested in a Map}
 \label{subsubsec:iota-in-map}
 $\mbox{ }$\\
 
@@ -3581,7 +3585,7 @@ an inclusive scan. We demonstrate the rule for \lstinline{iota}
 by a simple example in which {\tt ns = [1,3,2]}.
 
 \begin{lstlisting}[mathescape=true]
-map2 (\ n -> iota n) [1,3,2] $\equiv$
+map (\ n -> iota n) [1,3,2] $\equiv$
 [ iota 1, iota 3, iota 2 ] $\equiv$
 [ [0], [0, 1, 2], [0, 1] ]
 \end{lstlisting}\vspace{-2ex}
@@ -3595,12 +3599,12 @@ of {\tt ns'} are greater than $0$:
 let len  = length ns'                      -- 3
 let inds = scan$^{exc}$ (+) 0 ns'                -- [0, 1, 4]
 let totsz= $\ldots$                              -- 4 + 2 = 6 
-let flags= scatter (replicate totsz 0)     -- [0,0,0,0,0,0]
+let flag = scatter (replicate totsz 0)     -- [0,0,0,0,0,0]
                    inds                    -- [0,1,4]
                    ns'                     -- [1,3,2]
                                            -- [1,3,0,0,2,0]
 let tmp  = map  ...                        -- [0,0,1,1,0,1]
-in  sgmScan$^{inc}$ (+) 0 flags flags            -- [0,0,1,2,0,1]
+in  sgmScan$^{inc}$ (+) 0 flag tmp               -- [0,0,1,2,0,1]
 \end{lstlisting}\vspace{-2ex}
 
 %%%%%%%%%%%%%%%%%
@@ -3783,13 +3787,19 @@ map (\i -> map (+(i+1)) (iota i)) arr  $\equiv$ -- arr = [1, 2, 3, 4]
 
 We now turn to the task of flattening our nested parallel program.
 The first observation is that the program is not in a suitable form:
-it has to be normalized or desugared to a form (think three-address code) 
-that would permit the application of the previously discussed rules.
-In particular we will be bothered by the {\tt map (+(i+1))} call,
-because {\tt i} is variant in the outer \lstinline{map} but
-invariant in the inner one, and we do not have a rule to handle
-such cases (one can be added certainly). What we would like is to
-expand {\tt i} (by means of \lstinline{replicate}) to an array that 
+it has to be normalized (or desugared) to a form that would permit 
+the application of the previously discussed rules---think three-address
+code (TAC) form.
+
+In particular, whenever we encounter a variable that is variant inside
+the outer map construct, and it is used inside the functional argument
+of an inner parallel construct (invariant), we will modify the code so 
+that it expands that variable with an extra array dimension 
+(by \lstinline{replicate}) and pass it directly as an array argument
+to the inner-parallel construct. Such is the case of the {\tt map (+(i+1))} 
+call, because {\tt i} is variant in the outer \lstinline{map} but
+invariant in the inner one. We solve this by expanding {\tt i} 
+(by means of \lstinline{replicate}) to an array that 
 is passed directly as parameter to the inner \lstinline{map}.
 The semantically-equivalent and normalized code is:
 \begin{lstlisting}[mathescape=true]
@@ -3847,7 +3857,7 @@ no inner parallelism to flatten, hence the translation is the identity:
 \begin{lstlisting}[mathescape=true]
 let ip1s = $\mathcal{F}$( map  (\i -> i+1) arr ) 
              $\equiv$
-let ips1 = map  (\i -> i+1) arr       -- [2, 3, 4, 5]
+let ip1s = map  (\i -> i+1) arr       -- [2, 3, 4, 5]
 \end{lstlisting}\vspace{-2ex}
 
 The second expression corresponds to a iota directly nested inside a map,
@@ -3863,7 +3873,7 @@ let flag  = scatter (replicate totsz 0) inds arr
                                          -- [1,2,0,3,0,0,4,0,0,0]
 let tmp   = map (\fl -> if fl!=0 then 0 else 1) 
                                          -- [0,0,1,0,1,1,0,1,1,1]
-iots = sgmScan$^{inc}$ (+) 0 flag tmp          -- [0,0,1,0,1,2,0,1,2,3]
+let iots = sgmScan$^{inc}$ (+) 0 flag tmp      -- [0,0,1,0,1,2,0,1,2,3]
 \end{lstlisting}\vspace{-2ex}
 
 The third expression corresponds to a replicate directly nested inside a map,
@@ -3872,11 +3882,12 @@ previous case can be reused (i.e., can be eliminated by common-subexpression
 elimination). We present only the ones that contributed to the solution
 (i.e., the non-redundant ones):\medskip
 \begin{lstlisting}[mathescape=true]
-let iots = $\mathcal{F}$( map2 (\(i,ip1) -> (replicate i ip1)) arr ip1s )
+let ip1rs = $\mathcal{F}$( map2 (\(i,ip1) -> (replicate i ip1)) arr ip1s )
                       $\equiv$
 -- redundant code computing arr', len, inds, totsz
-flag'= scatter (replicate totsz 0) inds ip1s-- [2,3,0,4,0,0,5,0,0,0]
-ip1rs= sgmScan$^{inc}$ (+) 0 flag' flag'          -- [2,3,3,4,4,4,5,5,5,5]
+let flag' = 
+    scatter (replicate totsz 0) inds ip1s -- [2,3,0,4,0,0,5,0,0,0]
+let ip1rs = sgmScan$^{inc}$ (+) 0 flag' flag'   -- [2,3,3,4,4,4,5,5,5,5]
 \end{lstlisting}\vspace{-2ex}
 
 Finally, the last expression corresponds to a map directly nested inside
@@ -3892,7 +3903,7 @@ in  map (+) ip1rs iots     -- [2,3,3,4,4,4,5,5,5,5]
                            -- [2,3,4,4,5,6,5,6,7,8]
 \end{lstlisting}\vspace{-2ex}
 
-We conclude by remarking that the shape of the program result is actually 
+We remark that the shape of the program result is actually 
 {\tt arr}. This is derived from the iota/replicate nested inside a map rules,
 which generate an array whose shape is the input array of the map. Finally,
 the last rule (map nested inside a map) preserves the shape of the input array(s).
@@ -4244,6 +4255,9 @@ This section is organized as follows:
         (\lstinline{map}) across its statements; we will see that in 
         some cases one can also distribute a dependent (sequential) 
         loop across subsets of its statements;
+    \item \cref{subsec:false-dep-elim} discusses techniques for 
+        eliminating cross-iteration write-after-read and 
+        write-after-write dependencies.
     \item \cref{subsec:strip-tiling} introducing a simple
         transformation, named stripmining, which is always valid,
         and shows how block tiling can be derived as a combination
@@ -4741,12 +4755,582 @@ direction vectors/matrices.
 \subsection{Determining Loop Parallelism by Analyzing Direction Vectors}
 \label{subsec:loop-par}
 
+A loop is said to be parallel if its execution does not
+cause any (true, anti or output) dependencies across
+its iterations---the loop execution is assumed to be fixed
+in a specific iteration of an (potentially empty) enclosing
+loop context.
+
+The following theorem states that a sufficient condition for
+a loop to be parallel is that for all the elements in
+the loop's corresponding direction-matrix column, it holds
+that the element is either {\tt=} or there exists an
+outer loop whose corresponding direction is {\tt<}.
+In the latter case we say that the outer loop carries
+all the dependencies of the inner loop, i.e., fixing
+an iteration of the outer loop (think executing the outer
+loop sequentially) would guarantee the absence of dependencies 
+in the inner loop.  
+
+\begin{mytheo}[Parallel Loop]\label{Loop-Par}
+$\mbox{ }$\\
+We assume a loop nest denoted by $\ov{L}$, whose direction
+matrix is denoted by $M$ and consists of $m$ rows.
+{\em A sufficient condition} for a loop at depth $k$ in $\ov{L}$,
+denoted $L_k$, to be parallel is that
+$\forall i\in\{0,\ldots m-1\}~$ either $M[i,k]$ is equal
+to {\tt=} or there exists an outer loop (at depth $q<k$)
+such that $M[i,q]$ is equal to {\tt<}.
+\emph{The proof} is left as an exercise.
+\end{mytheo}
+
+\cref{Loop-Par} claims to give only a sufficient condition for 
+loop parallelism because it assumes that symbols such as {\tt *}
+may be part of the direction vector elements---we recall that
+{\tt *} conservatively assumes that all directions {\tt <,=,>}
+may be possible. If {\tt *} does not appear in the direction
+matrix, then the condition becomes necessary and sufficient,
+i.e., the loop is parallel if and only if $\ldots$.
+Let us analyze the parallelism of each loop in our running
+examples:
+\begin{description}
+\item[\cref{fig:data-dep-running-eg}(a):] The direction matrix
+        is {\tt [=,=]}, hence by \cref{Loop-Par}, both loops
+        in the nest are parallel because all the directions
+        are equal to {\tt=}.
+\item[\cref{fig:data-dep-running-eg}(b):] The direction matrix is
+        $M = \begin{cases}\mbox{\tt[<,<]}\\\mbox{\tt[=,<]}\end{cases}$,
+        hence neither the outer nor the inner loop can 
+        be proven parallel by \cref{Loop-Par}. In the former case
+        this is because $M[0,0]$ is equal to {\tt<} and there is 
+        no other outer loop to carry dependencies. In the latter 
+        case this is because $M[1,1]$ is equal to {\tt<} and the 
+        outer loop for that row has direction 
+        {\tt=} (instead of {\tt<}, which would have been necessary 
+        to carry the dependencies of the inner loop).
+\item[\cref{fig:data-dep-running-eg}(c):] The direction matrix is
+        {\tt[<,>]}, which means that the outer loop is not 
+        parallel---because it has a leading {\tt<} direction)---but 
+        the {\em inner loop is parallel}
+        because the outer loop starts with {\tt<} on the only row
+        of the direction matrix, and, as such, it carries all the
+        dependencies of the inner loop.   To understand what this
+        means, take a look again at the actual code in
+        \cref{fig:data-dep-running-eg}(c): let us fix the outer
+        iteration number to some value {\tt i}. Then the read accesses
+        always refer to row {\tt i-1} of matrix {\tt A} and the write 
+        accesses always refer to row {\tt i} of {\tt A}; hence a
+        cross-iteration dependency cannot happen in the inner loop 
+        because no matter of the value of {\tt j}, the read and write
+        statement instances cannot possibly refer to the same  
+        location of {\tt A}.
+\end{description}
+
 \subsection{Loop Interchange: Legality and Applications}
 \label{subsec:loop-interch}
+
+Direction vectors are not used only for proving the parallel
+nature of loops, but they can also enable powerful code
+restructuring techniques. For example they can be 
+straightforwardly applied to determine whether it is safe
+to interchange two loops in a perfect loop nest\footnote{
+A perfect loop nest is a nest in which any two loops at
+consecutive depth levels are not separated by any other 
+statements; for example all loop nests in 
+\cref{fig:data-dep-running-eg} are perfectly nested.
+}---which may result in better locality and even in changing
+an inner loop nature from dependent (sequential) to parallel.
+
+The following theorem gives a sufficient condition for the
+legality of loop interchange---i.e., for the loop interchange
+transformation to result in code that is semantically equivalent 
+to the original one.
+
+
+\begin{mytheo}[Legality of Loop Interchange]\label{Loop-Interch}
+$\mbox{ }$\\
+A sufficient condition for the legality of interchanging 
+two loops at depth levels $k$ and $l$ in a perfect nest 
+is that interchanging columns $k$ and $l$ in the direction 
+matrix of the loop nest {\em does not result} in a (leading)
+{\tt>} direction as the leftmost non-{\tt=} direction 
+of any row.
+\end{mytheo}
+
+The theorem above shows that the legality of loop interchange
+can be determined solely by inspecting the result of permuting
+the direction matrix in the same way as the one desired for loops.
+For the rationale related to why a row-leading {\tt>} direction
+is illegal, we refer the reader to \cref{Leg-Dir-Vect}: a non-{\tt=}
+leading {\tt>} direction would correspond to depending on something
+that happens in the future: this currently seems impossible in our
+universe, and as such it signals an illegal transformation.
+
+The following corollary can be easily derived from \cref{Loop-Interch}:
+\begin{mycorol}[Interchanging a Parallel Loop Inwards]\label{Par-Loop-Interch}
+$\mbox{ }$\\
+It is always safe to interchange a {\em parallel loop} inwards in a loop nest.
+\end{mycorol}
+
+The corollary says that if we somehow know the parallel nature
+of a loop, then we can safely interchange it in an inward position,
+without even having to build the dependence-direction matrix.
+For example, \lstinline{map} operations have inherently parallel
+semantics, and, as such, one can freely interchange inwards a
+\lstinline{map} applied to a \lstinline{iota}-created array
+(as long as the counts of the other loops in the nest do not
+depend on the elements of the array created by \lstinline{iota}).
+
+Let us analyze the legality of loop interchange for the three loop 
+nests of our running example:
+\begin{description}
+\item[\cref{fig:data-dep-running-eg}(a):] The direction matrix
+        is {\tt [=,=]} and, as such, it is legal to interchange
+        the two loops, because it would result in direction
+        matrix {\tt[=,=]}. Moreover applying loop interchange
+        in this case is highly beneficial because it
+        \textbf{\em optimizes locality of reference} (in a CPU setting): the 
+        loop of index {\tt i} appears in the innermost position 
+        after the interchange, which optimally exploits spatial 
+        locality for the write and read accesses to {\tt A[j,i]}.
+\item[\cref{fig:data-dep-running-eg}(b):] The direction matrices are
+        $M = \begin{cases}\mbox{\tt[<,<]}\\\mbox{\tt[=,<]}\end{cases}$
+        and
+        $M^{intchg} = \begin{cases}\mbox{\tt[<,<]}\\\mbox{\tt[<,=]}\end{cases}$
+        before and after interchange, respectively. 
+        It follows that the loop interchange is legal---because 
+        $M^{intchg}$ satisfies \cref{Loop-Interch}---and 
+        it also optimizes spatial locality (as before).
+        What is interesting about this example is that after the 
+        interchange, \textbf{\em the innermost loop has become parallel},
+        by \cref{Loop-Par}, because the outer loop caries
+        all dependencies---the direction column corresponding to the
+        outer loop consists only of {\tt<} directions.
+\item[\cref{fig:data-dep-running-eg}(c):] The direction matrix is
+        {\tt[<,>]} and \textbf{\em interchanging the two loops is illegal}
+        because the direction matrix obtained after the interchange
+        {\tt[>,<]} starts with a {\tt>} direction; this would
+        mean that the current iteration depends on a future iteration,
+        which is impossible, hence the interchange is illegal.
+\end{description}
 
 \subsection{Loop Distribution: Legality and Applications}
 \label{subsec:loop-distrib}
 
+This section introduces a transformation, named loop 
+distribution, that refers to the manner in which a loop can 
+be safely distributed across its statements. 
+Potential benefits are:
+\begin{itemize}
+    \item loop distribution provides the bases for performing 
+        vectorization:
+        the innermost loop is distributed across its TAC statements,
+        and then the distributed loops are chunked (stripmined) 
+        by a factor that permits utilization of processor's vector 
+        instructions.
+    \item loop distribution may enhance the degree of
+        parallelism that can be statically mapped to the 
+        hardware, in a similar way in which it has been 
+        applied for flattening in \cref{subsec:flatten-simple-eg}.
+        There a \lstinline{map} was distributed across its
+        statements such as to create perfect nests of parallel
+        constructs, which are then flattened by applying
+        corresponding re-write rules. 
+\end{itemize}
+
+Loop distribution requires the construction of the dependency
+graph, which is defined below.
+
+\begin{mydef}[Dependency Graph]\label{Dep-Graph}
+$\mbox{ }$\\
+A dependency graph of a loop is a directed graph in which 
+the nodes correspond to the statements of the loop nest and the
+edges corresponds to dependencies. An edge is directed (points) 
+from the source to the sink of the dependency, and is annotated
+with the direction corresponding to that dependence. 
+
+In the case when the loop contains another inner loop, then 
+the inner loop is represented as a single statement that conservatively 
+summarizes the behavior of all the statements of the inner loop.
+\end{mydef}
+
+The dependency graph of a loop can be used to characterize its
+parallel behavior:
+\begin{mytheo}[Dependency Cycle]\label{Dep-Cycle}
+$\mbox{ }$\\
+A loop is parallel {\em if and only if} its dependency graph
+does not have cycles.
+\end{mytheo}
+If the loop contains a cycle of dependencies, then it necessarily
+exhibits at least a cross iteration dependency (needed to form 
+the cycle), and thus the loop is not parallel.  The following
+theorem specifies how the transformation can be implemented:
+
+\begin{mytheo}[Loop Distribution]\label{Loop-Distrib}
+$\mbox{ }$\\
+Distributing a loop across its statements can be performed
+in the following way:
+\begin{itemize}
+    \item[1.] The dependency graph corresponding to the target loop
+        is constructed.
+    \item[2.] The graph is decomposed into strongly-connected components 
+            (SSCs)\footnote{
+            A graph is said to be strongly connected if every vertex 
+            is reachable from every other vertex, i.e., a cycle.
+            It is possible to find the strongly-connected components
+            of an arbitrary directed graph in linear time $\Theta(V+E)$,
+            where $V$ is the number of vertices and $E$ is the number of
+            edges.
+        }, and a new graph $G'$ is formed in which the SSCs are nodes. 
+    \item[3.] The loop can be safely distributed across its strongly-connected
+        components, in the graph order of $G'$.
+        Assuming a number $k$ of SSCs, this means that the result of the
+        transformation will be $k$ loops, each containing the statements
+        of the corresponding SSC. Inside an SSC, the statements remain in
+        program order, but the distributed loops are ordered according to
+        $G'$. 
+    \item[4.] Array expansion must be performed for the variables that
+        \begin{itemize}
+            \item are either declared inside the loop or overwritten
+                in each iteration (output dependencies), \textbf{\em and}
+            \item are used in at least two strongly-connected components.
+        \end{itemize} 
+\end{itemize}
+\end{mytheo}
+
+The theorem above says that the statements that are in a dependency 
+cycle must remain in (form) one loop (which is sequential by 
+\cref{Dep-Cycle}). As such, the loop can be distributed across
+groups of statements corresponding to the strongly connected 
+components (SSC) of the dependency graph. If the graph has only one
+SSC than it cannot be distributed.  The resulting distributed loops
+are written in the order dictated by the graph of SSCs. 
+%
+We demonstrate \cref{Loop-Distrib} on the simple code example presented 
+below:
+\begin{lstlisting}[mathescape=true]
+forall i = 2, N
+$S_1:$  A[i] = B[i-2] ...
+$S_2:$  B[i] = B[i-1] ...
+endfor
+\end{lstlisting}\vspace{-2ex}
+
+The code has two dependencies:
+\begin{description}
+    \item[$S_2\to S_1$:]  In order for a dependency on {\tt B} to exist
+        the read from {\tt B} in iteration $i_1$ of $S_1$ and 
+        the write to {\tt B} in iteration $i_2$ of $S_2$ must refer
+        to the same location. Hence {\tt i$_1$-2 = $i_2$}, which means
+        {\tt i$_1$ > i$_2$}, hence $S_2$ is the source, $S_1$ is the
+        sink and the direction vector is {\tt[<]};
+    \item[$S2\to S2$:] similarly, there is a dependency between the
+        read from {\tt B} in $S_2$ and the write to {\tt B} in $S_2$
+        of direction vector {\tt<}.   
+\end{description}
+
+The dependency graph is thus:
+
+\includegraphics[height=15ex]{Figures/L5/LoopDistr}
+
+\noindent and it exhibits two strongly-connected components:
+one formed by statement $S_2$ and one formed by statement $S_1$.
+Loop distribution results in the following restructured code:
+\begin{lstlisting}[mathescape=true]
+forall i = 2, N
+$S_2:$  B[i] = B[i-1] ...
+endfor
+forall i = 2, N
+$S_1:$  A[i] = B[i-2] ...
+endfor
+\end{lstlisting}\vspace{-2ex}
+in which, according to the graph order, the loop corresponding to
+statement $S_2$ appears before the one corresponding to statement
+$S_1$. Please notice that this does not matches the program order 
+of statements $S_1$ and $S_2$ in the original program. Please also 
+notice that the first loop is {\em not} parallel because the SSC 
+consisting of $S_2$ has a (dependency) cycle, but the second loop 
+is parallel because the SSC corresponding to $S_1$ does not have 
+cycles.
+
+One can notice that if a loop is parallel then it can be straightforwardly
+distributed across its statements in program order because:
+\begin{itemize}
+    \item by \cref{Dep-Cycle}, the loop dependency graph have no
+            cycles and thereby each statement is a strongly connected
+            component; 
+    \item the program order naturally respects all dependencies.
+\end{itemize}
+
+\begin{mycorol}[Parallel Loop Distribution]\label{Par-Loop-Distr}
+$\mbox{ }$\\
+A parallel loop can be directly distributed across each one of
+its statements. The resulted loops appear in the same order in 
+which their corresponding statements appear in the original loop.
+\end{mycorol}
+
+In fact, this is the theorem that provides the safety rationale
+for the \lstinline{map} distribution used to perform flattening
+in  \cref{subsec:flatten-simple-eg} (under the trivial observation
+that a \lstinline{map} is a parallel loop).
+
+Finally, it remains to demonstrate array expansion, mentioned
+in the fourth bullet of \cref{Loop-Distrib}. Assume the slightly
+modified code:
+\begin{lstlisting}[mathescape=true]
+float tmp;
+forall j = 0, N-1
+    i = j + 2
+$S_1:$  tmp  = 2 * B[i-2]
+$S_2:$  A[i] = tmp
+$S_3:$  B[i] = tmp + B[i-1]
+endfor
+\end{lstlisting}\vspace{-2ex}
+Statements $S_1$ and $S_3$ are in a dependency cycle, because
+there is a dependency $S_3\to S_1$ with direction {\tt>} caused
+by the write to and the read from array {\tt B}, and a dependency 
+$S_1\to S_3$ with direction {\tt=} caused by {\tt tmp}.
+Statement $S_2$ is not in a dependency cycle, but there is a
+dependency $S_1\to S_2$, and hence its distributed loop
+should follow the distributed loop containing $S_1$ and $S_2$. 
+If we do not perform array expansion, the distributed code:
+\begin{lstlisting}[mathescape=true]
+float tmp;
+forall j = 0, N-1
+    i = j + 2
+$S_1:$  tmp  = 2 * B[i-2]
+$S_3:$  B[i] = tmp + B[i-1]
+endfor
+forall j = 0, N-1
+    i = j + 2
+$S_2:$  A[i] = tmp
+endfor
+\end{lstlisting}\vspace{-2ex}
+\noindent does not respect the semantics of the original program
+because the second loop uses the same value of {\tt tmp}---the one
+set by the last iteration of the first loop---while the original
+loop writes and then reads a different value of {\tt tmp} for 
+each iteration. It follows that we must perform array expansion
+for {\tt tmp}, which means that we must expand it with an array 
+dimension equal to the loop count and replace its uses with
+corresponding indexing expressions of the expanded array. 
+This results in the following {\em correct} code:
+\begin{lstlisting}[mathescape=true]
+float tmp[N];
+forall j = 0, N-1
+    i = j + 2
+$S_1:$  tmp[j]  = 2 * B[i-2]
+$S_3:$  B[i] = tmp + B[i-1]
+endfor
+forall j = 0, N-1
+    i = j + 2
+$S_2:$  A[i] = tmp[j]
+endfor
+\end{lstlisting}\vspace{-2ex}
+
+Array expansion requires to normalize the loop first---this means
+rewriting the loop such as its index starts from $0$ and increases
+by $1$ each iteration. This is why we have not written our example
+as \lstinline{for i = 2, N+1}.
+
+\subsection{Eliminating False Dependencies (WAR and WAW)}
+\label{subsec:false-dep-elim}
+
+Anti and output dependencies are often refer to as {\em false}
+dependencies because they can be eliminated in most cases by
+copying or privatization operations:
+\begin{itemize}
+    \item Cross-iteration anti dependencies (WAR) typically
+        correspond to a read from some original element of 
+        the array---whose value was set before the start of 
+        the loop execution---followed by an update to that 
+        element in a later iteration.  As such, this dependency
+        can be eliminated by copying (in parallel) the target
+        array before the loop and rewriting the offending
+        read access inside the loop such as it refers
+        to the copy of the array.\smallskip
+
+    \item Cross-iteration output dependencies (WAW) can be
+        eliminated by a technique named privatization (or renaming), 
+        whenever it can be determined that {\em every read access} 
+        from a scalar or array location {\em is covered by an
+        update} to that scalar or memory location that was
+        previously performed {\em in the same iteration}. 
+        Semantically, privatization moves the declaration of the
+        offending variable inside the loop, because it has been
+        already determined that the read/used value was produced
+        earlier in the same iteration.\smallskip
+
+    \item Reasoning based on direction vectors is limited to 
+        relatively simple loop nests; for example it is difficult 
+        to reason about privatization by means of direction vectors.
+\end  {itemize}
+
+\subsubsection{Eliminating WAR Dependencies by Copying}
+$\mbox{ }$\\
+
+Consider the simple {\tt C} code below which rotates an array in
+the right dimension by one:
+\begin{lstlisting}[mathescape=true]
+float tmp = A[1];
+for (int i=0; i<N-1; i++) {
+    A[i] = A[i+1]; -- $S_1$   
+}
+A[N-1] = tmp;
+\end{lstlisting}\vspace{-2ex}
+The loop exhibits a cross-iteration anti dependency (WAR)
+$S_1\to S_1$ (with direction vector ${\tt[<]}$), and, as 
+such, it is not safe to execute it in parallel. However, 
+one can observe that the reads from {\tt A} inside the loop
+correspond to the original elements of {\tt A} before
+the loop, because they are rewritten in a later iteration.
+As such one can perform a copy of {\tt A} before the loop, 
+and replace the read access inside the loop to operate on 
+the copy of array {\tt A}. This preserves the original 
+loop semantics and results in a parallel loop because
+the read and write accesses operate on different arrays,
+hence a dependency cannot occur. We present below the
+OpenMP code, which is a popular parallel API for multicore 
+hardware:
+\begin{lstlisting}[mathescape=true]
+float Acopy[N];
+#pragma omp parallel for
+for(int i=0; i<N; i++)} {
+    Acopy[i] = A[i];
+}
+tmp = A[1];
+#pragma omp parallel for
+for (int i=0; i<N-1; i++) {
+    A[i] = Acopy[i+1];
+}
+A[N-1] = tmp;
+\end{lstlisting}\vspace{-2ex}
+The code uses the {\tt\#pragma omp parallel for} annotation,
+by which the programmer solemnly swears that the following
+\lstinline{for} loop is actually parallel; if the programmer
+breaks the vow then the parallel and sequential execution of
+the code will give different results; the API does not provide
+any guarantees about the absence of race-conditions. 
+To compile with support for OpenMP annotation in {\tt gcc},
+please use the {\tt-fopenmp} compilation flag. The number
+of cores that are going to be used for parallel execution
+can be set by environment variable {\tt OMP\_NUM\_THREADS}
+for example by the command line {\tt\$export OMP\_NUM\_THREADS=8}
+if you would like to utilize eight threads.
+
+\subsubsection{Eliminating WAW Dependencies by Privatization}
+$\mbox{ }$\\
+
+Consider the contrived and ugly looking {\tt C} code below:
+\begin{lstlisting}[mathescape=true]
+int i;
+int A[M];
+...
+for(i=0; i<N; i++){
+  for(int j=0, j<M; j++) { -- writes slice A[0:M-1]
+    A[j] = (4*i+4*j) % M;                          -- $S_1$
+  } 
+  for(int k=0; k<N; k++) { -- reads A[j] where j$\in${0,$\ldots$M-1}
+    X[i,k] = X[i,k-1] * A[ A[(2*i+k)%M] % M];      -- $S_2$
+  }                        -- because % denotes modulus op 
+}
+\end{lstlisting}\vspace{-2ex}
+
+Analyzing the cross-iteration dependencies of the outer loop,
+one can observe that there are frequent output dependencies
+$S_1\to S_1$ of all directions ({\tt *}), because, in 
+essence, all elements of {\tt A} at indices $0\ldots M-1$
+are (over)written in each iteration of the outer loop.
+This also causes frequent cross-iteration WAR and RAW 
+dependencies between $S_1$ and $S_2$ of all directions
+{\tt *} because $S_2$ reads some of the values of 
+{\tt A} which are written in $S_1$. The read access
+is also statically unanalyzable because the index
+into {\tt A} depends on a value of {\tt A} (i.e., 
+it is an indirect-array access {\tt A[ A[...] ]}).  
+
+It would thus seem that this is a hopeless case and parallel
+execution is a pipe dream. Not so! Actually the rationale
+of how to transform the outer loop into a parallel one
+is quite simple.  One may observe that each iteration of
+the outer loop writes the same indices of {\tt A}, namely
+the ones belonging to the closed integral interval 
+{\tt [0,M-1]}.   One may also observe that $S_2$ reads 
+from {\tt A} elements whose indices necessarily belong to 
+{\tt [0,M-1]}, because of the two modulus {\tt M}
+operations. As such, one may conclude that any value
+read in $S_2$ must have been produced in the same iteration
+of the outer loop (in the inner loop enclosing $S_1$).
+
+It follows that it is safe to rewrite the loop in the
+following way:
+\begin{itemize}
+    \item[(1)] declare a new variable {\tt A'} of the same dimensions 
+        as {\tt A} just inside the outer loop (or equivalently 
+        perform array expansion of array {\tt A'} with a new outer
+        dimension of size {\tt N}), and
+    \item[(2)] replace all the uses of {\tt A} in the outer loop by
+        uses of {\tt A'};
+    \item the resulting loop is safe to execute in parallel
+        because there can be no dependencies on {\tt A'} since
+        each iteration uses a different array {\tt A'};
+    \item[(3)] as a last step, after the parallel execution of
+        the loop terminates, one must copy (in parallel)
+        the elements produced by the last iteration of 
+        the outer loop (i.e., {\tt A'[0,$\ldots$,M-1]} 
+        back to {\tt A}.
+\end{itemize}
+
+The parallel OpenMP code that implements these steps is 
+presented below:
+\begin{lstlisting}[mathescape=true]
+int A[M];
+int i;
+#pragma omp for lastprivate(i) lastprivate(A) 
+  for(i=0; i<N; i++) {
+    for(int j=0, j<M; j++) {
+        A[j] = (4*i+4*j) % M;
+    }
+    for(int k=0; k<N; k++) {
+        X[i,k]=X[i,k-1] * A[ A[(2*i+k) % M] % M];
+    }
+}
+\end{lstlisting}\vspace{-2ex}
+Declaring array {\tt A} as private (by {\tt private(A)}) would 
+result in semantically performing steps (1) 
+and (2) above. Declaring it as {\tt lastprivate(A)} instructs 
+the OpenMP compiler to also perform step (3)---to copy back 
+the privately-maintained result of {\tt A} of the last executing 
+iteration into the globally-declared array {\tt A}.
+
+Please also note that the the OpenMP execution will not allocate
+a new {\tt A'} for each iteration of the outer loop---this is 
+actually equivalent to performing array expansion which is also
+applicable here---but instead it will {\em allocate a copy of 
+{\tt A} for each active thread}, thus significantly reducing 
+the memory footprint and/or the number of (de)allocations.
+ 
+We also remark that {\tt i} is also declared
+{\tt lastprivate}---because its value might be needed after
+the loop. Semantically, {\tt i} generates true cross-iteration
+dependencies, and we have said that those are difficult to eliminate
+in general, because they correspond to algorithmic properties.
+The technique by which variables such as {\tt i}\footnote{which are
+incremented by same ammount in each iteration of the loop} can 
+be resolved is not actually privatization (OpenMP uses the wrong 
+nomenclature here), but rather induction-variable recognition and 
+substitution.
+
+We conclude by repeating that privatization can be applied whenever
+one can prove that every read access in an iteration is covered by 
+a previously-performed write access in the same iteration. 
+Privatization can be implemented by performing either array 
+expansion or moving the declaration of the target variable from
+outside to inside the loop. However, it saves memory to allocate
+the private copy per active thread rather than per iteration,
+which is what OpenMP is doing. In the GPU context (CUDA) it is
+likely that you would have to implement privatization by 
+array expansion.
+ 
 \subsection{Loop Stripmining, Block and Register Tiling}
 \label{subsec:strip-tiling}
 
