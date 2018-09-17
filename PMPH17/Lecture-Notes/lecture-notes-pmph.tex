@@ -3247,18 +3247,39 @@ can be represented
     {\tt aoa\_val = [a$^{1}_{1}$,$\ldots$, a$^{1}_{m{_1}}$, $\ldots$, a$^{r}_{1}$,$\ldots$, a$^{r}_{m{_r}}$]}.
 \end{itemize}
 
+%\begin{figure}
+%\begin{lstlisting}[mathescape=true]
+%mkFlagArray [m] (aoa_shp: [m]i32) : []i32 = -- aoa_shp=[3,1,0,4,2]
+%  let aoa_shp'= filter (>0) aoa_shp         -- aoa_shp'= [3,1,4,2]
+%  let m' = length aoa_shp'                  -- m' = 4
+%  let shp_scn = scan (+) 0 aoa_shp'         -- shp_scn = [3,4,8,10]
+%  let aoa_len = shp_scn[m'-1]               -- aoa_len = 10
+%  let shp_ind =                             -- shp_ind = [0,3,4,8]
+%    map (\i -> if i==0 then 0     -- scatter [0,0,0,0,0,0,0,0,0,0]
+%               else shp_scn[i-1]  --         [0,3,4,8]
+%        ) (iota m')               --         [1,1,1,1]
+%  in scatter (replicate aoa_len 0)--------------------------------
+%            shp_inds (replicate m' 1)-- res= [1,0,0,1,1,0,0,0,1,0] 
+%\end{lstlisting}\vspace{-4ex}
+%\caption{Constructing the flag array from the shape array}
+%\label{fig:make-flag0}
+%\end{figure}
+
 \begin{figure}
 \begin{lstlisting}[mathescape=true]
-mkFlagArray [m] (aoa_shp: [m]i32) : []i32 =
-  let aoa_shp'= filter (>0) aoa_shp         -- aoa_shp'= [3,1,4,2]
-  let shp_scn = scan (+) 0 aoa_shp'         -- shp_scn = [3,4,8,10]
-  let aoa_len = shp_scn[m-1]                -- aoa_len = 10
-  let shp_ind =                             -- shp_ind = [0,3,4,8]
-    map (\i -> if i==0 then 0     -- scatter [0,0,0,0,0,0,0,0,0,0]
-               else shp_scn[i-1]  --         [0,3,4,8]
-        ) (iota m)                --         [1,1,1,1]
-  in scatter (replicate aoa_len 0)--------------------------------
-             shp_inds (replicate m 1)-- res= [1,0,0,1,1,0,0,0,1,0] 
+mkFlagArray [m] (aoa_shp: [m]i32):[]i32 = --aoa_shp=[0,3,1,0,4,2,0]
+  let shp_rot = map (\i->if i==0 then 0   --shp_rot=[0,0,3,1,0,4,2]
+                         else aoa_shp[i-1]
+                    ) (iota m)
+  let shp_scn = scan (+) 0 aoa_shp       --shp_ind=[0,0,3,4,4,8,10]
+  let aoa_len = shp_scn[m-1]+aoa_shp[m-1]--aoa_len= 10
+  let shp_ind = map2 (\shp ind ->        --shp_ind= 
+                       if shp==0 then -1 --  [-1,0,3,-1,4,8,-1]
+                       else ind          --scatter
+                     ) aoa_shp shp_ind   --   [0,0,0,0,0,0,0,0,0,0]
+  in scatter (replicate aoa_len 0)       --   [-1,0,3,-1,4,8,-1]
+             shp_ind (replicate m 1)     --   [1,1,1,1,1,1,1]
+                                     -- res = [1,0,0,1,1,0,0,0,1,0] 
 \end{lstlisting}\vspace{-4ex}
 \caption{Constructing the flag array from the shape array}
 \label{fig:make-flag}
@@ -3272,15 +3293,27 @@ otherwise. The question is ``how do we construct the flag array from
 the shape array''?  \cref{fig:make-flag} provides the implementation
 together with a side example:
 \begin{itemize}
-    \item[(a)] first the shape array is filtered so as to contain only
-            sizes greater than zero, then it is scanned with addition 
-            and the result is recorded in {\tt shp\_scn};
-    \item[(b)] the length of the flag/data array is the last element
-            of {\tt shp\_scn};
-    \item[(c)] {\tt shp\_scn} is semantically rotated/shifted-right
-            by one element resulting in array {\tt shp\_ind},
-            which contains the positions that start a subarray
-            in the flat data/flag representation;
+%    \item[(a)] first the shape array is filtered so as to contain only
+%            sizes greater than zero, then it is scanned with addition 
+%            and the result is recorded in {\tt shp\_scn};
+%    \item[(b)] the length of the flag/data array is the last element
+%            of {\tt shp\_scn};
+%    \item[(c)] {\tt shp\_scn} is semantically rotated/shifted-right
+%            by one element resulting in array {\tt shp\_ind},
+%            which contains the positions that start a subarray
+%            in the flat data/flag representation;
+
+    \item[(a)] an exclusive scan is performed on the shape array,
+            which is implemented by rotating the array, then by
+            performing an inclusive scan---the result is recorded 
+            in {\tt shp\_scn};
+    \item[(b)] the length of the flag array is computed 
+            (we assume non-empty shape arrays);
+    \item[(c)] a map is performed on {\tt shp\_scn} to compute
+            the indices in the flag array where the one (true) values
+            are to be written---note that if the shape element is 
+            {\tt 0}, the element is ignored (\lstinline{scatter} ignores
+            {\tt-1} indices);
     \item[(d)] a \lstinline{scatter} writes into an array of zeroes,
             the value one at the positions recorded in {\tt shp\_ind};
             this creates the flag array, denoted by {\tt aoa\_flg}.
@@ -3293,12 +3326,12 @@ together with a side example:
             {\tt[3,0,0,1,4,0,0,0,2,0]}.
 \end{itemize}
 
-Next, we will play with distributed various information
+Next, we will play with distributing various information
 to each member of the data array:
 \begin{itemize}
     \item[(f)] ``How can we record for each
                  data member the size of its corresponding subarray?''\\
-                With our example the result we seek would be
+                With our example, the result we seek would be
                 {\tt[3,3,3,1,4,4,4,4,2,2]}. This can be simply
                 accomplished by a segmented inclusive scan with addition
                 on the format (e) of the flag array, i.e.,
@@ -3306,12 +3339,11 @@ to each member of the data array:
    \item[(g)] ``How can we record for each
                  data member the index of its corresponding subarray?''\\
                 With our example the result we seek would be
-                {\tt[0,0,0,1,2,2,2,2,3,3]}. This can be simply
-                accomplished by scanning with addition the
-                one-and-zero representation of the flag array
-                and then subtracting one from each element of
-                the result, i.e., 
-                \lstinline{map (-1) <| scan (+) 0 aoa_flg}
+                {\tt[1,1,1,2,4,4,4,4,5,5]}. This can be accomplished
+                in the \lstinline{scatter} expression by writing values 
+                {\tt iota m} instead of \lstinline{replicate m 1},
+                and by performing a segmented scan with addition on 
+                the result of the \lstinline{scatter}.
 \end{itemize}
 
 While we will mostly work with two-dimensional irregular arrays, 
@@ -3363,7 +3395,9 @@ flat representation will be named {\tt array\_name\_shp},
 {\tt array\_name\_flg} and {\tt array\_name\_val}, respectively.
 We will assume that the latter arrays are already available,
 since this section has shown how they can be computed.
-The flattening transformation will be denoted by symbol $\mathcal{F}$. 
+We also assume for simplicity that the shape arrays do not contain
+zero elements.   
+The flattening transformation will be denoted by symbol $\mathcal{F}$.\bigskip
 
 \subsubsection{Flattening a Scan Directly Nested in a Map}
 \label{subsubsec:scan-in-map} 
@@ -3431,6 +3465,7 @@ map f [1,3,2,4,6] $\equiv$ [f 1, f 3, f 2, f 4, f 6]
 It is trivial to see that the result array should have the same shape, 
 and hence the same flags, as the input array.
 
+\newpage
 %%%%%%%%%%%%%%%%%
 \subsubsection{Flattening a Replicate Directly Nested in a Map}
 \label{subsubsec:rep-in-map} 
@@ -3463,9 +3498,9 @@ compute the flag array if needed later.   The data array is computed by:
             is $0$ and only then perform the filtering;  
     \item performing an exclusive segmented scan operation in order
             to compute the indices at which a segments start.
-          Please remember that Futhark does not support an inclusive
+          Please remember that Futhark does not support an exclusive
             scan operator, but this can be easily implemented,
-            for example by using a \lstinline{map} to shift left by one
+            for example by using a \lstinline{map} to shift right by one
             the input array and then performing an inclusive scan;
             the two operations will be fused, so the overhead is really 
             negligible:\\
@@ -3619,11 +3654,13 @@ length is equal to the outer length of the input array {\tt mat}, and
 whose data is computed by: 
 \begin{lstlisting}[mathescape=true]
 $\mathcal{F}$( map (\ row -> reduce $\odot$ e$_\odot$ row) mat )$\Rightarrow$
-  ( [length mat_shp],
-    let indsp1 = scan$^{inc}$ (+) 0 <| filter (>0) mat_shp
+    let n = length mat_shp
+    let (shp_val, shp_ind) = unzip <| 
+            filter (\(v,_)->v>0) (zip mat_shp (iota n))
+    let indsp1 = scan$^{inc}$ (+) 0 shp_val
     let sc_mat = sgmScan$^{inc}$ $\odot$ e$_\odot$ mat_flg mat_val
-    in  map (\ip1 -> sc_mat[ip1-1]) indsp1
-  )
+    let res = map (\ip1 -> sc_mat[ip1-1]) indsp1
+    in  ( n, scatter (replicate n e$_\odot$) shp_ind res )
 \end{lstlisting}\vspace{-2ex}
 \end{rewrite}
 
@@ -3633,6 +3670,12 @@ inclusive scan is performed on the data with the operator and neutral
 element of the reduce and finally, a map operation selects the last
 element of the segment---this is because the last element of an inclusive
 scan, by definition, is the reduction of the whole array (segment). 
+In order to cope with empty rows in the input array, one can filter
+out the zero-length rows of {\tt mat\_shp}, while also maintaining 
+the original indices of the non-empty rows. At the end, a 
+\lstinline{scatter} is used to place the reduced values in the
+positions of the non-empty rows, while the empty rows are filled
+with the neutral element.
 
 Note that in order to get decent performance, the associative-binary 
 operators of reduce/scan/segmented scan should be rewritten whenever 
@@ -3640,30 +3683,33 @@ possible to operate on scalar types (i.e., a reduce with a vectorized
 addition would be extremely inefficient).
 
 We demonstrate the translation on a simple example in which our
-irregular array is  {\tt[[1, 3, 4], [6, 7]]} and the reduce operator
+irregular array is\\  {\tt[[1,3,4], [], [6,7]]} and the reduce operator
 is addition. The nested parallel program computes:
 \begin{lstlisting}[mathescape=true]
-map (\ row -> reduce (+) 0 row) [[1, 3, 4], [6, 7]] $\equiv$
-[ reduce (+) 0 [1, 3, 4], reduce (+) 0 [6, 7] ] $\equiv$
-[ 8, 13 ]
+map (\ row -> reduce (+) 0 row) [[1,3,4], [], [6,7]] $\equiv$
+[ reduce (+) 0 [1,3,4], reduce (+) 0 [], reduce (+) 0 [6,7] ] $\equiv$
+[ 8, 0, 13 ]
 \end{lstlisting}\vspace{-2ex}
 
-The flat-data representation of the input array is {\tt mat\_shp = [3,2]},
+The flat-data representation of the input array is {\tt mat\_shp = [3,0,2]},
 {\tt mat\_val = [1,3,4,6,7]}, {\tt mat\_flg = [1,0,0,1,0]}.
 The flat parallel program results in a uni-dimensional array whose shape 
-is {\tt[2]}.
+is {\tt[3]}.
 The computation of the data array is:
 \begin{lstlisting}[mathescape=true]
-let indsp1 = scan (+) 0 <| filter (>0) mat_shp  -- [3,5]
-let sc_mat = sgmScan (+) 0 mat_flg      -- [1,0,0,1,0] 
-                           mat_val      -- [1,3,4,6,7]
-                                        -- [1,4,8,6,13]
-in  map (\ip1 -> sc_mat[ip1-1]) indsp1  -- [8,13]
-\end{lstlisting}\vspace{-2ex}
+  let n = length mat_shp              -- n = 3
+  let (shp_val, shp_ind) = unzip <|   -- ([3,2], [0,2])
+          filter (\(v,_)->v>0) (zip mat_shp (iota n))
+  let indsp1 = scan$^{inc}$  (+) 0 shp_val  -- [3,5]
+  let sc_mat = sgmScan (+) 0 mat_flg  -- [1,0,0,1,0] 
+                             mat_val  -- [1,3,4,6,7]
+                                      -- [1,4,8,6,13]    
+  let res = map (\ip1 -> sc_mat[ip1-1]) indsp1    -- [8,13]
+  in  ( n, scatter (replicate n e$_\odot$) shp_ind res ) -- (3, [8,0,13])
+\end{lstlisting}
 
 
 %%%%%%%%%%%%%%%%%
-\newpage
 \subsubsection{Flattening an If-Then-Else Directly Nested in a Map}
 \label{subsubsec:if-in-map}
 $\mbox{ }$\\
@@ -3740,7 +3786,7 @@ The flat parallel version executes as follows:
 
 \subsubsection{Exercise: Flattening an Index Directly Nested in a Map}
 \label{subsubsec:ind-in-map}
-$\mbox{ }$\\
+$\mbox{ }$
 
 \begin{myexerc}[$\mathcal{F}$(Map(Index))]\label{Flat-Ind-In-Map}
 $\mbox{ }$\\
@@ -3854,6 +3900,8 @@ result expression, which uses source-program variables {\tt ip1r} and {\tt iot}.
 Now we proceed to apply individual rules for each expression.
 The first one does not correspond to any rule, because there is
 no inner parallelism to flatten, hence the translation is the identity:
+
+\newpage
 \begin{lstlisting}[mathescape=true]
 let ip1s = $\mathcal{F}$( map  (\i -> i+1) arr ) 
              $\equiv$
@@ -3981,6 +4029,8 @@ in \cref{subsec:flatten-simple-eg}, in which the first step is to
             {\tt p} is expanded to an array and passed as
             argument to the inner \lstinline{map}.
 \end{itemize}
+
+\newpage
 This results in the code below:
 \begin{lstlisting}[mathescape=true]
 let composite = -- uses nested parallelism
@@ -4009,7 +4059,7 @@ side of the code:
         as presented in \cref{subsubsec:rep-in-map}.
 \end{itemize}
 
-\newpage
+
 \subsubsection{Exercise: Flattening Quicksort}
 \label{exercise:flat-quicksort}
 $\mbox{ }$\\

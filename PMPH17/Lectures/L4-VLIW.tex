@@ -86,7 +86,7 @@
 
 \institute{Department of Computer Science (DIKU)\\University of Copenhagen}
 
-\date[Sept 2017]{September 2017 PMPH Lecture Slides}
+\date[Sept 2018]{September 2018 PMPH Lecture Slides}
 
 
 \begin{document}
@@ -596,8 +596,8 @@ but each corresponds to a different iteration of the original loop.
 for(i=1;i<=N;i++)
   A(i) // (3 cycle)
   B(i) // (3)
-  C(i) // (12)
-  D(i) // (3)
+  C(i) // (3)
+  D(i) // (12)
   E(i) // (3)
   F(i) // (3)
 end
@@ -784,6 +784,7 @@ Clock   & MemOp1          & MemOp2 & FOp1  & FOp2 & Int/Branch    \\\hline
 \end{tiny}
 
 \smallskip
+\pause 
 
 \begin{itemize}
     \item one instr needs to be inserted between L.D (load)
@@ -1087,8 +1088,8 @@ Effective when branches:
 \end  {itemize}
 
 \begin{colorcode}[fontsize=\scriptsize]
-    CLWZ  R1, 0(R2), R3   /* Load Mem[0(R2)] in R0 if R3 is     0 */
-    CLWNZ R1, 0(R2), R3   /* Load Mem[0(R2)] in R0 if R3 is NOT 0 */
+    CLWZ  R1, 0(R2), R3   /* Load Mem[0(R2)] in R1 if R3 is     0 */
+    CLWNZ R1, 0(R2), R3   /* Load Mem[0(R2)] in R1 if R3 is NOT 0 */
 \end{colorcode}
 
 

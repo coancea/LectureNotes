@@ -86,7 +86,7 @@
 
 \institute{Department of Computer Science (DIKU)\\University of Copenhagen}
 
-\date[Sept 2017]{September 2017 PMPH Lecture Notes}
+\date[Sept 2018]{September 2018 PMPH Lecture Notes}
 
 
 \begin{document}
@@ -406,13 +406,13 @@ JAL          & 1\%      & low  \\
         stage only. Have you ever moved to another apartment?\bigskip
 
 \item Pipeline stages need to be very similar. Instruction execution good
-        candidate because goes through same stages: fetch, decode, execute, 
+        candidate \pause because goes through same stages: fetch, decode, execute, 
         write results.\bigskip
 
 \item RISC well suited for pipelining because efficiency requires minimal
         differences in format \& execution of various instruction types.\bigskip
 
-\item \emp{Main Problem} is to handle efficiently data and control dependencies
+\item \emp{Main Problem}\pause is to handle efficiently data and control dependencies
         between instructions.  Techniques that alleviate such negative effects
         are constrained by exception handling.
 \end{itemize}
@@ -465,13 +465,15 @@ J target      & fetch;       & decode;          & -            & -           & -
 \frametitle{Classic RISC Pipeline Architecture}
 
 \begin{columns}
+\column{0.51\textwidth}\vspace{-2ex}
+\includegraphics[width=37ex]{Figures/ClassicPipeline}
 \column{0.50\textwidth}
 \begin{scriptsize}
 \begin{itemize}
 \item \emp{Data-Path Resources}: instr memory (cache), register file (2 read \& one write ports), 
             ALU \& data mem (cache)\smallskip
 \item \emp{Pipeline Registers}, clocked every cycle, separate any 2 consec stages ({\tt ID/EX})\smallskip
-\item \emp{Clean Pipeline Design}: instr is recoded as it moves through pipeline,
+\item \emp{Clean Pipeline Design}: \pause instr is recoded as it moves through pipeline,
             and carries the whole info needed to complete execution.
 %            and carry over the info needed by future stages, e.g., control signals,
 %            data/address values, destination reg.
@@ -483,8 +485,6 @@ J target      & fetch;       & decode;          & -            & -           & -
                 Two input registers are always fetched, PC+4 carried in case of exception.
 \end{itemize}
 \end{scriptsize}
-\column{0.51\textwidth}\vspace{-2ex}
-\includegraphics[width=37ex]{Figures/ClassicPipeline}
 \end{columns}
 
 \bigskip
@@ -499,6 +499,8 @@ i.e., instructions do not share registers or memory locations.
 \frametitle{Classic RISC Pipeline Architecture}
 
 \begin{columns}
+\column{0.51\textwidth}\vspace{-2ex}
+\includegraphics[width=37ex]{Figures/ClassicPipeline}
 \column{0.50\textwidth}
 \begin{scriptsize}
 \begin{itemize}
@@ -520,8 +522,6 @@ i.e., instructions do not share registers or memory locations.
                 WR field used to index the register file.                 
 \end{itemize}
 \end{scriptsize}
-\column{0.51\textwidth}\vspace{-2ex}
-\includegraphics[width=37ex]{Figures/ClassicPipeline}
 \end{columns}
 
 
@@ -594,7 +594,7 @@ I5 & SUBI R1,R1,R7      &    &    &    &    & IF & ID & EX & ME & WB \\\hline
 \begin{scriptsize}
 What hazards can occur in the 5-Stage Pipeline?
 \begin{itemize}
-\item I1 updates register R1 at the trailing edge of clock C5. \smallskip
+\item I1 updates register R1 at the trailing edge of clock C5. \pause \smallskip
 \item All other instructions use (read) R1, hence potential hazards.
 \item I5 reads R1 in ID stage in clock C6, after I1 has updated it in C5,
             hence RAW dependency is respected (\emph{I5 correctly reads the
@@ -656,6 +656,39 @@ I5 & SUBI R1,R1,R7      &    &    &    &    & IF & ID & EX & ME & WB \\\hline
 \end{frame}
 
 
+
+\begin{frame}[fragile,t]
+\frametitle{Implementing Forwarding}
+
+\begin{columns}
+\column{0.51\textwidth}\vspace{-2ex}
+\includegraphics[width=37ex]{Figures/ClassicPipelineDH}
+\column{0.51\textwidth}
+\begin{scriptsize}
+\begin{itemize}
+\item Modifications are shown in \blue{blue}, dotted lines denote
+            control lines. \pause \bigskip
+\item \emph{Operand Forwarding} uses one three-way multiplexer 
+            to {\bf each} input of ALU, but only one is shown.
+            \blue{\tt ForwardingMUX} selects between:\\
+            (1) the ``normal'' value of {\tt ID/EX},\\ %(from the ID stage)
+            (2) the ALU value, latched in {\tt EX/ME},\\
+            (3) the WB value, latched in {\tt REG\_data}.\bigskip
+           
+\item \blue{Forwarding Unit} controls the 2 MUX:\\
+            (1) Compares the {\tt WR} fields in {\tt EX/ME} and {\tt ME/WB} with
+                 the \blue{input-register numbers} of the currently instr in EX.\\
+            (2) If match selects {\tt EX/ME} or {\tt ME/WB},\\
+            (3) Else selects {\tt ID/EX}, no hazard. 
+\end{itemize}
+\end{scriptsize}
+\end{columns}
+\bigskip
+\emph{Forwarding logic is simple}, \emp{the major complexity is 
+to bus operand values across pipeline stages}.
+
+\end{frame}
+
 \begin{frame}[fragile,t]
 \frametitle{Resolving RAW Hazard Generated by a Load}
 
@@ -705,47 +738,18 @@ I5 & SUBI R1,R1,R7      &    &    &    &    &    & IF & ID & EX & ME       \\\hl
 
 \end{frame}
 
-\begin{frame}[fragile,t]
-\frametitle{Implementing Forwarding}
-
-\begin{columns}
-\column{0.51\textwidth}
-\begin{scriptsize}
-\begin{itemize}
-\item Modifications are shown in \blue{blue}, dotted lines denote
-            control lines.\bigskip
-\item \emph{Operand Forwarding} uses one three-way multiplexer 
-            to {\bf each} input of ALU, but only one is shown.
-            \blue{\tt ForwardingMUX} selects between:\\
-            (1) the ``normal'' value of {\tt ID/EX},\\ %(from the ID stage)
-            (2) the ALU value, latched in {\tt EX/ME},\\
-            (3) the WB value, latched in {\tt REG\_data}.\bigskip
-           
-\item \blue{Forwarding Unit} controls the 2 MUX:\\
-            (1) Compares the {\tt WR} fields in {\tt EX/ME} and {\tt ME/WB} with
-                 the \blue{input-register numbers} of the currently instr in EX.\\
-            (2) If match selects {\tt EX/ME} or {\tt ME/WB},\\
-            (3) Else selects {\tt ID/EX}, no hazard. 
-\end{itemize}
-\end{scriptsize}
-\column{0.51\textwidth}\vspace{-2ex}
-\includegraphics[width=37ex]{Figures/ClassicPipelineDH}
-\end{columns}
-\bigskip
-\emph{Forwarding logic is simple}, \emp{the major complexity is 
-to bus operand values across pipeline stages}.
-
-\end{frame}
 
 \begin{frame}[fragile,t]
 \frametitle{Implementing Stalling}
 
 \begin{columns}
+\column{0.51\textwidth}\vspace{-2ex}
+\includegraphics[width=37ex]{Figures/ClassicPipelineDH}
 \column{0.51\textwidth}
 \begin{scriptsize}
 \begin{itemize}
 \item Modifications are shown in \blue{blue}, dotted lines denote
-            control lines.\bigskip
+            control lines. \pause \bigskip
 \item \blue{Hazard Detection Unit (HDU)} \emph{stalls the pipeline} whenever
         a load is immediately followed by a dependent instr,\smallskip
 \item It checks whether the instruction in EX is a load whose destination
@@ -756,8 +760,6 @@ to bus operand values across pipeline stages}.
         by disabling the clock of PC, IF and ID.
 \end{itemize}
 \end{scriptsize}
-\column{0.51\textwidth}\vspace{-2ex}
-\includegraphics[width=37ex]{Figures/ClassicPipelineDH}
 \end{columns}
 
 \bigskip
@@ -773,6 +775,9 @@ but also \emp{less efficient, since one clock is lost.}
 \frametitle{Resolving Control Hazards}
 
 \begin{columns}
+\column{0.51\textwidth}\vspace{-2ex}
+\includegraphics[width=37ex]{Figures/ClassicPipelineCF}
+\blue{Modifications are colored blue}.
 \column{0.51\textwidth}
 \begin{scriptsize}
 \begin{itemize}
@@ -780,7 +785,7 @@ but also \emp{less efficient, since one clock is lost.}
         when its condition was evaluated by {\sc alu}.
         (Target address is computed in ID.) If {\sc alu}'s 
         \blue{\tt Z} bit is set $\Rightarrow$ branch taken by 
-        performing 2 actions:
+        performing 2 actions: \pause
 \item[1] Target address is latched into PC at the end of cycle.
         If \blue{\tt Z}=1 (and instr in EX is a branch) then 
         \blue{MUX} feeding into PC selects the branch target.
@@ -797,10 +802,6 @@ but also \emp{less efficient, since one clock is lost.}
 %        might depend on previous instructions. Same for {\tt JR}. 
 \end{itemize}
 \end{scriptsize}
-\column{0.51\textwidth}\vspace{-2ex}
-\includegraphics[width=37ex]{Figures/ClassicPipelineCF}
-
-\blue{Modifications are colored blue}.
 \end{columns}
 
 \bigskip
@@ -878,11 +879,11 @@ but also \emp{less efficient, since one clock is lost.}
         Machine has two separate register files, integer \& float.\bigskip
 
 \item \emp{Data Hazards:} 
-\item[1] \emp{Forwarding is more complicated} because float stores need the
+\item[1] \emp{Forwarding is more complicated} \pause because float stores need the
             values of both an integer address and a float register $\Rightarrow$
             \emph{a forwarding path was added from {\tt FP/ME} to the
                     input of EX}.\smallskip
-\item[2] \emp{Hazard Detection Unit (HDU) is more complicated} because both RAW and WAW
+\item[2] \emp{Hazard Detection Unit (HDU) is more complicated} \pause because both RAW and WAW
             hazards are possible. HDU must stall instrs in ID stage if they
             have register dependencies with a preceding instruction 
             $\Rightarrow$ \emph{source \& destination registers 
@@ -1025,9 +1026,9 @@ I5 & L.D   F14,0(R3)    &    &    &    &     & IF  & ID  & EX  & ME  & \alert{WB
         \emph{Cycle time decreases,} \emp{but CPI increases} 
         $\Rightarrow$ no free lunch!\bigskip
 
-\item For example, branches are executed in EX1 and have penalty 3.
-\item Latency (of operation) of loads is 3.
-\item Latency of register-to-register instructions is 1 (\# of EX stages-1).
+\item For example, branches are executed in EX1 and have penalty \pause 3.
+\item Latency (of operation) of loads is \pause 3.
+\item Latency of register-to-register instructions is \pause 1 (\# of EX stages-1).
 \end{itemize}
 \end{scriptsize}
 \end{frame}
@@ -1200,7 +1201,7 @@ Core Multi-Threading
 \frametitle{Barrel Processor or Extreme Core Multi-Threading}
 
 \alert{Given many enough {\sc htc}s and active threads $\Rightarrow$ 
-No Two Instrs of the Same Thread Are In The Pipeline in the Same Time.}
+No Two Instructions of the Same Thread Are In The Pipeline in the Same Time.}
 
 \begin{scriptsize}
 \begin{columns}

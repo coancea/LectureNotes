@@ -1,0 +1,167 @@
+= Second Weekly Assignment for the PMPH Course
+
+This is the text of the second weekly assignment for the DIKU course
+"Programming Massively Parallel Hardware", 2018-2019.
+
+Hand in your solution in the form of a short report in text or PDF
+format, along with the missing code.   We hand-in incomplete code in 
+the archive `wa2-code.zip`.   You are supposed to fill in the missing
+code such that all the tests are valid (and to report some performance 
+results). Please send back the same files under the same structure that
+was handed in---implement the missing parts directly in the provided files.
+There are comments in the source files that are supposed to guide you
+(together with the text of this assignment).
+
+Unziping the handed in archive `wa2-code.zip` will create the `w2-code-handin`
+folder, which contains subfolders `cuda` and `primes-futhark`.
+
+Folder `primes-futhark` contains three Futhark programs: `primes-naive.fut`,
+`primes-opt.fut` and `primes-flat.fut`. The latter has an incomplete 
+implementation; you are supposed to provide the missing parts. 
+
+Folder `cuda` contains:
+
+* A `Makefile` that by default compiles and runs all programs, but the
+    built-in validation will fail because some of the implementation is
+    missing
+* Files `scan-host.cu.h`, `scan-kernels.cu.h` and `scan-main.cu` contain
+    the implementation of scan inclusive, segmented scan inclusive and
+    segmented scan exclusive. The implementation is generic and one
+    may change the associative binary operator and type; take a look.
+
+* Files `mssp-kernels.cu.h` and `mssp-main.cu` contain the incomplete
+    implementation of the maximal-segment sum problem.
+
+* Files `spMV-Mul-kernels.cu.h` and `spMV-Mul-main.cu` contain the
+    incomplete implementation of the sparse-matrix vector multiplication.
+
+* do not fret about performance. It will not be great, because our main
+    focus in this assignment is on quickly combining parallel operators
+    to build non-trivial programs, while still finding our way into CUDA 
+    at the same time. (The provided implementations are far from optimal, 
+    e.g., scan, but provide insight in what a fast implementation should be). 
+
+    
+== Task 1: Flat Implementation of Prime-Numbers Computation in Futhark (3 pts)
+
+This task refers to flattening the nested-parallel version of prime-number 
+computation, which computes all the prime numbers less than or equal to `n`
+with `D(n) = O(lg lg n)`.   More detail can be found in lecture notes,
+section 4.3.2 entitled "Exercise: Flattening Prime Number Computation (Sieve)".
+
+Please also read section 3.2.5 from lecture notes entitled 
+"Prime Number Computation (Sieve)" which describes two versions: one flat
+parallel one, but which has sub-optimal depth, and the nested-parallel one
+that you are supposed to flatten.
+
+Your task is to:
+
+* fill in the missing part of the implementation in file `primes-flat.fut`;
+
+* make sure that `futhark-test --compiler=futhark-opencl primes-flat.fut`
+    succeeds;
+
+* compile with `futhark-c` and measure runtime for all three files;
+    `primes-naive.fut` and `primes-opt.fut` are fully implemented.
+  Also compile with `futhark-opencl` files `primes-naive.fut` and `primes-flat.fut`
+     and measure runtime. 
+  Make sure to run with a big-enough dataset; for example computing the prime 
+    numbers less than or equal to `10000000` can be run with the command:
+  `$ echo "10000000" | ./primes-flat -t /dev/stderr -r 10 > /dev/null`.
+
+* Report the runtimes and try to briefly explain them in the report.
+  Do they match what you would expect from their work-depth complexity?
+
+* Please present in your report the code that you have added and briefly explain it. 
+    
+
+== Task 2: MSSP Implementation in CUDA  (1 pt)
+
+The maximal segment sum problem has been introduced in section 2.5.1 of the lecture notes.
+
+Your task is to fill-in the blanks of the CUDA implementation:
+
+* fill in the implementation of the binary associative operator in `MsspOp::apply`
+    of file `mssp-kernels.cu.h`
+
+* fill in the implementation of the CUDA kernel---named `trivial_map` 
+    and located in file  `mssp-kernels.cu.h`---that is 
+    semantically performing the map which lifts an integer to a quadruple.
+
+* fill in the correct computation for the number of blocks under which the
+    `trivial_map` kernel is called in file `mssp-main.cu`, line 44.
+
+* make sure that your implementation validates;
+
+* present in your report the code that you have filled in and report the runtime. 
+
+== Task 3: Flat Sparse-Matrix Vector Multiplication in CUDA (2 pt)
+
+This task refers to writing a flat-parallel version of sparse-matrix vector multiplication in CUDA.
+Take a look at Section 3.2.4 ``Sparse-Matrix Vector Multiplication'' in lecture notes, page 40-41 
+and at section 4.3.1 ``Exercise: Flattening Sparse-Matrix Vector Multiplication''.
+
+Your task is to:
+
+* implement the four kernels of file  `spMV-Mul-kernels.cu.h` and two lines in file `spMV-Mul-main.cu` (at lines 151-152).
+
+* run the program and make sure it validates.
+
+* add your implementation in the report (it is short enough) and present speedup.
+
+
+== Task 4: Implement Exclusive Segmented Scan in CUDA  (1 pt)
+
+For this you will need to fill in the implementation of function `sgmScanExc`
+in file `scan-host.cu.h` and whatever kernels needs to be implemented in
+file `scan-kernels.cu.h` (if not already provided).   
+
+You already have available an implementation of segmented inclusive scan 
+available in function `sgmScanInc` of file `scan-host.cu.h`
+
+Your task is to
+
+* quickly implement `sgmScanExc` in file `scan-host.cu.h`, for example by shifting the
+    segments of the input array by one and then by performing a segmented inclusive scan
+    by means of `sgmScanInc` function.
+
+* present your implementation in your report and briefly explain. What is the measured runtime?
+
+
+== Task 5: Find the bug in `scanIncBlock`  (0.5 pts)
+
+There is a nasty bug in function `scanIncBlock` of file `scan-kernels` which appears only for
+CUDA blocks of size 1024. Can you find it? This will help you to understand the traditional
+CUDA implementation of `scan` and will shed insight in GPU synchronization issues.  
+
+* Please explain in the report the nature of the bug, why does it appear only for block size 1024, and how can it be fixed.
+
+== Task 6: Exercise Referring to Vector Machines (Deeply Pipelined)   (2.5 pts)
+
+One very common operation is the dot product of two vectors, which results in a scalar. 
+The C-pseudocode for computing the dot-product of vectors `X` and `Y` of size `1024` is given below:
+
+----
+for(k=0; k<1024; k++) 
+  p += x[k]*y[k];
+----
+
+Assuming that the size of the hardware vector instruction is `64`, the code can be vectorized by strip-mining the loop:
+
+----
+for(k=0; k<1024; k+=64) {
+    for(j=0; j<64; j++)  {     // vectorize this inner loop
+        p += x[k+j] * y[k+j];
+    }  
+} //end of loop
+----
+
+followed by  vectorizing the inner loop, i.e., `p` becomes a vector (register) of size `64`, the values of `x[k:k+63]` and `y[k:k+63]` are loaded into vector registers, etc., and a final stage is added after the loop that sums up the elements of the resulted vector `p` to yield a scalar value. Assume the instructions to load (`L.V`), multiply (`MUL.V`) and add (`ADD.V`) vectors are available. Assume also that the vector operations are *chained* and the machine supports a very large number of memory banks (say `1024` so that memory bank conflicts never appear). Assume also that the bank access time (i.e, memory-load latency/startup) is `30` cycles, the latency (start-up cost) of the multiply pipeline is `10` cycles and of the add pipeline is `5` cycles.
+
+Answer in your report the following:
+
+* (a) Give the machine code (with vector instructions) for the processing of each `64`-component slice using vector loads and arithmetic instructions.
+
+* (b) Compute the time taken by a dot product where the program vector sizes are `1024` each, i.e., the arrays `x` and `y` have `1024` elements (words) but the hardware vector size is still `64`. Present your rationale in the report. (Neglect the final scalar phase that accumulates the values of the resulted `p` vector.) 
+
+* (c) How many clocks does it take to compute the multiplication of two `1024 x 1024` (dense) matrices that use the dot product code above (neglect the final scalar phase).  Please explain (briefly and comprehensively).
