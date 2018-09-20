@@ -4284,7 +4284,13 @@ identified above.
 
 The main source of inspiration for the material presented in this 
 section has been the book 
-``Optimizing compilers for modern architectures: a dependence-based approach''~\cite{kennedy2001optimizing}. 
+``Optimizing compilers for modern architectures: a dependence-based approach''~\cite{kennedy2001optimizing}. The goal of this chapter is
+to provide the intuition by discussing a ``simple'' static analysis
+applied here to multicore machines; 
+more advanced treatment that combines static and dynamic analysis 
+for automatic parallelization is presented 
+elsewhere~\cite{OanceaMon,CosPLDI,CIVan,SUIF,Moon99PredArrDataFlow}.
+
 This section is organized as follows:
 \begin{itemize}
     \item \cref{subsec:dir-vct} introduces various nomenclature,
@@ -4439,7 +4445,6 @@ discriminate the order in the cases in which all the outer-loop
 iterations are equal, for example 
 {\tt$\overline{k}$=(i=3,j=3) $<$ $\overline{l}$=(i=3,j=4)}
 
-\newpage
 \subsubsection{Dependency Definition}
 $\mbox{ }$\\
 
@@ -4991,6 +4996,7 @@ Potential benefits are:
 Loop distribution requires the construction of the dependency
 graph, which is defined below.
 
+\newpage
 \begin{mydef}[Dependency Graph]\label{Dep-Graph}
 $\mbox{ }$\\
 A dependency graph of a loop is a directed graph in which 
@@ -5142,7 +5148,8 @@ $S_1\to S_3$ with direction {\tt=} caused by {\tt tmp}.
 Statement $S_2$ is not in a dependency cycle, but there is a
 dependency $S_1\to S_2$, and hence its distributed loop
 should follow the distributed loop containing $S_1$ and $S_2$. 
-If we do not perform array expansion, the distributed code:
+If we do not perform array expansion, the distributed code:\bigskip
+
 \begin{lstlisting}[mathescape=true]
 float tmp;
 forall j = 0, N-1
@@ -5181,6 +5188,8 @@ Array expansion requires to normalize the loop first---this means
 rewriting the loop such as its index starts from $0$ and increases
 by $1$ each iteration. This is why we have not written our example
 as \lstinline{for i = 2, N+1}.
+
+\enlargethispage{\baselineskip}
 
 \subsection{Eliminating False Dependencies (WAR and WAW)}
 \label{subsec:false-dep-elim}
@@ -5267,6 +5276,7 @@ can be set by environment variable {\tt OMP\_NUM\_THREADS}
 for example by the command line {\tt\$export OMP\_NUM\_THREADS=8}
 if you would like to utilize eight threads.
 
+\newpage
 \subsubsection{Eliminating WAW Dependencies by Privatization}
 $\mbox{ }$\\
 
@@ -5274,7 +5284,6 @@ Consider the contrived and ugly looking {\tt C} code below:
 \begin{lstlisting}[mathescape=true]
 int i;
 int A[M];
-...
 for(i=0; i<N; i++){
   for(int j=0, j<M; j++) { -- writes slice A[0:M-1]
     A[j] = (4*i+4*j) % M;                          -- $S_1$
@@ -5306,8 +5315,8 @@ the outer loop writes the same indices of {\tt A}, namely
 the ones belonging to the closed integral interval 
 {\tt [0,M-1]}.   One may also observe that $S_2$ reads 
 from {\tt A} elements whose indices necessarily belong to 
-{\tt [0,M-1]}, because of the two modulus {\tt M}
-operations. As such, one may conclude that any value
+{\tt [0,M-1]}---due to the two modulus-{\tt M} operations. 
+As such, one may conclude that any value
 read in $S_2$ must have been produced in the same iteration
 of the outer loop (in the inner loop enclosing $S_1$).
 
@@ -5336,14 +5345,13 @@ presented below:
 int A[M];
 int i;
 #pragma omp for lastprivate(i) lastprivate(A) 
-  for(i=0; i<N; i++) {
+for(i=0; i<N; i++) {
     for(int j=0, j<M; j++) {
         A[j] = (4*i+4*j) % M;
     }
     for(int k=0; k<N; k++) {
         X[i,k]=X[i,k-1] * A[ A[(2*i+k) % M] % M];
-    }
-}
+}   }
 \end{lstlisting}\vspace{-2ex}
 Declaring array {\tt A} as private (by {\tt private(A)}) would 
 result in semantically performing steps (1) 
@@ -5352,7 +5360,7 @@ the OpenMP compiler to also perform step (3)---to copy back
 the privately-maintained result of {\tt A} of the last executing 
 iteration into the globally-declared array {\tt A}.
 
-Please also note that the the OpenMP execution will not allocate
+Please also note that the OpenMP execution will not allocate
 a new {\tt A'} for each iteration of the outer loop---this is 
 actually equivalent to performing array expansion which is also
 applicable here---but instead it will {\em allocate a copy of 
@@ -5380,7 +5388,249 @@ the private copy per active thread rather than per iteration,
 which is what OpenMP is doing. In the GPU context (CUDA) it is
 likely that you would have to implement privatization by 
 array expansion.
- 
+
+\subsection{Recognizing Data-Parallel Operators Hidden in Sequential, Imperative Code}
+\label{subsec:soacs-in-imp-code}
+
+\cref{sec-nested-par} has argued that programs written with parallelism
+in mind should be built---or at least reasoned about---in terms of a nested
+composition of operators that have inherently parallel semantics, such 
+as \lstinline{map}, \lstinline{reduce}, \lstinline{scan}, \lstinline{filter}. 
+%
+An important question is then ``How can one identify and extract such 
+operators from a sequential (legacy) code base?''. 
+%
+This section attempts to provide an (incomplete) answer to this
+question, in the simpler case when the hardware is a multi-core 
+machine.
+
+\subsubsection{Recognizing Reduce Operators}
+\label{subsubsec:reduce-imp}
+$\mbox{ }\\$ 
+
+We say that a (scalar) variable {\tt x} in a target loop is in a
+reduce pattern if and only if all the statements in which {\tt x}
+appears are of the form {\tt x = x $\odot$ exp}, where {\tt x} 
+does not appears in {\tt exp} and $\odot$ is an associative operator.
+Such statements naturally raise cross-iteration true dependencies
+(RAW). However, these dependencies can be resolved in a simple
+way, by:
+\begin{itemize}
+    \item[(1)] privatizing {\tt x}, which is initialized with
+        the neutral element for each thread;
+    \item[(2)] executing the loop in parallel, such that each
+        thread computes its own partial value for {\tt x},
+        corresponding to the iterations it executes;
+    \item[(3)] reducing the partial values of {\tt x} across
+        processors by a reduction tree---or sequentially
+        if the number of cores is small, which is the case of 
+        multicores;
+    \item[(4)] adding to the result the value of {\tt x}
+        from before the loop.
+\end{itemize}
+This is a simple technique; we point to the work of Lu and 
+Mellor-Crummey for advanced compiler algorithms for identifying 
+and optimizing reductions~\cite{ExtRed}.
+
+In fact, the procedure above refers to parallelizing a
+\lstinline{map-reduce} composition---see list homomorphism
+\cref{sec:ListHom}---in which, intuitively, the various
+{\tt exp}s for a given iteration are obtained and added 
+together semantically by a \lstinline{map} operation,
+and then reduced across iterations by {\tt $\odot$}. 
+When using OpenMP, one must remember that OpenMP supports
+a fixed (small) set of reduce operators, such as integral 
+or float addition, multiplication, and perhaps taking the 
+maximum/minimum; it is not possible to work with an 
+arbitrary operator.
+Please also notice that the same kind of rationale can be 
+used in principle for the case when the variable is of an 
+array type---for example a reduce with vectorized 
+addition---except that it will be more difficult to recognize 
+the operator, since this will likely be implemented as a loop.
+
+We demonstrate the case of reduction on the following code,
+where we aim to parallelize the outer loop:
+\begin{lstlisting}[mathescape=true]
+int i, j;
+float x = 6.0;
+for(i=1; i<N; i++) {
+    for(j=1; j<N; j++) {
+        if ( A[i,j] >= 2.0 )    x += 2*A[i,j-1];
+        else if( A[i,j] > 0.0 ) x += A[i-1,j+1];
+    }
+    if (i % (j+1) == 3) 
+        x += A[i,i];
+}
+\end{lstlisting}
+
+One may observe that all uses of variable {\tt x} inside
+the outermost loop respect the reduction pattern, i.e.,
+{\tt x} is only used inside reduction statements. The
+outer loop can be parallelized under OpenMP by placing 
+the following reduction annotation just before
+the outermost loop:\\
+{\tt\#pragma omp parallel for reduction(+:x) private(i,j)}\\
+and the program can be compiled with {\tt gcc} by using
+the {\tt -fopenmp} flag.
+
+The above imperative program is semantically equivalent
+with the following Futhark program
+\begin{lstlisting}[mathescape=true]
+let x_ini = 6.0
+let xs = map (+1) (iota (N-1)) |> 
+         map (\i ->
+                let exps = map (+1) (iota (N-1)) |>
+                    map (\j -> let a = A[i,j] in
+                               if a >= 2.0   then 2*A[i,j-1]
+                               else if a > 0 then A[i-1,j+1]
+                               else 0.0
+                        )
+                let e = reduce (+) 0.0 exps
+                let e' = if (i % (j+1) == 3) then A[i,i] else 0.0
+                in  e + e'
+             )
+let x = (reduce (+) 0 xs)
+in x_ini + x
+\end{lstlisting}\vspace{-2ex}
+in which, if desired, the inner parallelism can be either exploited
+or sequentialized.
+
+Finally, we remark that imperative code patterns might be
+deceiving, for example a reduction pattern might actually
+turn to be a \lstinline{map} or a \lstinline{scatter}.
+For example, in the code below:
+\begin{lstlisting}[mathescape=true]
+for(int i=0; i<N; i++)
+   A[i] = A[i] + 2;
+\end{lstlisting}\vspace{-2ex}
+the statement that updates {\tt A[i]} respects the reduction
+patterns, but the loop is actually a \lstinline{map} operation:
+\lstinline{map (+2) A}.   This is a simple one, which is
+easy to recognize. But what about the following one:
+\begin{lstlisting}[mathescape=true]
+for(int i=0; i<N; i++)
+   A[ B[i] ] = A[ B[i] ] + 2;
+\end{lstlisting}\vspace{-2ex}
+The parallel semantics of the loop above actually depends on the
+contents of indirect array {\tt B}, which is typically part of the
+dataset, and thus statically unknown:
+\begin{itemize}
+    \item[(1)] if array {\tt B} does not contains duplicated 
+        elements---i.e., $\forall i,j\in\{0\ldots N-1\}$ we have
+        that {\tt B[$i$]$\neq$B[$j$]}---then the loop has the
+        semantics of a \lstinline{scatter}:\\
+        \lstinline{scatter A B <| map (\k -> A[k]+2) B}.
+    \item[(2)] if array {\tt B} contains duplicated elements
+        then the pattern is often called a generalized reduction
+        on arrays (think histograms!), and can be executed in parallel 
+        for example by using an atomic add operation---this of course 
+        requires the operator to be associative and commutative, because
+        the increments happen out of (the sequential) order.   
+\end{itemize}
+The test whether {\tt B} contains duplicates can also be performed
+in parallel, and may guard the two different version: a sufficient
+condition for disproving duplicates is to check whether the values 
+of {\tt B} are strictly monotonically increasing; this can be 
+computed with the following efficient predicate:\\
+\lstinline{map (+1) (iota (N-1)) |> map (\i -> B[i-1]<B[i]) |> reduce (&&) true}\\
+A precise test is also possible by:\\
+\lstinline{N == (scatter (replicate N 0) B (replicate N 1) |> reduce (+) 0)}\\
+which first writes $1$ in an array of zeros at the indices of {\tt B}, then
+sums the result and checks equality with the length of {\tt B}. Here the idea
+is that if {\tt B} contains duplicates than at least two ones will be
+written in the same location, and necessarily the sum will be smaller than
+{\tt N}. However, this test is significantly slower (about $3\times$) than 
+the monotonicity test. 
+
+
+\subsubsection{Recognizing Scan Operators}
+\label{subsubsec:scan-imp}
+$\mbox{ }\\$ 
+
+Scan operations are difficult to be recognized by the compiler.
+In principle, a loop-based implementation of \lstinline{scan}
+will result in dependency cycle indicating a true dependency 
+(RAW) of distance one---i.e., the current iterations depends 
+on the result of the previous one. However not all such 
+dependency pattern indicate \lstinline{scan} operations.
+Furthermore, \lstinline{scan} can be sequentially implemented
+in a multitude of forms, and as such they are difficult to be
+pattern matched. 
+
+For example, the sequential, imperative code below:
+\begin{lstlisting}[mathescape=true]
+A[0] = B[0];
+for(i=1; i<N; i++) {
+    A[i] = A[i-1] + B[i];
+}
+\end{lstlisting}\vspace{-2ex}
+is an inclusive scan: \lstinline{let A = scan (+) 0 B}.
+
+The following loop:
+\begin{lstlisting}[mathescape=true]
+acc = 0;
+for(i=0; i<N; i++) {
+    acc = acc + i;
+    A[i] = acc;
+}
+\end{lstlisting}\vspace{-2ex}
+is also an inclusive scan, albeit applied to the {\tt iota N}
+array: \lstinline{let A = scan (+) 0 (iota N)}.\bigskip
+
+Let us conclude with a non-trivial example.
+What kind of scan is represented by the code below?
+\begin{lstlisting}[mathescape=true]
+for(j=0; j<M; j++) 
+    A[0,j] = B[0,j];
+
+for(i=1; i<N; i++) {
+    for(j=0; j<M; j++)
+        A[i,j] = A[i-1,j] + B[i,j];
+}
+\end{lstlisting}\vspace{-2ex}
+One can observe that, if we transpose matrices {\tt A} and {\tt B}, 
+then the inner loop will resemble an inclusive scan, because it
+will have the pattern: {\tt A$^{tr}$[j,i]=A$^{tr}$[j,i-1] + B[j,i]}.
+It follows that the second loop nest (of depth {\tt 2}) actually 
+performs a \lstinline{scan} on each column of the matrix {\tt B},
+and the first single loop nest initializes the first element of
+the column result with the corresponding element for {\tt B}.
+The code is thus semantically equivalent to:\\
+\lstinline{let A = transpose B |> map (scan (+) 0.0) |> transpose}
+
+
+\subsubsection{Recognizing Filter Operators}
+\label{subsubsec:filter-imp}
+$\mbox{ }\\$ 
+
+The natural implementation for \lstinline{let B = filter pred A} 
+is by a loop which selectively adds elements to the result array 
+whenever the predicate succeeds on the current array element:
+\begin{lstlisting}[mathescape=true]
+int k = 0;
+for(i=0; i<N; i++) {
+    if pred(A[i]) {
+        B[k] = A[i];
+        k = k + 1;
+    }
+}
+\end{lstlisting}\vspace{-2ex}
+This loop presents analysis challenges because:
+\begin{itemize}
+    \item[(1)] variable {\tt k} does not respect the reduction
+        pattern since it is read in {\tt B[k]};
+    \item[(2)] variable {\tt k} is incremented in only some of the
+        loop iterations, hence it cannot be replaced by a closed-formed
+        formula in {\tt i}---i.e., it is not a proper induction variable;
+    \item[(3)] this makes it difficult to prove (by the compiler) that
+        accesses to {\tt B[k]} cannot generate cross-iteration
+        output dependencies.
+\end{itemize}
+Solutions exist to automatically parallelize such loops~\cite{CIVan}, 
+but they use complex analysis, which exploits the monotonic nature
+of the values of {\tt k} in different iterations.
+
 \subsection{Loop Stripmining, Block and Register Tiling}
 \label{subsec:strip-tiling}
 
