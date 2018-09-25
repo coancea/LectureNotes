@@ -704,7 +704,7 @@ Compilers cannot recognize and parallelize even simple scans:
    \}
 2. acc = 0;
    for(i=0; i<N; i++)\{
-     acc = acc xor i;
+     acc = acc ^ i;
      A[i] = acc;
    \}
 3. for(j=0; j<M; j++) 
@@ -716,14 +716,15 @@ Compilers cannot recognize and parallelize even simple scans:
 \end{colorcode}
 \column{0.53\textwidth}\pause
 \begin{colorcode}[fontsize=\scriptsize]
-1. let A = scanInc (+) 0 B
+1. let A = scan (+) 0 B
 
-2. let A = scanInc (xor) 0 [0..N-1]
+2. let A = scan (^) 0 (iota N)
 
-3. let A = scanInc (\mymath{\backslash} a b -> zipWith (+) a b) 
-                   (replicate M 0.0) B \mymath{\equiv}
-   let A = transpose \$ 
-           map (scanInc (+) 0.0) \$
+3. let A = scan (\mymath{\backslash} a b -> map2 (+) a b) 
+                (replicate M 0.0) B 
+        \mymath{\equiv}
+   let A = transpose <|
+           map (scanInc (+) 0.0) <|
            transpose B 
              
 \end{colorcode}
@@ -1016,10 +1017,7 @@ accesses to global memory than the original.}
 
 \emph{But exhibits only coalesced accesses!}\\
 \textbf{Coalesced Access:} a (half) warp accesses in a {\sc simd} instruction consecutive memory (word) locations. 
-\medskip
 
-\alert{What else could we have done to achieve the same effect?}\\\pause
-\emph{Loop Interchange. Does it works in general?}
 \end{frame}
 
 
