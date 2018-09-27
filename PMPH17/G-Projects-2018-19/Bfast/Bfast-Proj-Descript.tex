@@ -1,0 +1,172 @@
+\documentclass[a4paper,11pt]{article}
+
+\usepackage[top=2.5cm, bottom=2.5cm]{geometry}
+
+\usepackage{multicol}
+\usepackage{verbatim}
+\usepackage{enumerate}
+\usepackage{enumitem}
+
+\usepackage{fancyvrb}
+
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{subfigure}
+%\usepackage{epsfig}
+\usepackage{xspace}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{pslatex}
+\usepackage[english]{babel}
+
+\usepackage[colorlinks=true,linkcolor=black]{hyperref}
+
+\usepackage{fancyhdr}%
+\usepackage{lastpage}%
+%
+\pagestyle{fancy}%
+\lhead{}%
+\chead{}%
+\rhead{}%
+\cfoot{\thepage/\pageref{LastPage}}%
+\renewcommand{\headrulewidth}{0in}%
+%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%  reviewer comments  %%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\comm}[2]{{\sf \(\spadesuit\){\bf #1: }{\rm \sf #2}\(\spadesuit\)}}
+\newcommand{\mcomm}[2]{\marginpar{\scriptsize \comm{#1}{#2}}}
+%\renewcommand{\comm}[2]{}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\jbcomment}[1]{\mcomm{JB}{#1}}
+\newcommand{\cocomment}[1]{\mcomm{CO}{#1}}
+
+% Fancy code with color commands:
+\DefineVerbatimEnvironment{fancycode}%
+        {Verbatim}{commandchars=\\\{\}}
+
+%%%%%%%%%% The language %%%%%%%%%%
+\newcommand{\fasto}{\textsc{Fasto}\xspace}
+\newcommand{\mips}{\textsc{Mips}\xspace}
+\newcommand{\mars}{\textsc{Mars}\xspace}
+\newcommand{\soac}{\textsc{soac}\xspace}
+\newcommand{\soacs}{\textsc{soac}s\xspace}
+
+\begin{document}
+
+%\setlength{\baselineskip}{0.95\baselineskip}
+
+\begin{center}
+
+{\LARGE Bfast: Translating Futhark Code Efficiently in CUDA}
+
+\end{center}
+
+\section*{Preamble}
+
+This project refers to writing an efficient CUDA implementation
+for a variation of the BFAST algorithm, which is one of the
+state-of-the-art methods for break detection given satellite image
+time series. For example BFAST can be used to detect environmental
+changes, such as deforestization in the Amazonian jungle, etc.
+
+The attached paper "Massively-Parallel Break Detection 
+for Satellite Data" reports an implementation that assumes that
+that all pixels hold valid data. This is somewhat unrealistic
+because a certain area may be covered by clouds---the tested 
+dataset is from an area located in Sahara, which is never clouded.
+
+The attached
+Futhark implementation is work in progress (hence do not distribute) 
+and fixes the cloud issue by semantically ``filtering'' out the 
+clouded pixels---encoded by NAN values--in the implementation of
+various (mathematical) operations. Note that filtering does not
+necessarily mean in this context the application of the {\tt filter} 
+operator, but rather it means that the iteration space is padded
+and {\tt NAN} values are ignored.
+
+For example, the Futhark implementation of dotproduct is:
+
+\begin{fancycode}
+let dotprod [n] (xs: [n]f32) (ys: [n]f32): f32 =
+    reduce (+) 0.0 (map2 (*) xs ys) 
+\end{fancycode}
+
+and the filtered implementation receives an additional flag array
+in which the invalid pixels, marked with the flag-value {\tt false},
+are ignored:
+
+\begin{fancycode}
+let dotprod_filt [n] (flgs: [n]bool) (xs: [n]f32) (ys: [n]f32) : f32 =
+    f32.sum (map3 (\textbackslash{} flg x y -> if flg then x*y else 0) flgs xs ys)
+\end{fancycode}
+
+\section{Tasks}
+
+Your task is to write a CUDA program, which is semantically equivalent
+with the Futhark one, and which is as efficient as possible:
+\begin{itemize}
+    \item Please provide built-in validation for the provided Sahara 
+            dataset---files {\tt sahara.in} and {\tt sahara.out} are the 
+            reference input and result.
+    \item Identify the opportunities for optimizing locality of reference,
+        and apply related optimizations whenever is possible and profitable
+        to do so, for example:
+            \begin{itemize} 
+            \item[1] make sure that all accesses to global memory are coalesced
+                        (i.e., spatial locality),
+            \item[2] identify the opportunities for one/two/three dimensional 
+                tiling in shared memory and apply them whenever profitable;
+            \item[3] identify opportunities in which a kernel loop can be 
+                executed entirely (or mostly) in shared memory, for example
+                in the case of matrix inversion (e.g., the {\tt gauss\_jordan} 
+                Futhark function).
+            \item[4] identify the cases in which a composition of {\tt scan}, 
+                {\tt filter}, {\tt map} or {\tt scatter} operations can be
+                performed in (fast) shared memory. For example, if the size
+                of the scanned segment is less than 1024, it is much faster to
+                perform the {\tt scan} within each block, then to perform
+                a segmented scan across all elements in all blocks (why?). 
+            \end{itemize}
+    \item Try to report the impact of your optimizations both locally and
+            globally.
+        \begin{itemize}
+            \item Locally means to separately test the impact of optimizations:
+            for example what is the speedup of tiling matrix-vector multiplication, 
+            with respect to its untiled version;
+            \item Globally means to test the speedup generated by an optimization
+            (e.g., tiling) at the level of the whole application runtime. 
+        \end{itemize}
+    \item Also please report your global performance, for example in terms of 
+            percentage of the peak bandwidth of the system (and perhaps also in 
+            terms of the sequential program --- could be the one generated 
+            by futhark-c).
+\end{itemize}
+
+\section{Closing Remarks}
+
+\begin{itemize}
+    \item Please write a tidy report that puts emphasis on the parallelization
+            and optimization strategy reasoning, and which explores and explains 
+            the design space of potential solutions, and argues the strengths 
+            and shortcomings of the one you have chosen.  For example present
+            on representative example how optimizations such as tiling were
+            applied, and why their application is safe.
+
+    \item Please make sure your code validates at least on the provided datasets,
+            and please compare the performance of your code against baseline 
+            implementations in Futhark (or from elsewhere if you have other), 
+            and comment on the potential differences between the observed
+            performance and what you assumed it will be (based on the
+            design-space exploration).
+\end{itemize}
+
+\bibliographystyle{unsrt}
+\bibliography{CB12}
+%\bibliography{GroupProj}
+
+
+\end{document}
