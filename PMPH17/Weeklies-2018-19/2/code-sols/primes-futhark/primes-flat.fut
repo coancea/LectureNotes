@@ -42,15 +42,4 @@ let primesFlat (n : i32) : []i32 =
        in  (sq_primes, len)
   in sq_primes
 
-      -- the current iteration known the primes <= 'len', 
-      -- based on which it will compute the primes <= 'len*len' 
-      -- Morally, the code should be the nested-parallel code above,
-           -- composite = map (\ p -> let m = (n `div` p)
-           --                      in  map (\ j -> j * p ) (drop 2 (iota (m+1)))
-           --                 ) sq_primes
-           -- not_primes = reduce (++) [] composite
-      -- but since Futhark does not support irregular arrays
-      -- we write it as a loop nest in which we precompute
-      -- the total result size
-
 let main (n : i32) : []i32 = primesFlat n
