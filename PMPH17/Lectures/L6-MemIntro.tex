@@ -86,7 +86,7 @@
 
 \institute{Department of Computer Science (DIKU)\\University of Copenhagen}
 
-\date[Oct 2017]{October 2017 PMPH Lecture Slides}
+\date[Oct 2018]{October 2018 PMPH Lecture Slides}
 
 
 \begin{document}
@@ -1376,9 +1376,9 @@ UNLOCK(LV);
 \end{colorcode} 
 \column{0.75\textwidth}
 \begin{scriptsize}
-{\tt BusRd$_1$,BusUpgr$_1$, BusRd$_2$,BusUpgr$_2$, BusRd$_3$,BusUpgr$_3$, ...}\\
+{\tt BusRd$_1$,BusUpgr$_1$, BusRd$_2$,BusUpgr$_2$, BusRd$_3$,BusUpgr$_3$,...}\\
 \emp{// $\downarrow$ Coherence miss then invalidation: combine Read \& Upgrade: $\downarrow$}\\
-{\tt BusRdX$_1$, BusRdX$_2$, BusRdX$_2$, ...}
+{\tt BusRd$_1$,BusUpgr$_1$ (pattern detected =>) BusRdX$_2$,BusRdX$_3$,...}
 \end{scriptsize}
 \end{columns}
 \end{block}
