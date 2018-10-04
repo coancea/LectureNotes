@@ -4444,7 +4444,7 @@ iterations are equal, for example
 $\mbox{ }$\\
 
 The precise definition of a dependency between two statements
-located inside a loop nests is given below.
+located inside a loop nest is given below.
 
 \begin{mydef}[Loop Dependency]\label{Loop-Dep}
 $\mbox{ }$\\
@@ -4744,7 +4744,7 @@ the direction vectors for the code examples in
         and which is the sink. Assuming that $(i_1, j_1)$ is the
         source results in the direction vector {\tt[>,>]}, which is
         illegal by \cref{Leg-Dir-Vect}, because a direction
-        vector cannot start with the {\tt>} symbol. If follows
+        vector cannot start with the {\tt>} symbol. It follows
         that our assumption was wrong: $(i_2, j_2)$ is the source
         and $(i_1, j_1)$ is the sink, which means that this is
         a cross-iteration (inter-iteration) true dependency
@@ -4921,7 +4921,7 @@ The following corollary can be easily derived from \cref{Loop-Interch}:
 $\mbox{ }$\\
 In a perfect loop nest, it is always safe to interchange a 
 {\em parallel loop} inwards one step at a time (i.e., if the
-parallel loop is the $k^{th}$ loop in the nest than one can
+parallel loop is the $k^{th}$ loop in the nest then one can
 always interchange it with loop $k+1$, then with loop $k+2$, etc.).
 \end{mycorol}
 
@@ -5191,7 +5191,7 @@ as \lstinline{for i = 2, N+1}.
 \subsection{Eliminating False Dependencies (WAR and WAW)}
 \label{subsec:false-dep-elim}
 
-Anti and output dependencies are often refer to as {\em false}
+Anti and output dependencies are often referred to as {\em false}
 dependencies because they can be eliminated in most cases by
 copying or privatization operations:
 \begin{itemize}
@@ -5202,7 +5202,7 @@ copying or privatization operations:
         element in a later iteration.  As such, this dependency
         can be eliminated by copying (in parallel) the target
         array before the loop and rewriting the offending
-        read access inside the loop such as it refers
+        read access inside the loop such that it refers
         to the copy of the array.\smallskip
 
     \item Cross-iteration output dependencies (WAW) can be
@@ -5526,7 +5526,7 @@ dataset, and thus statically unknown:
         the increments happen out of (the sequential) order.   
 \end{itemize}
 The test whether {\tt B} contains duplicates can also be performed
-in parallel, and may guard the two different version: a sufficient
+in parallel, and may guard the two different versions: a sufficient
 condition for disproving duplicates is to check whether the values 
 of {\tt B} are strictly monotonically increasing; this can be 
 computed with the following efficient predicate:\\
@@ -5545,15 +5545,15 @@ the monotonicity test.
 \label{subsubsec:scan-imp}
 $\mbox{ }\\$ 
 
-Scan operations are difficult to be recognized by the compiler.
+Scan operations are difficult to recognize by the compiler.
 In principle, a loop-based implementation of \lstinline{scan}
 will result in dependency cycle indicating a true dependency 
 (RAW) of distance one---i.e., the current iterations depends 
 on the result of the previous one. However not all such 
 dependency pattern indicate \lstinline{scan} operations.
 Furthermore, \lstinline{scan} can be sequentially implemented
-in a multitude of forms, and as such they are difficult to be
-pattern matched. 
+in a multitude of forms, and as such they are difficult
+pattern match. 
 
 For example, the sequential, imperative code below:
 \begin{lstlisting}[mathescape=true]
@@ -5649,7 +5649,7 @@ for(int i = 0; i<N; i++) {      for(int ii = 0; ii<N; ii+=T){
 In essence, a normalized loop is split into a perfect nest of two
 loops, in which the first loop goes with stride {\tt T}, and
 the second one goes with stride {\tt 1}. Please notice that the
-resulted loop nest executes the same number of statements and 
+resulting loop nest executes the same number of statements and 
 in the same order as the original loop.\medskip
 
 \textbf{\em Block Tiling} refers to the transformation that
@@ -5686,12 +5686,12 @@ multiplication code below:
 \begin{lstlisting}[mathescape=true]
 for(i=0; i<N; i++) {
   for(j=0; j<M; j++) {
-    int a;
+    float c;
     c = 0.0;
     for(k=0; k<N; k++) {
       c += A[i,k] * B[k,j];
     }
-    C[i,j] = a;
+    C[i,j] = c;
   }
 }
 \end{lstlisting}
@@ -5703,7 +5703,7 @@ performing the necessary loop distribution and array expansion:
 \begin{lstlisting}[mathescape=true]
 for(i=0; i<N; i++) {
   for(jj=0; jj<M; jj+=2) {
-    int cs[2];
+    float cs[2];
     for(j=jj; j<min(jj+2,M); j++) {
         cs[j-jj] = 0.0;
     }
@@ -5723,11 +5723,11 @@ can be unrolled, and array {\tt cs} can be scalarized as well:
 \begin{lstlisting}[mathescape=true]
 for(i=0; i<N; i++) {
   for(jj=0; jj<M; jj+=2) {
-    int c1, c2;
+    float c1, c2;
     if (jj   < M) c1 = 0.0;
     if (jj+1 < M) c2 = 0.0;
     for(k=0; k<N; k++) {
-      int a;
+      float a;
       a = A[i,k];
       if (jj   < M) c1 += a * B[k,jj  ];
       if (jj+1 < M) c2 += a * B[k,jj+1];
@@ -5747,7 +5747,7 @@ is shown in \cref{fig-unroll-jam}.
 for(ii=0; ii<N; ii+=3) {
   for(jj=0; jj<M; jj+=2) {
 
-    int c11, c12, c21, c22, c31, c32;
+    float c11, c12, c21, c22, c31, c32;
 
     if (ii   < N && jj   < M) c11 = 0.0;
     if (ii+1 < N && jj   < M) c21 = 0.0;
@@ -5758,7 +5758,7 @@ for(ii=0; ii<N; ii+=3) {
 
     for(k=0; k<N; k++) {
 
-      int a1, a2, a3, b1, b2;
+      float a1, a2, a3, b1, b2;
 
       if (ii   < N) a1 = A[ii  ,k];
       if (ii+1 < N) a2 = A[ii+1,k];
@@ -5888,7 +5888,7 @@ program, the SIMD load instruction from array {\tt A} will read the following
 (flattened) words/locations of {\tt A}:
 {\tt (32*k+0)*64 + j, (32*k+1)*64 + j, $\ldots$, (32*k+31)*64 + j}.
 This corresponds to a strided access in which the stride is {\tt 64} words,
-no matter of the value of {\tt j}---i.e., each thread accesses a locations 
+no matter of the value of {\tt j}---i.e., each thread accesses a location 
 which is {\tt 64} words apart from the previous thread access. As such
 we can expect that our SIMD load instruction will generate {\tt 32} 
 independent memory transactions, resulting in terribly inefficient
@@ -5961,7 +5961,7 @@ In the previous section we have seen how one can transform uncoalesced
 accesses to global memory into coalesced ones by means of transposition.
 However, this assumes that the \lstinline{transpose} operation itself
 can be written only in terms of coalesced accesses to global memory.
-This step is not-trivial and is covered in this section. 
+This step is nontrivial and is covered in this section. 
 
 We start with the mathematical definition of the {\tt transpose} operator:
 given a $r\times c$ matrix {\tt A}---where $r$ and $c$ denotes the number
@@ -6019,7 +6019,7 @@ cannot exceed $1024$ in CUDA, and the size of our CUDA block will be
 that {\tt T$^2 \leq$ 1024}, hence valid values of {\tt T} are less than
 or equal to {\tt 32}.
 
-We assume for simplicity that {\tt R} and {\tt C} evenly dived {\tt T}.
+We assume for simplicity that {\tt R} and {\tt C} evenly divide {\tt T}.
 Let us compute first the indices that are read from and written into
 arrays {\tt A} and {\tt A'}, respectively, for a given block 
 {\tt [ii,jj]} in the grid.  The innermost two loops have indices
@@ -6152,7 +6152,7 @@ size {\tt M$\times$N} (i.e., {\tt M} rows and {\tt N} columns):\smallskip
 forall (i=0; i<M; i++) {  // parallel map
   forall (j=0; j<N; j++) {  // parallel map
     float c = 0.0;
-    for (k=0; k<U; k++) {    // sequnetial (reduce o map)
+    for (k=0; k<U; k++) {    // sequential (reduce o map)
       c += A[i,k] * B[k, j]
     }
     C[i,j] = c;
@@ -6181,10 +6181,10 @@ forall (ii=0; ii<M; ii+=T) {  // parallel grid.y
     forall (i=ii; i<min(ii+T,M); i++) { // parallel block.y
       forall (j=jj; j<min(jj+T,M); j++) { // parallel block.x
         float c = 0.0;
-        for (kk=0; kk<U; kk+=T) {    // sequnetial (reduce o map)
+        for (kk=0; kk<U; kk+=T) {    // sequential (reduce o map)
           // The loop below reads the following slices:
           // A[ii:ii+T, kk:kk+T] and B[kk:kk+T, jj:jj+T]
-          for (k=kk; k<min(kk+T,U); k++) { // sequnetial
+          for (k=kk; k<min(kk+T,U); k++) { // sequential
             c += A[i,k] * B[k, j]
         } }
         C[i,j] = c;
@@ -6228,14 +6228,14 @@ __global__ void MatMatMult( float* A, float* B, float* C
   unsigned int i  = ii + tidy;
   unsigned int j  = jj + tidx;
   float c = 0.0;
-  for (int kk=0; kk<U; kk+=T) {    // sequnetial (reduce o map)
+  for (int kk=0; kk<U; kk+=T) {    // sequential (reduce o map)
     Ash[i-ii][tidx] = (i < M && kk+tidx < U) ? 
                       A[i*U + (kk+tidx)] : 0.0;
     Bsh[tidy][j-jj] = (j < N && kk+tidy < U) ? 
                       B[(kk+tidy)*N + j] : 0.0;
     __syncthreads();
     #pragma unroll
-    for (int k=0; k<T; k++) { // sequnetial
+    for (int k=0; k<T; k++) { // sequential
       c += Ash[i-ii][k] * Bsh[k][j-jj];
     }
     __syncthreads();
@@ -6286,7 +6286,7 @@ temporal locality.
 \begin{lstlisting}[mathescape=true]
 forall (i=0; i<M; i++) {  // parallel
     float s = 0, a = A[i];   float a_sq = a * a;
-    for (k=0; k<N; k++) {    // sequnetial
+    for (k=0; k<N; k++) {    // sequential
       float a_k = A[k];
       s += sqrt (a_sq - a_k*a_k);
     }
@@ -6325,7 +6325,7 @@ multiplication.  We start as before with the naive code:
 forall (i=0; i<M; i++) {  // parallel map
   forall (j=0; j<N; j++) {  // parallel map
     float c = 0.0;
-    for (k=0; k<U; k++) {    // sequnetial (reduce o map)
+    for (k=0; k<U; k++) {    // sequential (reduce o map)
       c += A[i,k] * B[k, j]
     }
     C[i,j] = c;
