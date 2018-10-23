@@ -3271,12 +3271,12 @@ mkFlagArray [m] (aoa_shp: [m]i32):[]i32 = --aoa_shp=[0,3,1,0,4,2,0]
   let shp_rot = map (\i->if i==0 then 0   --shp_rot=[0,0,3,1,0,4,2]
                          else aoa_shp[i-1]
                     ) (iota m)
-  let shp_scn = scan (+) 0 aoa_shp       --shp_ind=[0,0,3,4,4,8,10]
+  let shp_scn = scan (+) 0 aoa_shp       --shp_scn=[0,0,3,4,4,8,10]
   let aoa_len = shp_scn[m-1]+aoa_shp[m-1]--aoa_len= 10
   let shp_ind = map2 (\shp ind ->        --shp_ind= 
                        if shp==0 then -1 --  [-1,0,3,-1,4,8,-1]
                        else ind          --scatter
-                     ) aoa_shp shp_ind   --   [0,0,0,0,0,0,0,0,0,0]
+                     ) aoa_shp shp_scn   --   [0,0,0,0,0,0,0,0,0,0]
   in scatter (replicate aoa_len 0)       --   [-1,0,3,-1,4,8,-1]
              shp_ind (replicate m 1)     --   [1,1,1,1,1,1,1]
                                      -- res = [1,0,0,1,1,0,0,0,1,0] 

@@ -62,6 +62,11 @@ l9-tls:
 	pdflatex TLS.tex
 	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb *~
 
+l10-tomasulo:
+	pdflatex OoOproc.tex
+	pdflatex OoOproc.tex
+	rm *.aux *.log *.nav *.out *.snm *.toc *.vrb *~
+
 
 proj:
 	pdflatex ProjectDiscussion.tex
