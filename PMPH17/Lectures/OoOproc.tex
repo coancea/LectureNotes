@@ -322,7 +322,7 @@ Load/store addresses computed by \emphh{\bf Address-Generation Unit AGU}.\medski
     \item false or name deps are due to limited memory resources,
     \item Tomasulo algorithm solves false dependencies 
             %{\sc waw} and {\sc war} hazards due to 
-            on register operands by dispatching
+            on memory and register operands by dispatching
             store instructions in order and 
             by renaming registers to issue Q entry numbers.
 \end  {itemize}
@@ -398,7 +398,7 @@ THEN to {\tt I3}'s TAG upon {\tt I3}  dispatch,
                 e.g., if {\tt SUBI} moved up then branch result 
                 known earlier!
 %    \item Structural Hazards: CBU/FU conflicts,
-    \item \alert{\bf Branches act as a barrier to parallelism!} 
+    \item \alert{\bf Branches still act as a barrier to parallelism!} 
 %            (ILP cannot be exploited beyond basic blocks)
 \end{itemize}
 \end{frame}
@@ -849,7 +849,7 @@ THEN to {\tt I3}'s TAG upon {\tt I3}  dispatch,
 \frametitle{Speculative Tomasulo Execution Example}
 
 \includegraphics[width=67ex]{FigsOoOProc/SpecTomasuloEg.pdf}
-\vspace{-11ex}
+\vspace{-15ex}
 
 \begin{itemize}
 %    \item New column: retire. 
