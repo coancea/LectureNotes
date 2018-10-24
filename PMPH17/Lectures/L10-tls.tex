@@ -87,7 +87,7 @@
 \institute{Department of Computer Science (DIKU)\\University of Copenhagen}
 
 
-\date[Oct'17]{October 2017 PMPH Lecture Notes}
+\date[Oct'18]{October 2018 PMPH Lecture Slides}
 
 
 \begin{document}
@@ -154,7 +154,7 @@ for(k=0; k<N; k++) \{  // \emp{seq}
 %\end{colorcode}
 \end{block} 
 
-\emp{Both loops have (simple) affine indices. Still, the LEFT one
+\emp{Both loops have simple indices. Still, the LEFT one
 is difficult to prove parallel, the other has 
 dependencies involving iteration {\tt i=k}.}
 
@@ -201,7 +201,7 @@ for(int i=0; i < N; i++)\{//\emphh{parallel?}
 \begin{itemize}
 \item If X is a permutation of \{0...N-1\}\\\pause
         then the loop is parallel.
-\item If X is not a permutation then there
+\item If X contains duplicates then there
         are cross iteration dependencies!
 \end{itemize}
 \end{scriptsize}
@@ -264,7 +264,7 @@ to track and recover from violations!}
 \begin{columns}
 \column{0.35\textwidth}
 %\vspace{-15ex}
-\includegraphics[width=22ex]{Figures/FigsTLS/IdealCommit.pdf}\pause
+\includegraphics[width=22ex]{FigsTLS/IdealCommit.pdf}\pause
 \column{0.62\textwidth}
 %\begin{scriptsize}
 \begin{itemize}
@@ -297,7 +297,7 @@ to track and recover from violations!}
 \begin{columns}
 \column{0.70\textwidth}
 %\vspace{-15ex}
-\includegraphics[width=47ex]{Figures/FigsTLS/Rollback.pdf}\pause
+\includegraphics[width=47ex]{FigsTLS/Rollback.pdf}\pause
 \column{0.42\textwidth}
 \begin{scriptsize}
 \begin{itemize}
@@ -334,7 +334,7 @@ Rundberg and Stenstrom. ``{\em An All-Software Thread-Level Data Dependence Spec
 
 \begin{columns}
 \column{0.5\textwidth}
-\includegraphics[width=28ex]{Figures/FigsTLS/SpecMemSeminal.pdf}
+\includegraphics[width=28ex]{FigsTLS/SpecMemSeminal.pdf}
 \column{0.47\textwidth}\vspace{-2ex}
 \begin{colorcode}
 \emp{DO} i = 1, N
@@ -419,7 +419,7 @@ ENDDO
 \item Gives speedup if relatively few instructions need to be protected
         with TLS support, i.e., most of them disambiguated statically.\medskip
 \item Other special tricks to optimize the common case, e.g., hold one field
-        the entry in {\tt LdVct} ({\tt StVct}) recording whether any iteration
+        in {\tt LdVct} ({\tt StVct}) recording whether any iteration
         has accessed the element. If not then {\tt SpecLD}/{\tt SpecST} are $O(1)$.
 \end{itemize} 
 
@@ -449,7 +449,7 @@ ENDDO
 \end{itemize}\bigskip
 
 Note that we have not entered all details. For example in order to commit
-efficiently, each thread needs to keen track of what it has modified.
+efficiently, each thread needs to keep track of what it has modified.
 In addition it should also clear its {\tt Ld/StVect} entries.
 
 \end{frame}
@@ -469,7 +469,7 @@ Oancea, Mycroft and Harris.
 Software Thread-Level Speculation''}, SPAA'09.\medskip
 
 {\bf Tutorial and library code \& benchmark available as:\\
-http://www.diku.dk/$\sim$zgh600/tlsindex.html}\medskip
+http://hjemmesider.diku.dk/~zgh600/tlsindex.html}\medskip
 
 \bigskip
 
@@ -496,7 +496,7 @@ Goals:
 
 \begin{columns}
 \column{0.5\textwidth}
-\includegraphics[width=28ex]{Figures/FigsTLS/SpecMem1.pdf}
+\includegraphics[width=28ex]{FigsTLS/SpecMem1.pdf}
 \column{0.47\textwidth}\vspace{-2ex}
 \begin{colorcode}
 \emp{DO} i = 1, N
@@ -540,7 +540,7 @@ ENDDO
 \emp{atomic} WORD \emphh{specLD}(volatile
       WORD* addr, int itNr)\{
 1   int i = hash(addr);
-2   \emphh{if(LdVct[i]<thNr)}
+2   \emphh{if(LdVct[i]<itNr)}
 3      \emphh{LdVct[i]=itNr;}
 4   WORD val = *addr;
 5   if(StVct[i]<=itNr)
@@ -588,7 +588,7 @@ ENDDO
 \emp{atomic} WORD \emphh{specLD}(volatile
       WORD* addr, int itNr)\{
 1   int i = hash(addr);
-2   \emphh{if(LdVct[i]<thNr)}
+2   \emphh{if(LdVct[i]<itNr)}
 3      \emphh{LdVct[i]=itNr;}
 4   WORD val = *addr;
 5   if(StVct[i]<=itNr)
@@ -780,7 +780,7 @@ void specST( volatile WORD* addr,
 \medskip\pause
 
         \begin{itemize}
-            \item The code exhibits numerous accesse falling in the
+            \item The code exhibits numerous accesses falling in the
                     {\tt store-load} relaxation pattern,  e.g., 
                     between {\tt StVct[i]} and {\tt LdVct[i]}.\pause
             \item \emphh{Allocate {\tt StVct[i]},{\tt LdVct[i]}, {\tt SyncW[i]},

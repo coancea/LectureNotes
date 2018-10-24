@@ -3,9 +3,6 @@
 -- compiled input @ data/small.in
 -- output @ data/small.out
 --
--- compiled input @ data/options-1000.in
--- output @ data/options-1000.out
---
 -- compiled input @ data/options-60000.in
 -- output @ data/options-60000.out
 
@@ -23,15 +20,14 @@ import "/futlib/array"
 --    import "header32"
 ------------------------------------------------
 --default(f64)
---import "header64"
+import "header64"
 
-default(f32)
-import "header32"
+--import "header32"
 
 ------------------------------------------------------
 --- Pushing the compiler in a direction or another ---
 ------------------------------------------------------
-let FORCE_PER_OPTION_THREAD  = false--true
+let FORCE_PER_OPTION_THREAD  = true
 
 -------------------------------------------------------------
 --- Follows code independent of the instantiation of real ---
@@ -48,25 +44,25 @@ let year = i2r 365
 let round (x : real) : i32 =
     let tmp = half + (r_abs x)
     let sgn = if x >= zero then one else (-one)
-    in  i32 (sgn*tmp)
+    in  r2i (sgn*tmp)
 
 let sgmScanPlus [n] (flags: [n]i32) (data: [n]i32) : [n]i32 =
-    #2 (unzip (scan (\(x_flag,x) (y_flag,y) ->
+    (unzip (scan (\(x_flag,x) (y_flag,y) ->
                      let flag = x_flag | y_flag in
                      if y_flag != 0
                      then (flag, y)
                      else (flag, x + y))
                     (0, 0)
-                    (zip flags data)))
+                    (zip flags data))).2
 
-let sgmScanPlusReal [n] (flags: [n]i32) (data: [n]f32) : [n]f32 =
-    #2 (unzip (scan (\(x_flag,x) (y_flag,y) ->
+let sgmScanPlusReal [n] (flags: [n]i32) (data: [n]real) : [n]real =
+    (unzip (scan (\(x_flag,x) (y_flag,y) ->
                      let flag = x_flag | y_flag in
                      if y_flag != 0
                      then (flag, y)
                      else (flag, x + y))
                     (0, 0.0)
-                    (zip flags data)))
+                    (zip flags data))).2
 
 -----------------------
 --- Data Structures ---
@@ -193,7 +189,7 @@ let bkwdHelper (X : real) (M : real) (dr : real) (dt : real) (alphai : real)
                              in  (pu*CallCopy[beg_ind+j+m+1] + pm*CallCopy[beg_ind+j+m] + pd*CallCopy[beg_ind+j+m-1]) * eRdt
 
                 -- TODO (WMP) This should be parametrized; length of contract, here 3 years
-                in if (i == (i32 (three / dt))) 
+                in if (i == (r2i (three / dt))) 
                     then r_max(X - res, zero)
                     else res
 
@@ -206,34 +202,36 @@ let trinomialChunk [ycCount] [numAllOptions] [maxOptionsInChunk]
                    (n_max : i32)
                    (optionsInChunk: i32, optionIndices: [maxOptionsInChunk]i32)
                  : [maxOptionsInChunk]real = unsafe
-  if FORCE_PER_OPTION_THREAD && ((#StrikePrice (options[optionIndices[0]])) < 0.0) 
+  if FORCE_PER_OPTION_THREAD && ( (options[optionIndices[0]]).StrikePrice < 0.0) 
      then (replicate maxOptionsInChunk 0.0) else
   -- header: get the options
-  let (Xs, ns, dts, drs, Ms, jmaxs, ms) = unzip (
-    map (\i -> if (i < 0)   -- OR i >= optionsInChunk
-               then (1.0, 0, 1.0, 1.0, 1.0, -1, -1)
+  let (tmp1, tmp2) = unzip (
+    map (\i -> if (i < 0)
+               then ((1.0, 0, 1.0, 1.0), (1.0, -1, -1))
                else
                 let option = unsafe options[i]
-                let X  = #StrikePrice     option
-                let T  = #Maturity        option
-                let n  = #NumberOfTerms   option
+                let X  = option.StrikePrice
+                let T  = option.Maturity
+                let n  = option.NumberOfTerms
                 let dt = T / (i2r n)
-                let a  = #ReversionRateParameter option
-                let sigma = #VolatilityParameter option
+                let a  = option.ReversionRateParameter
+                let sigma = option.VolatilityParameter
                 let V  = sigma*sigma*( one - (r_exp (0.0 - 2.0*a*dt)) ) / (2.0*a)
                 let dr = r_sqrt( (1.0+2.0)*V )
                 let M  = (r_exp (0.0 - a*dt)) - 1.0
-                let jmax = i32 (- 0.184 / M) + 1
+                let jmax = r2i (- 0.184 / M) + 1
                 let m  = jmax + 2
-                in  (X, n, dt, dr, M, jmax, m)
+                in  ((X, n, dt, dr), (M, jmax, m))
         ) optionIndices
     )
+  let (Xs, ns, dts, drs) = unzip4 tmp1
+  let (Ms, jmaxs, ms) = unzip3 tmp2
 
   -- make the flag array (probably usefull for segmented scan/reduce operations)
-  let map_lens   = map  (\m i -> if i < optionsInChunk then 2*m + 1 else 0) 
+  let map_lens   = map2 (\m i -> if i < optionsInChunk then 2*m + 1 else 0)
                         ms (iota maxOptionsInChunk)
   let scanned_lens = scan (+) 0 map_lens
-  let len_valinds= map  (\i m -> if i == 0 then (0, m) 
+  let len_valinds= map2 (\i m -> if i == 0 then (0, m) 
                                  else if i < optionsInChunk
                                       then (scanned_lens[i-1], m)
                                       else let last_ind = scanned_lens[optionsInChunk-1]
@@ -252,14 +250,11 @@ let trinomialChunk [ycCount] [numAllOptions] [maxOptionsInChunk]
 
   -- make the segmented (iota (2*m+1)) across all ms
   let iota2mp1_p1 = sgmScanPlus flags (replicate w 1)
-  let iota2mp1    = map (-1) iota2mp1_p1
-
-  -- make the replicated segment lengths
-  let len_flat = sgmScanPlus flags flags
+  let iota2mp1    = map (\x->x-1) iota2mp1_p1
 
   -- Q = map (\i -> if i == m then one else zero) (iota (2 * m + 1))
-  let Qs = map (\i k -> if i == ms[sgm_inds[k]] then 1.0 else 0.0 
-               ) iota2mp1 (iota w)
+  let Qs = map2 (\i k -> if i == ms[sgm_inds[k]] then 1.0 else 0.0)
+                iota2mp1 (iota w)
 
   -- alphas = replicate (n + 1) zero
   -- alphas[0] = #P (h_YieldCurve[0])
@@ -268,7 +263,7 @@ let trinomialChunk [ycCount] [numAllOptions] [maxOptionsInChunk]
   let alphass = replicate (maxOptionsInChunk * seq_len) 0.0
   let alphass = scatter alphass 
                         ( map (\i->i*seq_len) (iota maxOptionsInChunk) )
-                        ( replicate maxOptionsInChunk (#P (h_YieldCurve[0])) )
+                        ( replicate maxOptionsInChunk  (h_YieldCurve[0]).P )
   --let alphass = reshape ((maxOptionsInChunk,seq_len)) alphass
 
   -- compute n_maxInChunk
@@ -276,8 +271,7 @@ let trinomialChunk [ycCount] [numAllOptions] [maxOptionsInChunk]
   let n_maxInChunk = n_max
 
   -- time stepping
-  let (Qs,alphass) =
-  loop ((Qs,alphass)) for i < n_maxInChunk do
+  let ((_,alphass)) = loop ((Qs,alphass)) for i < n_maxInChunk do
       let imaxs = map (\jmax -> i32.min (i+1) jmax) jmaxs
 
       -- Reset
@@ -292,20 +286,20 @@ let trinomialChunk [ycCount] [numAllOptions] [maxOptionsInChunk]
       --                then zero -- Q[j + m]
       --                else fwdHelper M dr dt (alphas[i]) QCopy m i imax jmax j
       --         ) (map (-m) (iota (2*m+1)))
-      let Qs'= map (\jj w_ind->let sgm_ind = sgm_inds[w_ind] in
-                               if sgm_ind >= optionsInChunk || i >= ns[sgm_ind]
-                               then 0.0
-                               else let imax = imaxs[sgm_ind]
-                                    let m    = ms[sgm_ind] 
-                                    let j    = jj - m in
-                                    if (j < (-imax)) || (j > imax)
-                                    then 0.0
-                                    else -- unsafe
-                                         let begind = if sgm_ind == 0 then 0 else scanned_lens[sgm_ind-1] in
-                                         fwdHelper (Ms[sgm_ind]) (drs[sgm_ind]) (dts[sgm_ind]) 
-                                                   (alphass[sgm_ind*seq_len+i]) (QCopys',begind) 
-                                                   m i imax (jmaxs[sgm_ind]) j
-                   ) iota2mp1 (iota w)
+      let Qs'= map2 (\jj w_ind->let sgm_ind = sgm_inds[w_ind] in
+                                if sgm_ind >= optionsInChunk || i >= ns[sgm_ind]
+                                then 0.0
+                                else let imax = imaxs[sgm_ind]
+                                     let m    = ms[sgm_ind] 
+                                     let j    = jj - m in
+                                     if (j < (-imax)) || (j > imax)
+                                     then 0.0
+                                     else -- unsafe
+                                          let begind = if sgm_ind == 0 then 0 else scanned_lens[sgm_ind-1] in
+                                          fwdHelper (Ms[sgm_ind]) (drs[sgm_ind]) (dts[sgm_ind]) 
+                                                    (alphass[sgm_ind*seq_len+i]) (QCopys',begind) 
+                                                    m i imax (jmaxs[sgm_ind]) j)
+                    iota2mp1 (iota w)
       --------------------------      
       -- determine new alphas --
       --------------------------
@@ -315,7 +309,7 @@ let trinomialChunk [ycCount] [numAllOptions] [maxOptionsInChunk]
       --                   else unsafe Q[j+m] * r_exp(-(i2r j)*dr*dt)
       --           ) (iota (2*m+1))--(iota (2*imax+1))
       -- alpha_val = reduce (+) zero tmps
-      let tmpss = map (\ jj w_ind ->
+      let tmpss = map2 (\jj w_ind ->
                             let sgm_ind = sgm_inds[w_ind]
                             let imax    = imaxs[sgm_ind]
                             let j       = jj - imax in
@@ -352,14 +346,14 @@ let trinomialChunk [ycCount] [numAllOptions] [maxOptionsInChunk]
                                     then (ycCount - 1, ycCount - 2)
                                     else (t2         , t1         )
                              let R = -- unsafe
-                                ( (#P (h_YieldCurve[t2])) - (#P (h_YieldCurve[t1])) ) / 
-                                ( (#t (h_YieldCurve[t2])) - (#t (h_YieldCurve[t1])) ) *
-                                ( t*year - (#t (h_YieldCurve[t1])) ) + (#P (h_YieldCurve[t1]))
+                                ( (h_YieldCurve[t2]).P - (h_YieldCurve[t1]).P ) / 
+                                ( (h_YieldCurve[t2]).t - (h_YieldCurve[t1]).t ) *
+                                ( t*year - (h_YieldCurve[t1]).t ) + (h_YieldCurve[t1]).P
                              let P = r_exp(-R*t)
                              in  P
                    ) (iota maxOptionsInChunk)      
       
-      let alpha_vals = map (\alpha_val P -> r_log (alpha_val / P)) alpha_vals Ps
+      let alpha_vals = map2 (\alpha_val P -> r_log (alpha_val / P)) alpha_vals Ps
 
       -------------------------------  
       -- alphas[i + 1] = alpha_val --
@@ -372,7 +366,7 @@ let trinomialChunk [ycCount] [numAllOptions] [maxOptionsInChunk]
 
       let alphass' = scatter alphass alpha_inds alpha_vals
 
-      in  (Qs', alphass') -- Qs''
+      in  (Qs', alphass')
 
   ------------------------------------------------------------
   --- Compute values at expiration date:
@@ -385,7 +379,7 @@ let trinomialChunk [ycCount] [numAllOptions] [maxOptionsInChunk]
   --            ) (iota (2*m+1))
   -- CallCopy = replicate (2 * m + 1) zero
 
-  let Calls = map (\ j w_ind -> let sgm_ind = sgm_inds[w_ind]
+  let Calls = map2 (\j w_ind -> let sgm_ind = sgm_inds[w_ind]
                                 let (jmax,m) = (jmaxs[sgm_ind],ms[sgm_ind]) in
                                 if (j >= -jmax+m) && (j <= jmax + m)
                                 then 1.0 else 0.0
@@ -394,13 +388,12 @@ let trinomialChunk [ycCount] [numAllOptions] [maxOptionsInChunk]
   ----------------------
   -- back propagation --
   ----------------------
-  let Calls =
-  loop (Calls) for ii < n_maxInChunk do  -- condition is ii < ns[sgm_ind]
+  let (Calls) = loop (Calls) for ii < n_maxInChunk do  -- condition is ii < ns[sgm_ind]
       -- i = n - 1 - ii
       let is = map (\sgm_ind -> if sgm_ind >= optionsInChunk then 0
                                 else ns[sgm_ind] - 1 - ii 
                    ) (iota maxOptionsInChunk)
-      let imaxs = map (\jmax i -> i32.min (i+1) jmax) jmaxs is
+      let imaxs = map2 (\jmax i -> i32.min (i+1) jmax) jmaxs is
       
       ----------------------------------------------------------
       -- Copy array values to avoid overwriting during update --
@@ -416,18 +409,18 @@ let trinomialChunk [ycCount] [numAllOptions] [maxOptionsInChunk]
       --                     then zero -- Call[j + m]
       --                     else bkwdHelper X M dr dt (alphas[i]) CallCopy m i jmax j
       --              ) (map (-m) (iota (2*m+1)))
-      let Calls' = map  (\jj w_ind -> 
+      let Calls' = map2 (\jj w_ind -> 
                             let sgm_ind = sgm_inds[w_ind] in
-                            if sgm_ind >= optionsInChunk || ii >= ns[sgm_ind]
-                            then CallCopys'[jj]
+                            let begind = if sgm_ind == 0 then 0 else scanned_lens[sgm_ind-1] in
+                            if  sgm_ind >= optionsInChunk || ii >= ns[sgm_ind]
+                            then Calls[begind+jj]
                             else let imax = imaxs[sgm_ind]
                                  let i    = is[sgm_ind]
                                  let m    = ms[sgm_ind] 
                                  let j    = jj - m in
                                  if (j < (-imax)) || (j > imax)
-                                    then 0.0
+                                    then Calls[begind+jj] -- 0.0
                                     else -- unsafe
-                                         let begind = if sgm_ind == 0 then 0 else scanned_lens[sgm_ind-1] in
                                          bkwdHelper (Xs[sgm_ind]) (Ms[sgm_ind]) (drs[sgm_ind]) 
                                                     (dts[sgm_ind]) (alphass[sgm_ind*seq_len+i]) 
                                                     (CallCopys', begind) (ms[sgm_ind]) 
@@ -435,7 +428,7 @@ let trinomialChunk [ycCount] [numAllOptions] [maxOptionsInChunk]
                         )
                         iota2mp1 (iota w)
 
-      in  Calls' -- Calls''
+      in  (Calls')
 
 ------------------
 --  in Calls[m] --
@@ -455,7 +448,7 @@ let trinomialChunk [ycCount] [numAllOptions] [maxOptionsInChunk]
 -- Static Yield Curve
 -------------------------
 
-let h_YieldCurve = [ { P = 0.0501772, t = 3.0    }
+let h_YieldCurve = [ { P = 0.0501772 : real, t = 3.0 : real }
                    , { P = 0.0509389, t = 367.0  }
                    , { P = 0.0579733, t = 731.0  }
                    , { P = 0.0630595, t = 1096.0 }
@@ -468,29 +461,35 @@ let h_YieldCurve = [ { P = 0.0501772, t = 3.0    }
                    , { P = 0.0749015, t = 3653.0 }
                    ]
 
-
+-- trinomialChunk [ycCount] [numAllOptions] [maxOptionsInChunk]
+--                   (h_YieldCurve : [ycCount]YieldCurveData)
+--                   (w: i32)
+--                   (n_max : i32)
+--                   (optionIndices: [maxOptionsInChunk]i32)
+--                   (optionsInChunk: i32)
+--                   (options : [numAllOptions]TOptionData) 
+--                 : [maxOptionsInChunk]real
 let formatOptions [numOptions]
                   (w: i32)
                   (options : [numOptions]TOptionData)
                 -- (n_max, maxOptionsInChunk, optionsInChunk, optionIndices) 
-                : (i32, i32, i32, [](i32, []i32)) = unsafe
+                : (i32, i32, [](i32, []i32)) = -- unsafe
   let (ns, ms) = unzip (
     map (\option -> 
-                let T  = #Maturity        option
-                let n  = #NumberOfTerms   option
+                let T  = option.Maturity
+                let n  = option.NumberOfTerms
                 let dt = T / (i2r n)
-                let a  = #ReversionRateParameter option
-                let sigma = #VolatilityParameter option
+                let a  = option.ReversionRateParameter
                 let M  = (r_exp (0.0 - a*dt)) - 1.0
-                let jmax = i32 (- 0.184 / M) + 1
+                let jmax = r2i (- 0.184 / M) + 1
                 let m  = jmax + 2
                 in  (n+1, 2*m+1)
         ) options
     )
-  let n_max = reduce_comm (\x y -> i32.max x y) 0 ns
-  let m_max = reduce_comm (\x y -> i32.max x y) 0 ms
-  
-  let maxOptionsInChunk = w / (2*m_max+1)
+  let n_max = reduce (\x y -> i32.max x y) 0 ns
+  let m_max = reduce (\x y -> i32.max x y) 0 ms
+
+  let maxOptionsInChunk = w / m_max
   let num_chunks = (numOptions + maxOptionsInChunk - 1) / maxOptionsInChunk
   let chunks = map (\ c_ind ->
                               let num = if c_ind == num_chunks - 1 
@@ -503,7 +502,7 @@ let formatOptions [numOptions]
                               in (num, arr)
                           )
                           (iota num_chunks)
-  in  (n_max, m_max, maxOptionsInChunk, chunks)
+  in  (n_max, maxOptionsInChunk, chunks)
    
 
 -----------------
@@ -516,17 +515,16 @@ let main [q] (strikes    : [q]real)
              (vols       : [q]real) 
            : [q]real =
 
-  let options = map (\s m n r v -> { StrikePrice=s, Maturity=m, NumberOfTerms=n,
-                                       ReversionRateParameter=r, VolatilityParameter=v }
-                    ) strikes maturities numofterms rrps vols
+  let options = map5 (\s m n r v -> { StrikePrice=s, Maturity=m, NumberOfTerms=n,
+                                      ReversionRateParameter=r, VolatilityParameter=v }
+                     ) strikes maturities numofterms rrps vols
 
-  let w = 512
-  let (n_max, m_max, maxOptionsInChunk, chunks) = formatOptions w options
+  let w = 256
+  let (n_max, _, chunks) = formatOptions w options
   let chunkRes = -- : [maxOptionsInChunk]real
         map (trinomialChunk h_YieldCurve options w n_max) chunks
       
-  let num_chunks = (shape chunkRes)[0]
-  let res_flat = reshape (num_chunks*maxOptionsInChunk) chunkRes
+  let res_flat = flatten chunkRes
   let (res,_) = split (q) res_flat
   in  res
 
