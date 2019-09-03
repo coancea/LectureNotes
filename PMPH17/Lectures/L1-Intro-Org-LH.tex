@@ -89,7 +89,7 @@
 \institute{Department of Computer Science (DIKU)\\University of Copenhagen}
 
 
-\date[Sept 2018]{September 2018 PMPH Lecture Slides}
+\date[Sept 2019]{September 2019 PMPH Lecture Slides}
 
 
 \begin{document}
@@ -236,45 +236,21 @@ List Homomorphism: a way of writing inherently-parallel programs.
 \frametitle{When and Where?}
     Lectures+Lab Time and Place:\bigskip
     \begin{itemize}
-        \item Tuesday 8:15am - 12:00\medskip
+        \item Tuesday 10:00am - 12:00, Aud 03, Universitetsparken 5, HCØ\medskip
+        \item Thursday 10:00 - 12:00, 13:00 - 17:00 pm:\medskip
             \begin{itemize}
-                \item Lecture:  8:15 - 10:00  Aud 08, Universitetsparken 5, HCØ
-                \item Lab:     10:15 - 12:00  ov-4-0-10, Ole Maaløes Vej 5 (Biocenter)
-                \item Week 42 is reading week not holiday! No lecture, lab upon request.
-            \end{itemize}\bigskip
-        \item Thursday 10:15 - 12:00, 13:15 - 17:00 pm:\medskip
-            \begin{itemize}
-                \item Lecture: 10:15 - 12:00  S11, Universitetsparken 5, HCØ
-                \item Lab:     13:15 - 17:00  ov-4-0-10, Ole Maaløes Vej 5 (Biocenter)
-                \item Week 42 is reading week not holiday! No lecture, lab upon request.
+                \item Lecture: 10:00 - 12:00  ov-3-1-25, Universitetsparken 1-3, DIKU
+                \item Lab (weeks 36-39): 13:00 - 17:00, Aud 03 (AKB), Universitetsparken 13
+                \item Lab (weeks 40-44): 13:00 - 17:00, Aud D, Blegdamsvej 15-21
             \end{itemize}
+        \item \red{Office hours?}
     \end{itemize}  
 \end{frame}
 
-
-\begin{frame}[fragile]
-\frametitle{Tentative Lecture/Lab Schedule}
-    \begin{itemize}
-        \item Lectures\medskip
-            \begin{itemize}
-                \item Tuesday   8:15 - 10:00  Aud 08, HCØ\medskip
-                \item Thursday 10:15 - 12:00  ov-4-0-10, Biocenter
-            \end{itemize} \bigskip
-        \item Lab\medskip
-            \begin{itemize}
-                \item Tuesday   10:15 - 12:00 S11, HCØ\medskip
-                \item Thursday  13:15 - 17:00 ov-4-0-10, Biocenter
-            \end{itemize}
-    \end{itemize}
-\bigskip
-
-Any strong complaints about the schedule?
-\end{frame}
-
 \begin{frame}[fragile]
 \frametitle{Tentative Lecture/Lab Schedule}
 
-Your TA: Chi Pham 	email: vqr853@alumni.ku.dk,\\
+Your TA: Einar Rasmussen, ftc208@alumni.ku.dk,\\
 (mainly grading assignments and moderate Absalon discussions)\bigskip
 
 Cosmin will lead the lectures + lab.\bigskip
@@ -285,7 +261,7 @@ Continuous-evaluation assessment:
     \item one group project + final presentation and discussion: $60\%$ of final grade.
         \begin{itemize}
             \item you may chose from multiple possible projects
-            \item presented tentatively during Lab on Thursdays (?)
+            \item presented tentatively during Lab on Thursdays
             \item or discuss your own project with me.
             \item projects can be very practical in CUDA, Futhark, or more theoretical.
         \end{itemize}
@@ -311,7 +287,7 @@ Software track studies programming models for expressing data parallelism + way 
                 list-homomorphism $\equiv$ functional map-reduce style + flattening\smallskip
         \item Low-level of abstraction:\\
                 loops and transformations rooted in data dependency analysis\smallskip
-        \item Lecture Notes are/will be available for the software track!
+        \item Lecture Notes are available for the software track!
     \end{itemize}
 \bigskip
 \pause
@@ -682,12 +658,12 @@ Present at many layers:
 \begin{itemize}
     \item \emp{Transient Failures (Soft Errors):}
         \begin{itemize}
+            \item Corruption Sources: cosmic rays, alpha particles
+                    radiating from the packaging material, electrical noise;
             \item Charge stored in a transistor \emp{\tt Q = C V}
             \item Supply voltage $V$ decreases every generation\\
                     (consequence of features-size shrinking)
             \item As Q decreases, it is easier to flip bits
-            \item Corruption Sources: cosmic rays, alpha particles
-                    radiating from the packaging material, electrical noise
             \item Device operational but values have been corrupted
             \item DRAM/SRAM error detection and correction capability
         \end  {itemize}\medskip
@@ -811,7 +787,7 @@ Realm of finite lists:
 
 \emp{\bf LH: a special form of divide and conquer programming:}
 \begin{columns}
-\column{0.45\textwidth}
+\column{0.44\textwidth}
 \begin{colorcode}[fontsize=\small]
 h [ ] = e
 h [x] = f x
@@ -847,7 +823,7 @@ Realm of finite lists:
 
 \emp{\bf LH: a special form of divide and conquer programming:}
 \begin{columns}
-\column{0.45\textwidth}
+\column{0.44\textwidth}
 \begin{colorcode}[fontsize=\small]
 h [ ]   = e
 h [x]   = f x
@@ -883,7 +859,7 @@ Realm of finite lists:
 
 \emp{\bf LH: a special form of divide and conquer programming:}
 \begin{columns}
-\column{0.45\textwidth}
+\column{0.44\textwidth}
 \begin{colorcode}[fontsize=\small]
 h [ ]   = e
 h [x]   = f x
@@ -920,7 +896,7 @@ Realm of finite lists:
 
 \emp{\bf LH: a special form of divide and conquer programming:}
 \begin{columns}
-\column{0.45\textwidth}
+\column{0.44\textwidth}
 \begin{colorcode}[fontsize=\small]
 h [ ]   = e
 h [x]   = f x
@@ -938,7 +914,9 @@ all\mymath{\myindx{p}} [ ]  = True
 all\mymath{\myindx{p}} [x]  = p x 
 all\mymath{\myindx{p}} (x++y) = (all\mymath{\myindx{p}} x) && (all\mymath{\myindx{p}} y)
 \end{colorcode}
-\end{columns}
+\end{columns}\bigskip
+
+\alert{Why would it be incorrect to say that {\tt all$_p$ [] = False}?}
 
 \end{frame}
 
@@ -1164,31 +1142,31 @@ ${\tt redomap }\ \odot \ f \ e_{\odot} \ \equiv \ ({\tt reduce} \ \odot \ e_{\od
 
 \subsection{Almost Homomorphisms Gorlatch'96}
 
-%\begin{frame}[fragile]
-%	\tableofcontents[currentsubsection]
-%\end{frame}
+\begin{frame}[fragile]
+	\tableofcontents[currentsubsection]
+\end{frame}
 
 \begin{frame}[fragile,t]
-  \frametitle{Almost Homomorphisms (Gorlatch)}
+  \frametitle{Maximum Segment Sum Problem (MSSP)}
 
 \emp{``Systematic Extraction and Implementation of Divide-and-Conquer Parallelism'', Sergei Gorlatch, 1996.} 
-(attached under module Additional Teaching Material).
 \bigskip
 
-\emph{Intuition}: a non-homomorphic function $g$ can be sometimes ``lifted'' 
+\emph{Intuition}: a non-homomorphic function $g$ can be sometimes lifted 
 to a homomorphic one $f$, by computing a baggage of \emp{\em extra info}. 
 
 \bigskip
 
-The initial problem obtained by projecting the homomorphic result:\\
-$g\mbox{ }=\pi\mbox{ }.\mbox{ }f$
+The initial fun obtained by projecting the homomorphic result:\\
+$g\mbox{ }=\pi~\circ~f$
 
 \bigskip
 
-\emp{Maximum-Segment Sum Problem ({\sc mss})}: \\
+\emp{\bf Maximum-Segment Sum Problem ({\sc mssp})}: \\
 Given a list of integers, find the contiguous segment of the list 
 whose members have the largest sum among all such segments.\\
 The result is only the maximal sum (not the segment's members).
+For simplicity lets assume we are interested only in {\bf positive sums}.
 
 \bigskip
 
@@ -1199,38 +1177,79 @@ E.g., {\tt mss} [1, -2, 3, 4, -1, 5, -6, 1] = 11 \\
 
 
 \begin{frame}[fragile,t]
-  \frametitle{Maximum Segment Sum}
+  \frametitle{MSSP: Preliminary Reasoning}
 
-\begin{block}{Incorrect list-homomorphism implementation}
+\emp{\bf Maximum-Segment Sum Problem ({\sc mss})}: \\
+Given a list of integers, find the contiguous segment of the list 
+whose members have the largest sum among all such segments.\\
+The result is only the maximal sum (not the segment's members).
+For simplicity lets assume we are interested only in {\bf positive sums}.
+\medskip
+
+\red{A first straightforward/naive attempt:}
 \begin{colorcode}
-mss []       = 0
-mss (x{\tt ++}\mbox{ }y) = (mss x) \mymath{\uparrow} (mss y) -- \mymath{\uparrow} denotes Max
+mss [ ]      = 0
+mss [a]      = a \mymath{\uparrow} 0  \emp{//\mymath{\uparrow} denotes Max}
+mss (x{\tt ++}\mbox{ }y) = mss(x) ??? mss(y)
 \end{colorcode}
-\end{block} 
-
-\smallskip
-
-\alert{Incorrect:} {\tt (mss [1,-2,3,4])\mymath{\uparrow}(mss [-1,5,-6,1]) $\equiv$ 7 \mymath{\uparrow} 5 $\equiv$ 7} \\
-\emph{The correct result} of {\tt (mss [1, -2, 3, 4, -1, 5, -6, 1])} \emph{is} 11, corresponding to segment [3, 4, -1, 5].
 
 \bigskip
+\bigskip
 
-\emph{The segment of interest may lie partly in {\tt x} and partly in {\tt y}.} 
-To construct a homomorphism we need to compute extra information:\pause
+\begin{columns}
+\column{0.58\textwidth}\pause
+\includegraphics[height=20ex]{Figures/L1/mssp1}
+\column{0.44\textwidth}
+\red{Which case is problematic?}\pause\bigskip
+
+\emph{Answer: when the segment of interest lies partly in {\tt x} and partly in {\tt y}!}
+\end{columns}
+\end{frame}
+
+\begin{frame}[fragile,t]
+  \frametitle{MSSP: A Better Reasoning}
+
+\red{The problematic case is when the segment of interest lies
+     partly in {\tt x} and partly in {\tt y}!}
+\bigskip
+
+We need to compute extra information:\pause
 \begin{itemize}
-    \item maximum concluding segment: {\tt mcs x = mcs [1,-2,3,4] = 7}
-    \item maximum initial segment: {\tt mis y = mis [-1,5,-6,1] = 4}
-    \item total segment sum: {\tt ts [1,-2,3,4] = 6}\pause
-    \item {\tt mis (x++y) = (mis x) $\uparrow$ ((ts x)+(mis y))}, similar for {\tt mcs}    
-    \item {\tt mss (x++y) = (mss x) $\uparrow$ (mss y) $\uparrow$ ((mcs x) + (mis y))}
-\end{itemize}
+    \item maximum concluding segment
+    \item maximum initial segment
+    \item total segment sum
+\end{itemize}\smallskip\pause
+
+\includegraphics[height=22ex]{Figures/L1/mssp2}
+
+\end{frame}
+
+\begin{frame}[fragile,t]
+  \frametitle{MSSP: Deriving the Implementation}
+
+\includegraphics[height=22ex]{Figures/L1/mssp2}
+\medskip
+Lets compute the {\tt mis}, {\tt mcs}, {\tt mss}, and {\tt ts} for
+the result of the two concatenating segments. $\uparrow$ denotes {\tt max}.
+
+\bigskip
+{\tt mis = \pause mis1 $\uparrow$ (ts1 + mis2)}
+\medskip
+
+{\tt mcs = \pause mcs2 $\uparrow$ (mcs1 + ts2)}
+\medskip
+
+{\tt mss = \pause mss1 $\uparrow$ mss2 $\uparrow$ (mcs1 + mis2)}
+\medskip
+
+{\tt ts~~= ts1 + ts2}
 \end{frame}
 
 
 \begin{frame}[fragile,t]
   \frametitle{Maximum-Segment Sum = Near Homomorphism}
 
-\begin{block}{Correct Solution -- Test it in Haskell!}
+\begin{block}{Correct Solution (Haskellish)}
 \begin{colorcode}
 -- \mymath{x\mbox{ }\uparrow\mbox{ }y = if(x >= y) then x else y}
 (mssx, misx, mcsx, tsx) \mymath{\odot} (mssy, misy, mcsy, tsy) = (
