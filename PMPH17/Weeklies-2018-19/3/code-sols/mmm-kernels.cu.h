@@ -82,14 +82,19 @@ __global__ void matMultRegTiledKer(ElTp* A, ElTp* B, ElTp* C, int heightA, int w
     cs[i] = 0.0;
 
   for(int kk = 0; kk < widthA; kk += T) {
-      Ashreg[threadIdx.y][threadIdx.x] = 
-            ((ii+threadIdx.y < heightA) && (kk+threadIdx.x < widthA)) ?
-            A[(ii+threadIdx.y)*widthA + kk+threadIdx.x] : 0.0;
+      ElTp tmp = 0;
+      if ((ii+threadIdx.y < heightA) && (kk+threadIdx.x < widthA)) {
+        tmp = A[(ii+threadIdx.y)*widthA + kk+threadIdx.x];
+      }
+      Ashreg[threadIdx.y][threadIdx.x] = tmp;
       __syncthreads();
 
       for(int k = 0; k < T; k++) {
-          ElTp b = ((k+kk < widthA) && (j < widthB)) ? 
-                    B[(k+kk)*widthB + j] : 0.0;
+          ElTp b = 0;
+          if ((k+kk < widthA) && (j < widthB)) {
+            b = B[(k+kk)*widthB + j];
+          }
+
           #pragma unroll 
           for(int i=0; i<T; i++) {
             cs[i] += Ashreg[i][k] * b;

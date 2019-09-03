@@ -1,4 +1,4 @@
-CXX        = nvcc
+CXX        = nvcc -O3
 
 SRC1 = transpose-main.cu
 SRC2 = mmm-main.cu
